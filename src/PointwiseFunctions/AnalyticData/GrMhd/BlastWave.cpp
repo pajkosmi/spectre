@@ -11,6 +11,7 @@
 #include "DataStructures/Tensor/EagerMath/Magnitude.hpp"
 #include "DataStructures/Tensor/Tensor.hpp"  // IWYU pragma: keep
 #include "Options/ParseOptions.hpp"
+#include "PointwiseFunctions/Hydro/LorentzFactor.hpp"
 #include "PointwiseFunctions/Hydro/SpecificEnthalpy.hpp"
 #include "PointwiseFunctions/Hydro/Tags.hpp"
 #include "Utilities/ConstantExpressions.hpp"  // IWYU pragma: keep
@@ -52,7 +53,103 @@ Scalar<DataType> compute_piecewise(
           (inner_radius - outer_radius));
   return piecewise_scalar;
 }
-}  // namespace
+
+//radial velocity
+template <typename DataType>
+tuples::TaggedTuple<hydro::Tags::SpatialVelocity<DataType, 3>>
+assign_radial_velocity(
+    const tnsr::I<DataType, 3>& x, const double inner_radius,
+    const double outer_radius, const double inner_value,
+    const double outer_value, const double radial_velocity,
+    const double radial_velocity_fraction,
+    const grmhd::AnalyticData::BlastWave::Geometry geometry) {
+  // DataType radius{};
+  // DataType cos_phi{}, sin_phi{}, cos_theta{}, sin_theta{}, step_func{};
+
+  //make this yaml file
+  Parallel::printf("Radial velocity input: %f \n",radial_velocity);
+  double rad_vel_magnitude = radial_velocity; //[cgs]
+
+  // scales outer radius to assign
+  double rad_vel_scale = radial_velocity_fraction;
+                              //radial velocities
+  // //initialize velocity components to zero
+  auto rad_vel = make_with_value<tnsr::I<DataType, 3>>(x, 0.0);
+  double radius, cos_phi, sin_phi, cos_theta, sin_theta, step_func;
+
+  const size_t n_pts = get_size(get<0>(x));
+  for (size_t s = 0; s < n_pts; ++s) {
+    //angular info
+    if (geometry == grmhd::AnalyticData::BlastWave::Geometry::Cylindrical) {
+      radius = sqrt(square(get_element(get<0>(x), s)) +
+               square(get_element(get<1>(x), s)));
+      //Parallel::printf("here %f \n", radius);
+      cos_theta = 0;
+      sin_theta = 1;
+    } else {//spherical
+      radius = sqrt(square(get_element(get<0>(x), s)) +
+                    square(get_element(get<1>(x), s)) +
+                    square(get_element(get<2>(x), s)));
+      cos_theta = (radius == 0.0) ? 0 : get_element(get<2>(x), s)/radius;
+      sin_theta = (radius == 0.0) ? 0 :
+                              sqrt(square(get_element(get<0>(x), s)) +
+                              square(get_element(get<1>(x), s)))/radius;
+            }
+      //want within machine precision of 0, instead of exactly equal?
+      cos_phi = (radius == 0.0) ? 0 : get_element(get<0>(x), s)/radius;
+      sin_phi = (radius == 0.0) ? 0 : get_element(get<1>(x), s)/radius;
+
+      step_func = step_function(radius - rad_vel_scale*outer_radius) *
+      step_function(outer_radius - radius);
+
+      //Assign radial velocities
+      get_element(get<0>(rad_vel),s) = rad_vel_magnitude*cos_phi*sin_theta*
+          step_func; //x
+      get_element(get<1>(rad_vel),s) = rad_vel_magnitude*sin_phi*sin_theta*
+          step_func;//y
+      get_element(get<2>(rad_vel),s) = rad_vel_magnitude*cos_theta*
+          step_func;//z
+  }
+  return rad_vel;
+  //angular info
+  // if (geometry == grmhd::AnalyticData::BlastWave::Geometry::Cylindrical) {
+  //   radius = sqrt(square(get<0>(x)) + square(get<1>(x)));
+  //   Parallel::printf("here %f \n", radius);
+  //   // cos_phi = get<0>(x)/radius;
+  //   // sin_phi = get<1>(x)/radius;
+  //   cos_theta = 0;
+  //   sin_theta = 1;
+  // } else { //spherical
+  //   radius = get(magnitude(x));
+  //   cos_phi = get<0>(x)/radius;
+  //   sin_phi = get<1>(x)/radius;
+  //   cos_theta = get<2>(x)/radius;
+  //   sin_theta = sqrt(square(get<0>(x)) + square(get<1>(x)))/radius;
+  // }
+  // //input in .yaml later
+  // double rad_vel_magnitude = -1.0e10; //verify velocity units here
+  // double rad_vel_scale = 0.8; //scales outer radius to assign
+  //                             //radial velocities
+  // // //initialize velocity components to zero
+  // auto rad_vel = make_with_value<tnsr::I<DataType, 3>>(x, 0.0);
+  // // select outside scaled version of radius, but inside
+  // // outer radius
+  // step_func = step_function(radius - rad_vel_scale*outer_radius) *
+  //     step_function(outer_radius - radius);
+  // //apply step fxn scaling to mask out torus between
+  // //rad_vel_scale*outer_radius & outer radius
+  // get<0>(rad_vel) = rad_vel_magnitude*cos_phi*sin_theta*
+  //     step_func; //x
+  // get<1>(rad_vel) = rad_vel_magnitude*sin_phi*sin_theta*
+  //     step_func;//y
+  // get<2>(rad_vel) = rad_vel_magnitude*cos_theta*
+  //     step_func;//z
+  //Parallel::printf("Leave loop %f \n",1);
+  //return rad_vel;
+  //return make_with_value<tnsr::I<DataType, 3>>(x, 0.0);
+} //assign_radial_velocity
+
+}// namespace
 
 namespace grmhd::AnalyticData {
 
@@ -60,7 +157,10 @@ BlastWave::BlastWave(const double inner_radius, const double outer_radius,
                      const double inner_density, const double outer_density,
                      const double inner_pressure, const double outer_pressure,
                      const std::array<double, 3>& magnetic_field,
-                     const double adiabatic_index, const Geometry geometry,
+                     const double adiabatic_index,
+                     const double radial_velocity,
+                     const double radial_velocity_fraction,
+                     const Geometry geometry,
                      const Options::Context& context)
     : inner_radius_(inner_radius),
       outer_radius_(outer_radius),
@@ -70,6 +170,8 @@ BlastWave::BlastWave(const double inner_radius, const double outer_radius,
       outer_pressure_(outer_pressure),
       magnetic_field_(magnetic_field),
       adiabatic_index_(adiabatic_index),
+      radial_velocity_(radial_velocity),
+      radial_velocity_fraction_(radial_velocity_fraction),
       geometry_(geometry),
       equation_of_state_(adiabatic_index) {
   if (inner_radius >= outer_radius) {
@@ -97,6 +199,8 @@ void BlastWave::pup(PUP::er& p) {
   p | outer_pressure_;
   p | magnetic_field_;
   p | adiabatic_index_;
+  p | radial_velocity_;
+  p | radial_velocity_fraction_;
   p | geometry_;
   p | equation_of_state_;
   p | background_spacetime_;
@@ -125,7 +229,11 @@ tuples::TaggedTuple<hydro::Tags::SpatialVelocity<DataType, 3>>
 BlastWave::variables(
     const tnsr::I<DataType, 3>& x,
     tmpl::list<hydro::Tags::SpatialVelocity<DataType, 3>> /*meta*/) const {
-  return {make_with_value<tnsr::I<DataType, 3>>(x, 0.0)};
+  //call new radial velocity routine
+  return assign_radial_velocity(x, inner_radius_, outer_radius_, inner_density_,
+                        outer_density_, radial_velocity_,
+                        radial_velocity_fraction_,geometry_);
+  //return {make_with_value<tnsr::I<DataType, 3>>(x, 0.0)};
 }
 
 template <typename DataType>
@@ -168,11 +276,24 @@ BlastWave::variables(
   return {make_with_value<Scalar<DataType>>(x, 0.0)};
 }
 
+// template <typename DataType>
+// tuples::TaggedTuple<hydro::Tags::LorentzFactor<DataType>>
+// BlastWave::variables(
+//     const tnsr::I<DataType, 3>& x,
+//     tmpl::list<hydro::Tags::LorentzFactor<DataType>> /*meta*/) const {
+//   return {make_with_value<Scalar<DataType>>(x, 1.0)};
+// }
+
 template <typename DataType>
-tuples::TaggedTuple<hydro::Tags::LorentzFactor<DataType>> BlastWave::variables(
+tuples::TaggedTuple<hydro::Tags::LorentzFactor<DataType>>
+BlastWave::variables(
     const tnsr::I<DataType, 3>& x,
     tmpl::list<hydro::Tags::LorentzFactor<DataType>> /*meta*/) const {
-  return {make_with_value<Scalar<DataType>>(x, 1.0)};
+  using velocity_tag = hydro::Tags::SpatialVelocity<DataType, 3>;
+  const auto velocity =
+      get<velocity_tag>(variables(x, tmpl::list<velocity_tag>{}));
+  //Parallel::printf("v2 = %f \n",dot_product(velocity, velocity));
+  return {hydro::lorentz_factor(dot_product(velocity, velocity))};
 }
 
 template <typename DataType>
@@ -200,6 +321,8 @@ bool operator==(const BlastWave& lhs, const BlastWave& rhs) {
          lhs.outer_pressure_ == rhs.outer_pressure_ and
          lhs.magnetic_field_ == rhs.magnetic_field_ and
          lhs.adiabatic_index_ == rhs.adiabatic_index_ and
+         lhs.radial_velocity_ == rhs.radial_velocity_ and
+         lhs.radial_velocity_fraction_ == rhs.radial_velocity_fraction_ and
          lhs.geometry_ == rhs.geometry_;
 }
 

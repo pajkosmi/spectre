@@ -130,9 +130,26 @@ class BlastWave : public evolution::initial_data::InitialData,
         "The geometry of the blast wave, i.e. Cylindrical or Spherical."};
   };
 
+  /// Radial velocity of the fluid
+  struct RadialVelocity {
+    using type = double;
+    static constexpr Options::String help = {
+        "The radial velocity of the ideal fluid."};
+    //static type lower_bound() { return -2.989e10; }
+  };
+
+  /// Radial velocity fraction of the fluid
+  struct RadialVelocityFraction {
+    using type = double;
+    static constexpr Options::String help = {
+      "The inner radius, as a fraction of the outer radius"};
+    static type lower_bound() { return 0; }
+  };
+
   using options = tmpl::list<InnerRadius, OuterRadius, InnerDensity,
                              OuterDensity, InnerPressure, OuterPressure,
-                             MagneticField, AdiabaticIndex, GeometryOption>;
+                             MagneticField, AdiabaticIndex, RadialVelocity,
+                             RadialVelocityFraction, GeometryOption>;
 
   static constexpr Options::String help = {
       "Cylindrical or spherical blast wave analytic initial data."};
@@ -147,6 +164,7 @@ class BlastWave : public evolution::initial_data::InitialData,
   BlastWave(double inner_radius, double outer_radius, double inner_density,
             double outer_density, double inner_pressure, double outer_pressure,
             const std::array<double, 3>& magnetic_field, double adiabatic_index,
+            double radial_velocity, double radial_velocity_fraction,
             Geometry geometry, const Options::Context& context = {});
 
   auto get_clone() const
@@ -245,6 +263,9 @@ class BlastWave : public evolution::initial_data::InitialData,
        std::numeric_limits<double>::signaling_NaN(),
        std::numeric_limits<double>::signaling_NaN()}};
   double adiabatic_index_ = std::numeric_limits<double>::signaling_NaN();
+  double radial_velocity_ = std::numeric_limits<double>::signaling_NaN();
+  double radial_velocity_fraction_ =
+  std::numeric_limits<double>::signaling_NaN();
   Geometry geometry_ = Geometry::Cylindrical;
   EquationsOfState::IdealFluid<true> equation_of_state_{};
   gr::Solutions::Minkowski<3> background_spacetime_{};
