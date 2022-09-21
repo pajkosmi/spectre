@@ -63,11 +63,9 @@ assign_radial_velocity(
     const double outer_value, const double radial_velocity,
     const double radial_velocity_fraction,
     const grmhd::AnalyticData::BlastWave::Geometry geometry) {
-  // DataType radius{};
-  // DataType cos_phi{}, sin_phi{}, cos_theta{}, sin_theta{}, step_func{};
 
-  //make this yaml file
   Parallel::printf("Radial velocity input: %f \n",radial_velocity);
+  Parallel::printf("Radial velocity fraction: %f \n",radial_velocity_fraction);
   double rad_vel_magnitude = radial_velocity; //[cgs]
 
   // scales outer radius to assign
@@ -111,42 +109,7 @@ assign_radial_velocity(
           step_func;//z
   }
   return rad_vel;
-  //angular info
-  // if (geometry == grmhd::AnalyticData::BlastWave::Geometry::Cylindrical) {
-  //   radius = sqrt(square(get<0>(x)) + square(get<1>(x)));
-  //   Parallel::printf("here %f \n", radius);
-  //   // cos_phi = get<0>(x)/radius;
-  //   // sin_phi = get<1>(x)/radius;
-  //   cos_theta = 0;
-  //   sin_theta = 1;
-  // } else { //spherical
-  //   radius = get(magnitude(x));
-  //   cos_phi = get<0>(x)/radius;
-  //   sin_phi = get<1>(x)/radius;
-  //   cos_theta = get<2>(x)/radius;
-  //   sin_theta = sqrt(square(get<0>(x)) + square(get<1>(x)))/radius;
-  // }
-  // //input in .yaml later
-  // double rad_vel_magnitude = -1.0e10; //verify velocity units here
-  // double rad_vel_scale = 0.8; //scales outer radius to assign
-  //                             //radial velocities
-  // // //initialize velocity components to zero
-  // auto rad_vel = make_with_value<tnsr::I<DataType, 3>>(x, 0.0);
-  // // select outside scaled version of radius, but inside
-  // // outer radius
-  // step_func = step_function(radius - rad_vel_scale*outer_radius) *
-  //     step_function(outer_radius - radius);
-  // //apply step fxn scaling to mask out torus between
-  // //rad_vel_scale*outer_radius & outer radius
-  // get<0>(rad_vel) = rad_vel_magnitude*cos_phi*sin_theta*
-  //     step_func; //x
-  // get<1>(rad_vel) = rad_vel_magnitude*sin_phi*sin_theta*
-  //     step_func;//y
-  // get<2>(rad_vel) = rad_vel_magnitude*cos_theta*
-  //     step_func;//z
-  //Parallel::printf("Leave loop %f \n",1);
-  //return rad_vel;
-  //return make_with_value<tnsr::I<DataType, 3>>(x, 0.0);
+
 } //assign_radial_velocity
 
 }// namespace
@@ -233,7 +196,6 @@ BlastWave::variables(
   return assign_radial_velocity(x, inner_radius_, outer_radius_, inner_density_,
                         outer_density_, radial_velocity_,
                         radial_velocity_fraction_,geometry_);
-  //return {make_with_value<tnsr::I<DataType, 3>>(x, 0.0)};
 }
 
 template <typename DataType>
