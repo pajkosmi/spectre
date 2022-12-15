@@ -21,6 +21,7 @@
 #include "NumericalAlgorithms/Interpolation/PolynomialInterpolation.hpp"
 #include "PointwiseFunctions/GeneralRelativity/ExtrinsicCurvature.hpp"
 #include "PointwiseFunctions/GeneralRelativity/Tags.hpp"
+#include "PointwiseFunctions/Hydro/EquationsOfState/EquationOfState.hpp"
 #include "PointwiseFunctions/Hydro/SpecificEnthalpy.hpp"
 #include "PointwiseFunctions/Hydro/Tags.hpp"
 #include "Utilities/ContainerHelpers.hpp"
@@ -285,22 +286,25 @@ void compute_angular_coordinates(
 }  // namespace
 }  // namespace detail
 
-CcsnCollapse::CcsnCollapse(std::string progenitor_filename,
-                           double polytropic_constant, double adiabatic_index,
-                           double central_angular_velocity,
-                           double diff_rot_parameter,
-                           double max_dens_ratio_interp)
+CcsnCollapse::CcsnCollapse(CkMigrateMessage* msg) : InitialData(msg) {}
+
+CcsnCollapse::CcsnCollapse(
+    std::string progenitor_filename, double polytropic_transition_density,
+    double polytropic_constant_low, double adiabatic_index_low,
+    double adiabatic_index_high, double thermal_adiabatic_index,
+    double central_angular_velocity, double diff_rot_parameter,
+    double max_dens_ratio_interp)
     : progenitor_filename_(std::move(progenitor_filename)),
       prog_data_{progenitor_filename_},
-      polytropic_constant_(polytropic_constant),
-      polytropic_exponent_(adiabatic_index),
-      equation_of_state_(polytropic_constant_, polytropic_exponent_),
+      equation_of_state_(
+          cold_equation_of_state_type{
+              polytropic_transition_density, polytropic_constant_low,
+              adiabatic_index_low, adiabatic_index_high},
+          thermal_adiabatic_index),
       central_angular_velocity_(central_angular_velocity),
       inv_diff_rot_parameter_(1.0 / diff_rot_parameter) {
   CcsnCollapse::prog_data_.set_dens_ratio(max_dens_ratio_interp);
 }
-
-CcsnCollapse::CcsnCollapse(CkMigrateMessage* msg) : InitialData(msg) {}
 
 std::unique_ptr<evolution::initial_data::InitialData> CcsnCollapse::get_clone()
     const {
@@ -311,8 +315,6 @@ void CcsnCollapse::pup(PUP::er& p) {
   InitialData::pup(p);
   p | progenitor_filename_;
   p | prog_data_;
-  p | polytropic_constant_;
-  p | polytropic_exponent_;
   p | equation_of_state_;
   p | central_angular_velocity_;
   p | inv_diff_rot_parameter_;
@@ -500,14 +502,23 @@ CcsnCollapse::variables(
     const gsl::not_null<IntermediateVariables<DataType>*> vars,
     const tnsr::I<DataType, 3>& x,
     tmpl::list<hydro::Tags::SpecificEnthalpy<DataType>> /*meta*/) const {
+  // Grab variables
   const auto rest_mass_density = get<hydro::Tags::RestMassDensity<DataType>>(
       variables(vars, x, tmpl::list<hydro::Tags::RestMassDensity<DataType>>{}));
   using std::max;
+  // Initialize with zero temperature polytrope
+  const auto temperature = make_with_value<Scalar<DataType>>(x, 0.0);
+
+  // calculate h
   return {hydro::relativistic_specific_enthalpy(
       Scalar<DataType>{DataType{max(1.0e-300, get(rest_mass_density))}},
-      equation_of_state_.specific_internal_energy_from_density(
-          rest_mass_density),
-      equation_of_state_.pressure_from_density(rest_mass_density))};
+      equation_of_state_.specific_internal_energy_from_density_and_temperature(
+          rest_mass_density, temperature),
+      equation_of_state_.pressure_from_density_and_energy(
+          rest_mass_density,
+          equation_of_state_
+              .specific_internal_energy_from_density_and_temperature(
+                  rest_mass_density, temperature)))};
 }
 
 // Pressure
@@ -518,7 +529,12 @@ tuples::TaggedTuple<hydro::Tags::Pressure<DataType>> CcsnCollapse::variables(
     tmpl::list<hydro::Tags::Pressure<DataType>> /*meta*/) const {
   const auto rest_mass_density = get<hydro::Tags::RestMassDensity<DataType>>(
       variables(vars, x, tmpl::list<hydro::Tags::RestMassDensity<DataType>>{}));
-  return {equation_of_state_.pressure_from_density(rest_mass_density)};
+  const auto temperature = make_with_value<Scalar<DataType>>(x, 0.0);
+
+  return {equation_of_state_.pressure_from_density_and_energy(
+      rest_mass_density,
+      equation_of_state_.specific_internal_energy_from_density_and_temperature(
+          rest_mass_density, temperature))};
 }
 
 // Specific internal energy
@@ -530,7 +546,7 @@ CcsnCollapse::variables(
     tmpl::list<hydro::Tags::SpecificInternalEnergy<DataType>> /*meta*/) const {
   const auto rest_mass_density = get<hydro::Tags::RestMassDensity<DataType>>(
       variables(vars, x, tmpl::list<hydro::Tags::RestMassDensity<DataType>>{}));
-
+  const auto temperature = make_with_value<Scalar<DataType>>(x, 0.0);
   // Eventually, below will call for piecewise polytrope or tabulated EOS
   //  auto temperature = vars->temperature;
   //  auto electron_fraction = vars->electron_fraction;
@@ -538,8 +554,9 @@ CcsnCollapse::variables(
   // specific_internal_energy_from_density_and_temperature_and_ye_impl(
   // rest_mass_density, temperature, electron_fraction)};
 
-  return {equation_of_state_.specific_internal_energy_from_density(
-      rest_mass_density)};
+  return {
+      equation_of_state_.specific_internal_energy_from_density_and_temperature(
+          rest_mass_density, temperature)};
 }
 
 // Electron fraction
@@ -825,8 +842,8 @@ bool operator==(const CcsnCollapse& lhs, const CcsnCollapse& rhs) {
   // polytropic_constant_ are the same, then the solution and
   // EOS should be too.
   return lhs.progenitor_filename_ == rhs.progenitor_filename_ and
-         lhs.polytropic_constant_ == rhs.polytropic_constant_ and
-         lhs.polytropic_exponent_ == rhs.polytropic_exponent_ and
+         // lhs.polytropic_constant_ == rhs.polytropic_constant_ and
+         // lhs.polytropic_exponent_ == rhs.polytropic_exponent_ and
          lhs.central_angular_velocity_ == rhs.central_angular_velocity_ and
          lhs.inv_diff_rot_parameter_ == rhs.inv_diff_rot_parameter_;
 }

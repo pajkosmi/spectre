@@ -61,12 +61,15 @@ struct DerivedClasses<false, 1> {
 template <>
 struct DerivedClasses<true, 2> {
   using type = tmpl::list<DarkEnergyFluid<true>, IdealFluid<true>,
-                          HybridEos<PolytropicFluid<true>>>;
+                          HybridEos<PiecewisePolytropicFluid<true>>,
+                              HybridEos<PolytropicFluid<true>>>;
 };
 
 template <>
 struct DerivedClasses<false, 2> {
-  using type = tmpl::list<IdealFluid<false>, HybridEos<PolytropicFluid<false>>>;
+  using type =
+      tmpl::list<IdealFluid<false>, HybridEos<PiecewisePolytropicFluid<false>>,
+                 HybridEos<PolytropicFluid<false>>>;
 };
 
 template <>
