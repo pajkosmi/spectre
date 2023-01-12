@@ -17,6 +17,7 @@ spectre_target_sources(
   ExpandOverBlocks.cpp
   FrustalCloak.cpp
   Interval.cpp
+  NestedCubes.cpp
   Rectangle.cpp
   RegisterDerivedWithCharm.cpp
   RotatedBricks.cpp
@@ -44,6 +45,7 @@ spectre_target_headers(
   Factory3D.hpp
   FrustalCloak.hpp
   Interval.hpp
+  NestedCubes.hpp
   Rectangle.hpp
   RegisterDerivedWithCharm.hpp
   RotatedBricks.hpp
