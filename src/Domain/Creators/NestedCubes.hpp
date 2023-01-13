@@ -59,13 +59,46 @@ class NestedCubes : public DomainCreator<VolumeDim> {
         "will be applied to each direction."};
   };
 
-  struct BlocksPerDim {
+  // Width of a layer of fixed refinement, in units of number of blocks
+  // As an example below, the domain has:
+  // * central refinement level of 2
+  // * 3 layers of refinement
+  // * Layerwidth of 2 blocks per layer of fixed refinement
+  //
+  // | |
+  // |-| Layer width = 2
+  // v v
+  // 0 0 0 0 0 0 0 0 0
+  // 0 0 0 0 0 0 0 0 0
+  // 0 0 1 1 1 1 1 0 0 <-- Layer width = 2
+  // 0 0 1 1 1 1 1 0 0 <--
+  // 0 0 1 1 2 1 1 0 0
+  // 0 0 1 1 1 1 1 0 0
+  // 0 0 1 1 1 1 1 0 0
+  // 0 0 0 0 0 0 0 0 0
+  // 0 0 0 0 0 0 0 0 0
+  //
+
+  struct LayerWidth {
     using type = size_t;
     static constexpr Options::String help = {
-        "Number of nested cubes. A single cube (block) with has zero nested "
-        "levels. A Rubix cube (3 blocks in each dimension where one of those "
-        "blocks is the central cube) has 1 nested level."};
+        "Width of a layer of fixed refinement, in units of number of blocks."};
   };
+
+  struct NumberOfRefinementLevels {
+    using type = size_t;
+    static constexpr Options::String help = {"Number of refinement levels."
+
+    };
+  };
+
+  //   struct BlocksPerDim {
+  //     using type = size_t;
+  //     static constexpr Options::String help = {
+  //         "Number of nested cubes. A single cube (block) with has zero nested
+  //         " "levels. A Rubix cube (3 blocks in each dimension where one of
+  //         those " "blocks is the central cube) has 1 nested level."};
+  //   };
 
   struct IsPeriodicIn {
     using type = std::array<bool, VolumeDim>;
@@ -93,8 +126,9 @@ class NestedCubes : public DomainCreator<VolumeDim> {
     using type = std::unique_ptr<BoundaryConditionsBase>;
   };
 
-  using common_options = tmpl::list<DomainBounds, MaxRefinementLevel,
-                                    BlocksPerDim, NumberOfGridPoints>;
+  using common_options =
+      tmpl::list<DomainBounds, LayerWidth, NumberOfRefinementLevels,
+                 MaxRefinementLevel, NumberOfGridPoints>;
   using options_periodic = tmpl::list<IsPeriodicIn>;
 
   template <typename Metavariables>
@@ -110,20 +144,24 @@ class NestedCubes : public DomainCreator<VolumeDim> {
 
   static constexpr Options::String help = {"Nested cubes."};
 
-  NestedCubes(typename DomainBounds::type domain_bounds,
-              typename MaxRefinementLevel::type max_refinement_level,
-              typename BlocksPerDim::type blocks_per_dim,
-              typename NumberOfGridPoints::type grid_points,
-              typename IsPeriodicIn::type is_periodic_in,
-              const Options::Context& context = {});
+  NestedCubes(
+      typename DomainBounds::type domain_bounds,
+      typename LayerWidth::type layer_width,
+      typename NumberOfRefinementLevels::type number_of_refinement_levels,
+      typename MaxRefinementLevel::type max_refinement_level,
+      typename NumberOfGridPoints::type grid_points,
+      typename IsPeriodicIn::type is_periodic_in,
+      const Options::Context& context = {});
 
-  NestedCubes(typename DomainBounds::type domain_bounds,
-              typename MaxRefinementLevel::type max_refinement_level,
-              typename BlocksPerDim::type blocks_per_dim,
-              typename NumberOfGridPoints::type grid_points,
-              std::unique_ptr<domain::BoundaryConditions::BoundaryCondition>
-                  boundary_condition = nullptr,
-              const Options::Context& context = {});
+  NestedCubes(
+      typename DomainBounds::type domain_bounds,
+      typename LayerWidth::type layer_width,
+      typename NumberOfRefinementLevels::type number_of_refinement_levels,
+      typename MaxRefinementLevel::type max_refinement_level,
+      typename NumberOfGridPoints::type grid_points,
+      std::unique_ptr<domain::BoundaryConditions::BoundaryCondition>
+          boundary_condition = nullptr,
+      const Options::Context& context = {});
 
   NestedCubes() = default;
   NestedCubes(const NestedCubes&) = delete;
@@ -151,7 +189,8 @@ class NestedCubes : public DomainCreator<VolumeDim> {
   typename std::array<std::vector<double>, VolumeDim> block_bounds_{};
   typename IsPeriodicIn::type is_periodic_in_{make_array<VolumeDim>(false)};
   typename MaxRefinementLevel::type max_refinement_{};
-  typename BlocksPerDim::type blocks_per_dim_{};
+  typename LayerWidth::type layer_width_{};
+  size_t blocks_per_dim_{};
   typename NumberOfGridPoints::type grid_points_{};
   domain::creators::AlignedLattice<VolumeDim> aligned_lattice_;
   Index<VolumeDim> number_of_blocks_by_dim_{};

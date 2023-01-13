@@ -61,16 +61,19 @@ void NestedCubes<VolumeDim>::common_construction(
 template <size_t VolumeDim>
 NestedCubes<VolumeDim>::NestedCubes(
     typename DomainBounds::type domain_bounds,
-    typename MaxRefinementLevel::type max_refinement,
-    typename BlocksPerDim::type blocks_per_dim,
+    typename LayerWidth::type layer_width,
+    typename NumberOfRefinementLevels::type number_of_refinement_levels,
+    typename MaxRefinementLevel::type max_refinement_level,
     typename NumberOfGridPoints::type grid_points,
     typename IsPeriodicIn::type is_periodic_in, const Options::Context& context)
     // clang-tidy: trivially copyable
     : is_periodic_in_(std::move(is_periodic_in)),  // NOLINT
       max_refinement_(                             // NOLINT
-          std::move(max_refinement)),              // NOLINT
-      blocks_per_dim_(                             // NOLINT
-          std::move(blocks_per_dim)),              // NOLINT
+          std::move(max_refinement_level)),        // NOLINT
+      layer_width_(std::move(layer_width)),
+      blocks_per_dim_(  // NOLINT
+          1 + (std::move(number_of_refinement_levels) - 1) *
+                  (2 * layer_width_)),  // NOLINT
       grid_points_(std::move(grid_points)),
       number_of_blocks_by_dim_(blocks_per_dim_),
       boundary_condition_(nullptr) {
@@ -80,17 +83,20 @@ NestedCubes<VolumeDim>::NestedCubes(
 template <size_t VolumeDim>
 NestedCubes<VolumeDim>::NestedCubes(
     typename DomainBounds::type domain_bounds,
-    typename MaxRefinementLevel::type max_refinement,
-    typename BlocksPerDim::type blocks_per_dim,
+    typename LayerWidth::type layer_width,
+    typename NumberOfRefinementLevels::type number_of_refinement_levels,
+    typename MaxRefinementLevel::type max_refinement_level,
     typename NumberOfGridPoints::type grid_points,
     std::unique_ptr<domain::BoundaryConditions::BoundaryCondition>
         boundary_condition,
     const Options::Context& context)
     : is_periodic_in_(make_array<VolumeDim>(false)),  // NOLINT
       max_refinement_(                                // NOLINT
-          std::move(max_refinement)),                 // NOLINT
-      blocks_per_dim_(                                // NOLINT
-          std::move(blocks_per_dim)),                 // NOLINT
+          std::move(max_refinement_level)),           // NOLINT
+      layer_width_(std::move(layer_width)),
+      blocks_per_dim_(  // NOLINT
+          1 + (std::move(number_of_refinement_levels) - 1) *
+                  (2 * std::move(layer_width))),  // NOLINT
       grid_points_(std::move(grid_points)),
       number_of_blocks_by_dim_(blocks_per_dim_),
       boundary_condition_(std::move(boundary_condition)) {
@@ -154,6 +160,7 @@ NestedCubes<VolumeDim>::initial_extents() const {
   return result;
 }
 
+// Calculate refinement levels
 template <size_t VolumeDim>
 std::vector<std::array<size_t, VolumeDim>>
 NestedCubes<VolumeDim>::initial_refinement_levels() const {
@@ -164,50 +171,73 @@ NestedCubes<VolumeDim>::initial_refinement_levels() const {
   // Floor divide
   const int center_block_index = static_cast<int>(blocks_per_dim_) / 2;
 
-  const auto get_refinement = [](const std::vector<int>& in) {
-    return std::max(*std::min_element(std::begin(in), std::end(in)), 0);
-  };
+  // const auto get_refinement = [](const std::vector<int>& in) {
+  //   return std::max(*std::min_element(std::begin(in), std::end(in)), 0);
+  // };
 
-  const auto get_distance = [this,
-                             &center_block_index](const int coord) -> int {
-    return static_cast<int>(max_refinement_) -
-           std::abs(coord - center_block_index);
-  };
+  // const auto get_distance = [this,
+  //                            &center_block_index](const int coord) -> int {
+  //   return static_cast<int>(max_refinement_) -
+  //          std::abs(coord - center_block_index);
+  // };
 
   size_t index = 0;
   std::vector<int> distances(VolumeDim);
+
+  // shortcut variables
+  size_t index_from_central_block = 0;
+  size_t refinement_levels_below_central_refinement = 0;
+  size_t refinement_level = 0;
 
   if constexpr (VolumeDim == 3) {
     for (int z = 0; z < static_cast<int>(blocks_per_dim_); z++) {
       for (int y = 0; y < static_cast<int>(blocks_per_dim_); y++) {
         for (int x = 0; x < static_cast<int>(blocks_per_dim_); x++) {
-          distances[0] = get_distance(x);
-          distances[1] = get_distance(y);
-          distances[2] = get_distance(z);
+          index_from_central_block = static_cast<size_t>(std::max(
+              {abs(x - center_block_index), abs(y - center_block_index),
+               abs(z - center_block_index)}));
 
-          result[index] = make_array<VolumeDim, size_t>(
-              static_cast<size_t>(get_refinement(distances)));
+          refinement_levels_below_central_refinement =
+              (index_from_central_block + (layer_width_ - 1)) / layer_width_;
+
+          refinement_level = static_cast<size_t>(std::max(
+              static_cast<int>(max_refinement_ -
+                               refinement_levels_below_central_refinement),
+              0));
+
+          result[index] = make_array<VolumeDim, size_t>(refinement_level);
           ++index;
         }
       }
     }
-  } else if constexpr (VolumeDim == 2) {
+  } else if constexpr (VolumeDim == 2) {  // max in y & z cases for only 1 loop?
     for (int y = 0; y < static_cast<int>(blocks_per_dim_); y++) {
       for (int x = 0; x < static_cast<int>(blocks_per_dim_); x++) {
-        distances[0] = get_distance(x);
-        distances[1] = get_distance(y);
+        index_from_central_block = static_cast<size_t>(std::max(
+            {abs(x - center_block_index), abs(y - center_block_index)}));
 
-        result[index] = make_array<VolumeDim, size_t>(
-            static_cast<size_t>(get_refinement(distances)));
+        refinement_levels_below_central_refinement =
+            (index_from_central_block + (layer_width_ - 1)) / layer_width_;
+
+        refinement_level =
+            max(max_refinement_ - refinement_levels_below_central_refinement);
+
+        result[index] = make_array<VolumeDim, size_t>(refinement_level);
         ++index;
       }
     }
   } else if constexpr (VolumeDim == 1) {
     for (int x = 0; x < static_cast<int>(blocks_per_dim_); x++) {
-      distances[0] = get_distance(x);
+      index_from_central_block =
+          static_cast<size_t>(abs(x - center_block_index));
 
-      result[index] = make_array<VolumeDim, size_t>(
-          static_cast<size_t>(get_refinement(distances)));
+      refinement_levels_below_central_refinement =
+          (index_from_central_block + (layer_width_ - 1)) / layer_width_;
+
+      refinement_level =
+          max(max_refinement_ - refinement_levels_below_central_refinement);
+
+      result[index] = make_array<VolumeDim, size_t>(refinement_level);
       ++index;
     }
   }
