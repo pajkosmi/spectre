@@ -19,7 +19,10 @@
 #include "DataStructures/Variables.hpp"
 #include "DataStructures/VariablesTag.hpp"
 #include "Domain/Block.hpp"
+<<<<<<< HEAD
 #include "Domain/BoundaryConditions/BoundaryCondition.hpp"
+=======
+>>>>>>> 0677439dda (Add NilsDeppe choose FD/DG blocks/groups)
 #include "Domain/Creators/DomainCreator.hpp"
 #include "Domain/Domain.hpp"
 #include "Domain/Structure/Direction.hpp"
