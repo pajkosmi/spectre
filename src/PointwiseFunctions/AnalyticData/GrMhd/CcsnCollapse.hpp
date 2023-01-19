@@ -352,7 +352,8 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   tuples::TaggedTuple<Tags...> variables(const tnsr::I<DataType, 3>& x,
                                          tmpl::list<Tags...> /*meta*/) const {
     IntermediateVariables<DataType> intermediate_vars{
-        x, 1.0e-4 * prog_data_.max_radius()};
+        x, 1.0e-6 * prog_data_.max_radius()};
+
     return {get<Tags>(variables(make_not_null(&intermediate_vars), x,
                                 tmpl::list<Tags>{}))...};
   }
