@@ -129,11 +129,6 @@ class SubcellOptions {
 
   /// \brief A list of block names on which to never do subcell.
   ///
-<<<<<<< HEAD
-=======
-  /// Can overlap with blocks listed in `OnlyDgBlockGroups`.
-  ///
->>>>>>> 0677439dda (Add NilsDeppe choose FD/DG blocks/groups)
   /// Set to `None` to allow subcell in all blocks.
   struct OnlyDgBlocksAndGroups {
     using type =
@@ -183,13 +178,10 @@ class SubcellOptions {
   /// The `DomainCreator` is used to convert block and group names into IDs
   /// and also to check that all listed block names and groups are in the
   /// domain.
-<<<<<<< HEAD
   ///
   /// \note This is a workaround since our option parser does not allow us to
   /// retrieve options specified somewhere completely different in the input
   /// file.
-=======
->>>>>>> 0677439dda (Add NilsDeppe choose FD/DG blocks/groups)
   template <size_t Dim>
   SubcellOptions(const SubcellOptions& subcell_options_with_block_names,
                  const DomainCreator<Dim>& domain_creator);
