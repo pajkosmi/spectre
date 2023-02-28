@@ -3,6 +3,29 @@
 
 from PolytropicFluid import polytropic_pressure_from_density
 from PolytropicFluid import polytropic_specific_internal_energy_from_density
+from PiecewisePolytropicFluid import polytropic_pressure_from_density
+from PiecewisePolytropicFluid import (
+    polytropic_specific_internal_energy_from_density)
+
+
+# General pressure from density call that will select
+# proper eos, based on number of input arguments
+#def polytropic_pressure_from_density(rest_mass_density, polytropic_constant,
+#                                     polytropic_exponent):
+#def piecewisepolytropic_pressure_from_density(rest_mass_density,
+#                                              transition_density,
+#                                              poly_constant_lo,
+#                                              poly_exponent_lo,
+#                                              poly_exponent_hi):
+def pressure_from_density(rest_mass_density, polytropic_constant,
+                          polytropic_exponent, polytropic_exponent_hi,
+                          transition_density):
+
+    return
+
+
+# def specific_internal_energy_from_density()
+#     return
 
 
 def hybrid_polytrope_pressure_from_density_and_energy(rest_mass_density,

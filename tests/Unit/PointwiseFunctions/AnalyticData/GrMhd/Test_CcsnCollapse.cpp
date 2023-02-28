@@ -33,49 +33,88 @@ static_assert(
     "CcsnCollapse should be analytic_data and not an analytic_solution");
 
 // Make sure different parameters give different answers
-void test_equality(std::string progenitor_filename, double polytropic_constant,
-                   double adiabatic_index, double central_angular_velocity,
-                   double diff_rot_parameter, double max_dens_ratio) {
+// void test_equality(std::string progenitor_filename, double
+// polytropic_constant,
+//                    double adiabatic_index, double central_angular_velocity,
+//                    double diff_rot_parameter, double max_dens_ratio)
+
+void test_equality(std::string progenitor_filename,
+                   double polytropic_transition_density,
+                   double polytropic_constant_low, double adiabatic_index_low,
+                   double adiabatic_index_high, double thermal_adiabatic_index,
+                   double central_angular_velocity, double diff_rot_parameter,
+                   double max_dens_ratio_interp) {
   Parallel::register_classes_with_charm<grmhd::AnalyticData::CcsnCollapse>();
   // Base case for comparison
+  //   const CcsnCollapse ccsn_progenitor_original{
+  //       progenitor_filename,      polytropic_constant, adiabatic_index,
+  //       central_angular_velocity, diff_rot_parameter,  max_dens_ratio};
+
   const CcsnCollapse ccsn_progenitor_original{
-      progenitor_filename,      polytropic_constant, adiabatic_index,
-      central_angular_velocity, diff_rot_parameter,  max_dens_ratio};
+      progenitor_filename,      polytropic_transition_density,
+      polytropic_constant_low,  adiabatic_index_low,
+      adiabatic_index_high,     thermal_adiabatic_index,
+      central_angular_velocity, diff_rot_parameter,
+      max_dens_ratio_interp};
+
+  //   CcsnCollapse(std::string progenitor_filename,
+  //                double polytropic_transition_density,
+  //                double polytropic_constant_low, double adiabatic_index_low,
+  //                double adiabatic_index_high, double thermal_adiabatic_index,
+  //                double central_angular_velocity, double diff_rot_parameter,
+  //                double max_dens_ratio_interp)
 
   CHECK_THROWS_WITH(
-      CcsnCollapse(progenitor_filename + "bad_name", polytropic_constant,
-                   adiabatic_index, central_angular_velocity,
-                   diff_rot_parameter, max_dens_ratio),
+      CcsnCollapse(progenitor_filename + "badname",
+                   polytropic_transition_density, polytropic_constant_low,
+                   adiabatic_index_low, adiabatic_index_high,
+                   thermal_adiabatic_index, central_angular_velocity,
+                   diff_rot_parameter, max_dens_ratio_interp),
       Catch::Matchers::Contains("Data file not found"));
 
   const auto ccsn_progenitor =
       serialize_and_deserialize(ccsn_progenitor_original);
-  CHECK(ccsn_progenitor == CcsnCollapse(progenitor_filename,
-                                        polytropic_constant, adiabatic_index,
-                                        central_angular_velocity,
-                                        diff_rot_parameter, max_dens_ratio));
+  CHECK(ccsn_progenitor ==
+        CcsnCollapse(progenitor_filename, polytropic_transition_density,
+                     polytropic_constant_low, adiabatic_index_low,
+                     adiabatic_index_high, thermal_adiabatic_index,
+                     central_angular_velocity, diff_rot_parameter,
+                     max_dens_ratio_interp));
   CHECK(ccsn_progenitor !=
-        CcsnCollapse(progenitor_filename, polytropic_constant + 0.1,
-                     adiabatic_index, central_angular_velocity,
-                     diff_rot_parameter, max_dens_ratio));
+        CcsnCollapse(progenitor_filename, polytropic_transition_density,
+                     polytropic_constant_low + 0.1, adiabatic_index_low,
+                     adiabatic_index_high, thermal_adiabatic_index,
+                     central_angular_velocity, diff_rot_parameter,
+                     max_dens_ratio_interp));
   CHECK(ccsn_progenitor !=
-        CcsnCollapse(progenitor_filename, polytropic_constant,
-                     adiabatic_index + 0.1, central_angular_velocity,
-                     diff_rot_parameter, max_dens_ratio));
-  CHECK(ccsn_progenitor != CcsnCollapse(progenitor_filename,
-                                        polytropic_constant, adiabatic_index,
-                                        central_angular_velocity + 0.1,
-                                        diff_rot_parameter, max_dens_ratio));
+        CcsnCollapse(progenitor_filename, polytropic_transition_density,
+                     polytropic_constant_low + 0.1, adiabatic_index_low + 0.1,
+                     adiabatic_index_high, thermal_adiabatic_index,
+                     central_angular_velocity, diff_rot_parameter,
+                     max_dens_ratio_interp));
   CHECK(ccsn_progenitor !=
-        CcsnCollapse(progenitor_filename, polytropic_constant, adiabatic_index,
-                     central_angular_velocity, diff_rot_parameter + 100,
-                     max_dens_ratio));
+        CcsnCollapse(progenitor_filename, polytropic_transition_density,
+                     polytropic_constant_low + 0.1, adiabatic_index_low,
+                     adiabatic_index_high, thermal_adiabatic_index,
+                     central_angular_velocity + 0.1, diff_rot_parameter,
+                     max_dens_ratio_interp));
+  CHECK(ccsn_progenitor !=
+        CcsnCollapse(progenitor_filename, polytropic_transition_density,
+                     polytropic_constant_low + 0.1, adiabatic_index_low,
+                     adiabatic_index_high, thermal_adiabatic_index,
+                     central_angular_velocity, diff_rot_parameter + 0.1,
+                     max_dens_ratio_interp));
+  // Add more differences?
 }
 
 void test_ccsn_collapse(std::string progenitor_filename,
-                        double polytropic_constant, double adiabatic_index,
+                        double polytropic_transition_density,
+                        double polytropic_constant_low,
+                        double adiabatic_index_low, double adiabatic_index_high,
+                        double thermal_adiabatic_index,
                         double central_angular_velocity,
-                        double diff_rot_parameter, double max_dens_ratio) {
+                        double diff_rot_parameter,
+                        double max_dens_ratio_interp) {
   Parallel::register_classes_with_charm<grmhd::AnalyticData::CcsnCollapse>();
 
   const std::unique_ptr<evolution::initial_data::InitialData> option_solution =
@@ -84,10 +123,19 @@ void test_ccsn_collapse(std::string progenitor_filename,
           grmhd::AnalyticData::CcsnCollapse>(
           "CcsnCollapse:\n"
           "  ProgenitorFilename: " +
-          progenitor_filename +
+          std::to_string(progenitor_filename) +
           "\n"
-          "  AdiabaticIndex: " +
-          std::to_string(adiabatic_index) +
+          "  PiecewisePolytropicTransitionDensity: " +
+          std::to_string(polytropic_transition_densit) +
+          "\n"
+          "  ThermalAdiabaticIndex: " +
+          std::to_string(thermal_adiabatic_index) +
+          "\n"
+          "  PolytropicAdiabaticIndexLow: " +
+          std::to_string(adiabatic_index_low) +
+          "\n"
+          "  PolytropicAdiabaticIndexHigh: " +
+          std::to_string(adiabatic_index_high) +
           "\n"
           "  CentralAngularVelocity: " +
           std::to_string(central_angular_velocity) +
@@ -95,11 +143,11 @@ void test_ccsn_collapse(std::string progenitor_filename,
           "  DifferentialRotationParameter: " +
           std::to_string(diff_rot_parameter) +
           "\n"
-          "  PolytropicConstant: " +
-          std::to_string(polytropic_constant) +
+          "  PolytropicConstantLow: " +
+          std::to_string(polytropic_constant_low) +
           "\n"
           "  MaxDensityRatioForLinearInterpolation: " +
-          std::to_string(max_dens_ratio) + "\n")
+          std::to_string(max_dens_ratio_interp) + "\n")
           ->get_clone();
 
   const auto deserialized_option_solution =
@@ -164,18 +212,41 @@ void test_ccsn_collapse(std::string progenitor_filename,
               grmhd::AnalyticData::CcsnCollapse>(
               "CcsnCollapse:\n"
               "  ProgenitorFilename: " +
-              progenitor_filename +
+              std::to_string(progenitor_filename) +
               "\n"
-              "  AdiabaticIndex: " +
-              std::to_string(adiabatic_index) +
+              "  PiecewisePolytropicTransitionDensity: " +
+              std::to_string(polytropic_transition_density) +
+              "\n"
+              "  ThermalAdiabaticIndex: " +
+              std::to_string(thermal_adiabatic_index) +
+              "\n"
+              "  PolytropicAdiabaticIndexLow: " +
+              std::to_string(adiabatic_index_low) +
+              "\n"
+              "  PolytropicAdiabaticIndexHigh: " +
+              std::to_string(adiabatic_index_high) +
               "\n"
               "  CentralAngularVelocity: 147669\n"
               "  DifferentialRotationParameter: 1.0e20\n"
-              "  PolytropicConstant: " +
-              std::to_string(polytropic_constant) +
+              "  PolytropicConstantLow: " +
+              std::to_string(polytropic_constant_low) +
               "\n"
               "  MaxDensityRatioForLinearInterpolation: 0.0\n")
               ->get_clone();
+  //   "CcsnCollapse:\n"
+  //   "  ProgenitorFilename: " +
+  //   progenitor_filename +
+  //   "\n"
+  //   "  AdiabaticIndex: " +
+  //   std::to_string(adiabatic_index) +
+  //   "\n"
+  //   "  CentralAngularVelocity: 147669\n"
+  //   "  DifferentialRotationParameter: 1.0e20\n"
+  //   "  PolytropicConstant: " +
+  //   std::to_string(polytropic_constant) +
+  //   "\n"
+  //   "  MaxDensityRatioForLinearInterpolation: 0.0\n")
+  //   ->get_clone();
 
   const auto deserialized_v_grtr_than_c_solution =
       serialize_and_deserialize(v_grtr_than_c_solution);
@@ -232,20 +303,38 @@ SPECTRE_TEST_CASE("Unit.PointwiseFunctions.AnalyticData.GrMhd.CcsnCollapse",
       unit_test_src_path() +
       "PointwiseFunctions/AnalyticData/GrMhd/"
       "CcsnCollapseID.dat";
-  const double polytropic_constant = 0.11943;
-  const double adiabatic_index = 1.3;
+  //   const double polytropic_constant = 0.11943;
+  //   const double adiabatic_index = 1.3;
+  //   const double central_angular_velocity = 1.0e-5;
+  //   const double diff_rot_parameter = 339.0;
+  //   const double max_dens_ratio = 100.0;
+
+  const double polytropic_transition_density = 1.6e-4;
+  const double polytropic_constant_low = 0.11943;
+  const double adiabatic_index_low = 1.3;
+  const double adiabatic_index_high = 1.666666667;
+  const double thermal_adiabatic_index = 1.7;
   const double central_angular_velocity = 1.0e-5;
   const double diff_rot_parameter = 339.0;
-  const double max_dens_ratio = 100.0;
+  const double max_dens_ratio_interp = 100.0;
 
   // Test if (de)serialized data are equal
-  test_equality(progenitor_filename, polytropic_constant, adiabatic_index,
-                central_angular_velocity, diff_rot_parameter, max_dens_ratio);
+  test_equality(progenitor_filename, polytropic_transition_density,
+                polytropic_constant_low, adiabatic_index_low,
+                adiabatic_index_high, thermal_adiabatic_index,
+                central_angular_velocity, diff_rot_parameter,
+                max_dens_ratio_interp);
 
   // Check physicality of interpolated data
-  test_ccsn_collapse(progenitor_filename, polytropic_constant, adiabatic_index,
+  //   test_ccsn_collapse(progenitor_filename, polytropic_constant,
+  //   adiabatic_index,
+  //                      central_angular_velocity, diff_rot_parameter,
+  //                      max_dens_ratio);
+  test_ccsn_collapse(progenitor_filename, polytropic_transition_density,
+                     polytropic_constant_low, adiabatic_index_low,
+                     adiabatic_index_high, thermal_adiabatic_index,
                      central_angular_velocity, diff_rot_parameter,
-                     max_dens_ratio);
+                     max_dens_ratio_interp);
 }
 
 }  // namespace
