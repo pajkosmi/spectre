@@ -21,7 +21,7 @@
 #include "NumericalAlgorithms/Interpolation/PolynomialInterpolation.hpp"
 #include "PointwiseFunctions/GeneralRelativity/ExtrinsicCurvature.hpp"
 #include "PointwiseFunctions/GeneralRelativity/Tags.hpp"
-#include "PointwiseFunctions/Hydro/EquationsOfState/EquationOfState.hpp"
+//#include "PointwiseFunctions/Hydro/EquationsOfState/EquationOfState.hpp"
 #include "PointwiseFunctions/Hydro/SpecificEnthalpy.hpp"
 #include "PointwiseFunctions/Hydro/Tags.hpp"
 #include "Utilities/ContainerHelpers.hpp"
@@ -296,11 +296,8 @@ CcsnCollapse::CcsnCollapse(
     double max_dens_ratio_interp)
     : progenitor_filename_(std::move(progenitor_filename)),
       prog_data_{progenitor_filename_},
-      equation_of_state_(
-          cold_equation_of_state_type{
-              polytropic_transition_density, polytropic_constant_low,
-              adiabatic_index_low, adiabatic_index_high},
-          thermal_adiabatic_index),
+      equation_of_state_(polytropic_transition_density, polytropic_constant_low,
+                         adiabatic_index_low, adiabatic_index_high),
       central_angular_velocity_(central_angular_velocity),
       inv_diff_rot_parameter_(1.0 / diff_rot_parameter) {
   CcsnCollapse::prog_data_.set_dens_ratio(max_dens_ratio_interp);
@@ -512,13 +509,9 @@ CcsnCollapse::variables(
   // calculate h
   return {hydro::relativistic_specific_enthalpy(
       Scalar<DataType>{DataType{max(1.0e-300, get(rest_mass_density))}},
-      equation_of_state_.specific_internal_energy_from_density_and_temperature(
-          rest_mass_density, temperature),
-      equation_of_state_.pressure_from_density_and_energy(
-          rest_mass_density,
-          equation_of_state_
-              .specific_internal_energy_from_density_and_temperature(
-                  rest_mass_density, temperature)))};
+      equation_of_state_.specific_internal_energy_from_density(
+          rest_mass_density),
+      equation_of_state_.pressure_from_density(rest_mass_density))};
 }
 
 // Pressure
@@ -531,10 +524,7 @@ tuples::TaggedTuple<hydro::Tags::Pressure<DataType>> CcsnCollapse::variables(
       variables(vars, x, tmpl::list<hydro::Tags::RestMassDensity<DataType>>{}));
   const auto temperature = make_with_value<Scalar<DataType>>(x, 0.0);
 
-  return {equation_of_state_.pressure_from_density_and_energy(
-      rest_mass_density,
-      equation_of_state_.specific_internal_energy_from_density_and_temperature(
-          rest_mass_density, temperature))};
+  return {equation_of_state_.pressure_from_density(rest_mass_density)};
 }
 
 // Specific internal energy
@@ -554,9 +544,8 @@ CcsnCollapse::variables(
   // specific_internal_energy_from_density_and_temperature_and_ye_impl(
   // rest_mass_density, temperature, electron_fraction)};
 
-  return {
-      equation_of_state_.specific_internal_energy_from_density_and_temperature(
-          rest_mass_density, temperature)};
+  return {equation_of_state_.specific_internal_energy_from_density(
+      rest_mass_density)};
 }
 
 // Electron fraction

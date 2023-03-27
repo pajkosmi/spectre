@@ -13,10 +13,9 @@
 #include "Options/Options.hpp"
 #include "PointwiseFunctions/AnalyticData/AnalyticData.hpp"
 #include "PointwiseFunctions/AnalyticData/GrMhd/AnalyticData.hpp"
-#include "PointwiseFunctions/Hydro/EquationsOfState/EquationOfState.hpp"
-// #include
-// "PointwiseFunctions/Hydro/EquationsOfState/PiecewisePolytropicFluid.hpp"
-#include "PointwiseFunctions/Hydro/EquationsOfState/Factory.hpp"
+// #include "PointwiseFunctions/Hydro/EquationsOfState/EquationOfState.hpp"
+#include "PointwiseFunctions/Hydro/EquationsOfState/PiecewisePolytropicFluid.hpp"
+// #include "PointwiseFunctions/Hydro/EquationsOfState/Factory.hpp"
 #include "PointwiseFunctions/InitialDataUtilities/InitialData.hpp"
 #include "Utilities/TMPL.hpp"
 #include "Utilities/TaggedTuple.hpp"
@@ -189,8 +188,11 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   using cold_equation_of_state_type =
       EquationsOfState::PiecewisePolytropicFluid<true>;
 
-  using equation_of_state_type = EquationsOfState::HybridEos<
-      EquationsOfState::PiecewisePolytropicFluid<true>>;
+  // using equation_of_state_type = EquationsOfState::HybridEos<
+  //     EquationsOfState::PiecewisePolytropicFluid<true>>;
+
+  using equation_of_state_type =
+      EquationsOfState::PiecewisePolytropicFluid<true>;
 
   /// The massive star progenitor data file.
   struct ProgenitorFilename {
@@ -361,9 +363,10 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   // NOLINTNEXTLINE(google-runtime-references)
   void pup(PUP::er& p) override;
 
-  const EquationsOfState::HybridEos<
-      EquationsOfState::PiecewisePolytropicFluid<true>>
-  equation_of_state() const {
+  // const EquationsOfState::HybridEos<
+  //     EquationsOfState::PiecewisePolytropicFluid<true>>
+  const EquationsOfState::PiecewisePolytropicFluid<true> equation_of_state()
+      const {
     return equation_of_state_;
   }
 
@@ -542,7 +545,8 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
 
   std::string progenitor_filename_{};
   detail::ProgenitorProfile prog_data_{};
-  equation_of_state_type equation_of_state_{};
+  // equation_of_state_type equation_of_state_{};
+  cold_equation_of_state_type equation_of_state_{};
   double central_angular_velocity_ =
       std::numeric_limits<double>::signaling_NaN();
   double inv_diff_rot_parameter_ = std::numeric_limits<double>::signaling_NaN();
