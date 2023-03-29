@@ -69,6 +69,7 @@ add_ghmhd_with_horizon_executable(
   "${LIBS_TO_LINK}"
   )
 
+
 add_ghmhd_with_horizon_executable(
   MagnetizedFmDisk
   gh::Solutions::WrappedGr<grmhd::AnalyticData::MagnetizedFmDisk>
@@ -90,5 +91,11 @@ add_ghmhd_with_horizon_executable(
 add_ghmhd_executable(
   TovStar
   gh::Solutions::WrappedGr<RelativisticEuler::Solutions::TovStar>
+  "${LIBS_TO_LINK}"
+  )
+
+add_ghmhd_executable(
+  CcsnCollapse
+  GeneralizedHarmonic::Solutions::WrappedGr<grmhd::AnalyticData::CcsnCollapse>
   "${LIBS_TO_LINK}"
   )

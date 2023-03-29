@@ -473,6 +473,29 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
                  tmpl::list<gr::Tags::ExtrinsicCurvature<DataType, 3>> /*meta*/)
       const -> tuples::TaggedTuple<gr::Tags::ExtrinsicCurvature<DataType, 3>>;
 
+  template <typename DataType>
+  auto variables(const gsl::not_null<IntermediateVariables<DataType>*> vars,
+                 const tnsr::I<DataType, 3>& x,
+                 tmpl::list<::Tags::dt<gr::Tags::Lapse<DataType>>> /*meta*/)
+      const -> tuples::TaggedTuple<::Tags::dt<gr::Tags::Lapse<DataType>>>;
+
+  template <typename DataType>
+  auto variables(const gsl::not_null<IntermediateVariables<DataType>*> vars,
+                 const tnsr::I<DataType, 3>& x,
+                 tmpl::list<::Tags::dt<gr::Tags::SpatialMetric<
+                     3, Frame::Inertial, DataType>>> /*meta*/) const
+      -> tuples::TaggedTuple<
+          ::Tags::dt<gr::Tags::SpatialMetric<3, Frame::Inertial, DataType>>>;
+
+  template <typename DataType>
+  auto variables(
+      const gsl::not_null<IntermediateVariables<DataType>*> vars,
+      const tnsr::I<DataType, 3>& x,
+      tmpl::list<
+          ::Tags::dt<gr::Tags::Shift<3, Frame::Inertial, DataType>>> /*meta*/)
+      const -> tuples::TaggedTuple<
+          ::Tags::dt<gr::Tags::Shift<3, Frame::Inertial, DataType>>>;
+
   friend bool operator==(const CcsnCollapse& lhs, const CcsnCollapse& rhs);
 
   std::string progenitor_filename_{};
