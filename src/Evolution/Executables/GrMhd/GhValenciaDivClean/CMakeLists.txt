@@ -99,3 +99,9 @@ add_ghmhd_executable(
   GeneralizedHarmonic::Solutions::WrappedGr<grmhd::AnalyticData::CcsnCollapse>
   "${LIBS_TO_LINK}"
   )
+
+add_ghmhd_executable(
+  CcsnCollapse
+  GeneralizedHarmonic::Solutions::WrappedGr<grmhd::AnalyticData::CcsnCollapse>
+  "${LIBS_TO_LINK}"
+  )
