@@ -156,8 +156,8 @@
 #include "PointwiseFunctions/AnalyticData/AnalyticData.hpp"
 #include "PointwiseFunctions/AnalyticData/GhGrMhd/Factory.hpp"
 #include "PointwiseFunctions/AnalyticData/GrMhd/BlastWave.hpp"
-#include "PointwiseFunctions/AnalyticData/GrMhd/CcsnCollapse.hpp"
 #include "PointwiseFunctions/AnalyticData/GrMhd/BondiHoyleAccretion.hpp"
+#include "PointwiseFunctions/AnalyticData/GrMhd/CcsnCollapse.hpp"
 #include "PointwiseFunctions/AnalyticData/GrMhd/MagneticFieldLoop.hpp"
 #include "PointwiseFunctions/AnalyticData/GrMhd/MagneticRotor.hpp"
 #include "PointwiseFunctions/AnalyticData/GrMhd/MagnetizedFmDisk.hpp"
@@ -424,10 +424,33 @@ struct GhValenciaDivCleanTemplateBase<
                      gr::Tags::SpacetimeNormalVectorCompute<
                          DataVector, volume_dim, domain_frame>,
                      gr::Tags::InverseSpacetimeMetricCompute<
-                         DataVector, volume_dim, domain_frame>,
-                     gh::Tags::GaugeConstraintCompute<volume_dim, domain_frame>,
-                     ::Tags::PointwiseL2NormCompute<gh::Tags::GaugeConstraint<
-                         DataVector, volume_dim, domain_frame>>>,
+                         volume_dim, domain_frame, DataVector>,
+
+                     gh::Tags::GaugeConstraintCompute<
+                         volume_dim, domain_frame>,
+                    //  gh::Tags::TwoIndexConstraintCompute<
+                    //      volume_dim, domain_frame>,
+                     gh::Tags::ThreeIndexConstraintCompute<
+                         volume_dim, domain_frame>,
+                     gh::Tags::FourIndexConstraintCompute<
+                         volume_dim, domain_frame>,
+                    //  gh::Tags::FConstraintCompute<
+                    //      volume_dim, domain_frame>,
+                    //  gh::Tags::ConstraintEnergyCompute<
+                    //      volume_dim, Frame::Inertial>,
+
+                     ::Tags::PointwiseL2NormCompute<
+                         gh::Tags::GaugeConstraint<
+                             volume_dim, domain_frame>>,
+                     //::Tags::PointwiseL2NormCompute<
+                     //    GeneralizedHarmonic::Tags::TwoIndexConstraint<
+                     //        volume_dim, domain_frame>>,
+                     ::Tags::PointwiseL2NormCompute<
+                         GeneralizedHarmonic::Tags::ThreeIndexConstraint<
+                             volume_dim, domain_frame>>,
+                     ::Tags::PointwiseL2NormCompute<
+                         GeneralizedHarmonic::Tags::FourIndexConstraint<
+                             volume_dim, domain_frame>>>,
           tmpl::conditional_t<use_dg_subcell,
                               tmpl::list<evolution::dg::subcell::Tags::
                                              TciStatusCompute<volume_dim>>,
@@ -469,7 +492,12 @@ struct GhValenciaDivCleanTemplateBase<
               evolution::dg::subcell::Tags::ObserverInverseJacobianCompute<
                   volume_dim, Frame::ElementLogical, Frame::Inertial>,
               evolution::dg::subcell::Tags::ObserverJacobianAndDetInvJacobian<
-                  volume_dim, Frame::ElementLogical, Frame::Inertial>>,
+                  volume_dim, Frame::ElementLogical, Frame::Inertial>,
+              ::Tags::DerivCompute<
+                  typename system::variables_tag,
+                  ::Events::Tags::ObserverInverseJacobian<
+                      volume_dim, Frame::ElementLogical, Frame::Inertial>,
+                  typename system::gradient_variables>>,
           tmpl::list<::Events::Tags::ObserverMeshCompute<volume_dim>,
                      ::Events::Tags::ObserverInverseJacobianCompute<
                          volume_dim, Frame::ElementLogical, Frame::Inertial>,
