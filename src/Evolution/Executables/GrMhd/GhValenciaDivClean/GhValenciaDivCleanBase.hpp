@@ -410,47 +410,36 @@ struct GhValenciaDivCleanTemplateBase<
           typename system::primitive_variables_tag::tags_list,
           tmpl::conditional_t<use_numeric_initial_data, tmpl::list<>,
                               error_tags>,
-          tmpl::list<hydro::Tags::MassWeightedInternalEnergyCompute<DataVector>,
-                     hydro::Tags::MassWeightedKineticEnergyCompute<DataVector>,
-                     hydro::Tags::TildeDUnboundUtCriterionCompute<
-                         DataVector, volume_dim, domain_frame>,
-                     hydro::Tags::MassWeightedCoordsCompute<
-                         DataVector, volume_dim, ::domain::ObjectLabel::None,
-                         Events::Tags::ObserverCoordinates<3, Frame::Grid>,
-                         Events::Tags::ObserverCoordinates<3, Frame::Inertial>,
-                         Frame::Inertial>,
-                     gr::Tags::SpacetimeNormalOneFormCompute<
-                         DataVector, volume_dim, domain_frame>,
-                     gr::Tags::SpacetimeNormalVectorCompute<
-                         DataVector, volume_dim, domain_frame>,
-                     gr::Tags::InverseSpacetimeMetricCompute<
-                         volume_dim, domain_frame, DataVector>,
+          tmpl::list<
+              gr::Tags::SpacetimeNormalOneFormCompute<DataVector, volume_dim,
+                                                      domain_frame>,
+              gr::Tags::SpacetimeNormalVectorCompute<DataVector, volume_dim,
+                                                     domain_frame>,
+              gr::Tags::InverseSpacetimeMetricCompute<volume_dim, domain_frame,
+                                                      DataVector>,
 
-                     gh::Tags::GaugeConstraintCompute<
-                         volume_dim, domain_frame>,
-                    //  gh::Tags::TwoIndexConstraintCompute<
-                    //      volume_dim, domain_frame>,
-                     gh::Tags::ThreeIndexConstraintCompute<
-                         volume_dim, domain_frame>,
-                     gh::Tags::FourIndexConstraintCompute<
-                         volume_dim, domain_frame>,
-                    //  gh::Tags::FConstraintCompute<
-                    //      volume_dim, domain_frame>,
-                    //  gh::Tags::ConstraintEnergyCompute<
-                    //      volume_dim, Frame::Inertial>,
+              gh::Tags::GaugeConstraintCompute<volume_dim, domain_frame>,
+              //  gh::Tags::TwoIndexConstraintCompute<
+              //      volume_dim, domain_frame>,
+              gh::Tags::ThreeIndexConstraintCompute<volume_dim, domain_frame>,
+              gh::Tags::FourIndexConstraintCompute<volume_dim, domain_frame>,
+              //  gh::Tags::FConstraintCompute<
+              //      volume_dim, domain_frame>,
+              //  gh::Tags::ConstraintEnergyCompute<
+              //      volume_dim, Frame::Inertial>,
 
-                     ::Tags::PointwiseL2NormCompute<
-                         gh::Tags::GaugeConstraint<
-                             volume_dim, domain_frame>>,
-                     //::Tags::PointwiseL2NormCompute<
-                     //    GeneralizedHarmonic::Tags::TwoIndexConstraint<
-                     //        volume_dim, domain_frame>>,
-                     ::Tags::PointwiseL2NormCompute<
-                         GeneralizedHarmonic::Tags::ThreeIndexConstraint<
-                             volume_dim, domain_frame>>,
-                     ::Tags::PointwiseL2NormCompute<
-                         GeneralizedHarmonic::Tags::FourIndexConstraint<
-                             volume_dim, domain_frame>>>,
+              ::Tags::PointwiseL2NormCompute<
+                  gh::Tags::GaugeConstraint<volume_dim, domain_frame>>,
+              //::Tags::PointwiseL2NormCompute<
+              //    GeneralizedHarmonic::Tags::TwoIndexConstraint<
+              //        volume_dim, domain_frame>>,
+              ::Tags::PointwiseL2NormCompute<
+                  GeneralizedHarmonic::Tags::ThreeIndexConstraint<
+                      volume_dim, domain_frame>>,
+              ::Tags::PointwiseL2NormCompute<
+                  GeneralizedHarmonic::Tags::FourIndexConstraint<
+                      volume_dim, domain_frame>>>,
+
           tmpl::conditional_t<use_dg_subcell,
                               tmpl::list<evolution::dg::subcell::Tags::
                                              TciStatusCompute<volume_dim>>,
