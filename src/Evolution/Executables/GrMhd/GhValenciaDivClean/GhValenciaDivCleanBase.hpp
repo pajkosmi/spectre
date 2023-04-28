@@ -419,26 +419,27 @@ struct GhValenciaDivCleanTemplateBase<
                                                       DataVector>,
 
               gh::Tags::GaugeConstraintCompute<volume_dim, domain_frame>,
-              //  gh::Tags::TwoIndexConstraintCompute<
-              //      volume_dim, domain_frame>,
+              // gh::Tags::TwoIndexConstraintCompute<
+              //     volume_dim, domain_frame>,
               gh::Tags::ThreeIndexConstraintCompute<volume_dim, domain_frame>,
               gh::Tags::FourIndexConstraintCompute<volume_dim, domain_frame>,
-              //  gh::Tags::FConstraintCompute<
-              //      volume_dim, domain_frame>,
-              //  gh::Tags::ConstraintEnergyCompute<
-              //      volume_dim, Frame::Inertial>,
-
+              // These two constraints will cause errors at runtime b/c
+              // the gamma 2 constraint depends on coordinates, which
+              // depends on mesh information
+              // FConstraint
+              // gh::Tags::FConstraintCompute<
+              //    volume_dim, domain_frame>,
+              // gh::Tags::ConstraintEnergyCompute<
+              //    volume_dim, domain_frame>,
               ::Tags::PointwiseL2NormCompute<
                   gh::Tags::GaugeConstraint<volume_dim, domain_frame>>,
               //::Tags::PointwiseL2NormCompute<
-              //    GeneralizedHarmonic::Tags::TwoIndexConstraint<
+              //    gh::Tags::TwoIndexConstraint<
               //        volume_dim, domain_frame>>,
               ::Tags::PointwiseL2NormCompute<
-                  GeneralizedHarmonic::Tags::ThreeIndexConstraint<
-                      volume_dim, domain_frame>>,
+                  gh::Tags::ThreeIndexConstraint<volume_dim, domain_frame>>,
               ::Tags::PointwiseL2NormCompute<
-                  GeneralizedHarmonic::Tags::FourIndexConstraint<
-                      volume_dim, domain_frame>>>,
+                  gh::Tags::FourIndexConstraint<volume_dim, domain_frame>>>,
 
           tmpl::conditional_t<use_dg_subcell,
                               tmpl::list<evolution::dg::subcell::Tags::
