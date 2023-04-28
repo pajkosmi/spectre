@@ -254,8 +254,8 @@ namespace Tags {
  * This tag may be retrieved via `::Tags::Variables<db::wrap_tags_in<deriv,
  * DerivTags, Dim, deriv_frame>`.
  */
-template <typename VariablesTag, typename InverseJacobianTag,
-          typename DerivTags = typename VariablesTag::type::tags_list>
+template <typename VariablesTag, typename MeshTag, typename InverseJacobianTag,
+        typename DerivTags = typename VariablesTag::type::tags_list>
 struct DerivCompute
     : db::add_tag_prefix<
           deriv, ::Tags::Variables<DerivTags>,
@@ -285,7 +285,7 @@ struct DerivCompute
       partial_derivatives<DerivTags, typename VariablesTag::type::tags_list,
                           Dim, deriv_frame>;
   using argument_tags =
-      tmpl::list<VariablesTag, domain::Tags::Mesh<Dim>, InverseJacobianTag>;
+      tmpl::list<VariablesTag, MeshTag, InverseJacobianTag>;
 };
 
 /*!

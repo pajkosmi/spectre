@@ -484,6 +484,7 @@ struct GhValenciaDivCleanTemplateBase<
                   volume_dim, Frame::ElementLogical, Frame::Inertial>,
               ::Tags::DerivCompute<
                   typename system::variables_tag,
+                  ::Events::Tags::ObserverMesh<volume_dim>,
                   ::Events::Tags::ObserverInverseJacobian<
                       volume_dim, Frame::ElementLogical, Frame::Inertial>,
                   typename system::gradient_variables>>,
