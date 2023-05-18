@@ -141,7 +141,7 @@ std::optional<std::string> HydroFreeOutflow::dg_ghost(
       for (size_t spatial_index = 0; spatial_index < 3; ++spatial_index) {
         exterior_spatial_velocity.get(spatial_index)[i] =
             interior_spatial_velocity.get(spatial_index)[i] -
-            get(normal_dot_interior_spatial_velocity)[i] *
+            0.01 * get(normal_dot_interior_spatial_velocity)[i] *
                 outward_directed_normal_vector.get(spatial_index)[i];
       }
     }
@@ -360,6 +360,7 @@ void HydroFreeOutflow::fd_ghost_impl(
   get<Pressure>(outermost_prim_vars) = get_boundary_val(interior_pressure);
 
   {
+    // MIKE, let velocity enter domain
     // Kill ingoing components of spatial velocity and compute Wv^i
     //
     // Note : Here we require the grid to be Cartesian, therefore we will need

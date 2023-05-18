@@ -823,10 +823,8 @@ template <typename DataType>
 auto CcsnCollapse::variables(
     const gsl::not_null<IntermediateVariables<DataType>*> /*vars*/,
     const tnsr::I<DataType, 3>& x,
-    tmpl::list<
-        ::Tags::dt<gr::Tags::Shift<3, Frame::Inertial, DataType>>> /*meta*/)
-    const -> tuples::TaggedTuple<
-        ::Tags::dt<gr::Tags::Shift<3, Frame::Inertial, DataType>>> {
+    tmpl::list<::Tags::dt<gr::Tags::Shift<DataType, 3>>> /*meta*/) const
+    -> tuples::TaggedTuple<::Tags::dt<gr::Tags::Shift<DataType, 3>>> {
   return {make_with_value<tnsr::I<DataType, 3, Frame::Inertial>>(x, 0.0)};
 }
 
@@ -835,10 +833,8 @@ template <typename DataType>
 auto CcsnCollapse::variables(
     const gsl::not_null<IntermediateVariables<DataType>*> /*vars*/,
     const tnsr::I<DataType, 3>& x,
-    tmpl::list<::Tags::dt<
-        gr::Tags::SpatialMetric<3, Frame::Inertial, DataType>>> /*meta*/) const
-    -> tuples::TaggedTuple<
-        ::Tags::dt<gr::Tags::SpatialMetric<3, Frame::Inertial, DataType>>> {
+    tmpl::list<::Tags::dt<gr::Tags::SpatialMetric<DataType, 3>>> /*meta*/) const
+    -> tuples::TaggedTuple<::Tags::dt<gr::Tags::SpatialMetric<DataType, 3>>> {
   return {make_with_value<tnsr::ii<DataType, 3, Frame::Inertial>>(x, 0.0)};
 }
 
@@ -931,15 +927,13 @@ GENERATE_INSTANTIATIONS(INSTANTIATE_METRIC_TENSORS, (double, DataVector),
 
 #undef INSTANTIATE_METRIC_TENSORS
 
-#define INSTANTIATE_METRIC_DT_TENSORS(_, data)                                \
-  template tuples::TaggedTuple < ::Tags::dt < TAG(data) < 3, Frame::Inertial, \
-      DTYPE(data) >>>                                                         \
-          CcsnCollapse::variables(                                            \
-              const gsl::not_null<IntermediateVariables<DTYPE(data)>*> vars,  \
-              const tnsr::I<DTYPE(data), 3>& x,                               \
-              tmpl::list < ::Tags::dt < TAG(data) < 3, Frame::Inertial,       \
-              DTYPE(data) >>>                                                 \
-              /*meta*/) const;
+#define INSTANTIATE_METRIC_DT_TENSORS(_, data)                                 \
+  template tuples::TaggedTuple < ::Tags::dt < TAG(data) < DTYPE(data),         \
+      3 >>> CcsnCollapse::variables(                                           \
+                const gsl::not_null<IntermediateVariables<DTYPE(data)>*> vars, \
+                const tnsr::I<DTYPE(data), 3>& x,                              \
+                tmpl::list < ::Tags::dt < TAG(data) < DTYPE(data), 3 >>>       \
+                /*meta*/) const;
 
 GENERATE_INSTANTIATIONS(INSTANTIATE_METRIC_DT_TENSORS, (double, DataVector),
                         (gr::Tags::Shift, gr::Tags::SpatialMetric))
