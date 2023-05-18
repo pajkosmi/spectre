@@ -415,9 +415,8 @@ struct GhValenciaDivCleanTemplateBase<
                                                       domain_frame>,
               gr::Tags::SpacetimeNormalVectorCompute<DataVector, volume_dim,
                                                      domain_frame>,
-              gr::Tags::InverseSpacetimeMetricCompute<volume_dim, domain_frame,
-                                                      DataVector>,
-
+              gr::Tags::InverseSpacetimeMetricCompute<DataVector, volume_dim,
+                                                      domain_frame>,
               gh::Tags::GaugeConstraintCompute<volume_dim, domain_frame>,
               // gh::Tags::TwoIndexConstraintCompute<
               //     volume_dim, domain_frame>,
@@ -431,15 +430,15 @@ struct GhValenciaDivCleanTemplateBase<
               //    volume_dim, domain_frame>,
               // gh::Tags::ConstraintEnergyCompute<
               //    volume_dim, domain_frame>,
-              ::Tags::PointwiseL2NormCompute<
-                  gh::Tags::GaugeConstraint<volume_dim, domain_frame>>,
+              ::Tags::PointwiseL2NormCompute<gh::Tags::GaugeConstraint<
+                  DataVector, volume_dim, domain_frame>>,
               //::Tags::PointwiseL2NormCompute<
               //    gh::Tags::TwoIndexConstraint<
               //        volume_dim, domain_frame>>,
-              ::Tags::PointwiseL2NormCompute<
-                  gh::Tags::ThreeIndexConstraint<volume_dim, domain_frame>>,
-              ::Tags::PointwiseL2NormCompute<
-                  gh::Tags::FourIndexConstraint<volume_dim, domain_frame>>>,
+              ::Tags::PointwiseL2NormCompute<gh::Tags::ThreeIndexConstraint<
+                  DataVector, volume_dim, domain_frame>>,
+              ::Tags::PointwiseL2NormCompute<gh::Tags::FourIndexConstraint<
+                  DataVector, volume_dim, domain_frame>>>,
 
           tmpl::conditional_t<use_dg_subcell,
                               tmpl::list<evolution::dg::subcell::Tags::
