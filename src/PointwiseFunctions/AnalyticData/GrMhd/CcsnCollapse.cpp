@@ -21,6 +21,7 @@
 #include "NumericalAlgorithms/Interpolation/PolynomialInterpolation.hpp"
 #include "PointwiseFunctions/GeneralRelativity/ExtrinsicCurvature.hpp"
 #include "PointwiseFunctions/GeneralRelativity/Tags.hpp"
+#include "PointwiseFunctions/Hydro/EquationsOfState/EquationOfState.hpp"
 #include "PointwiseFunctions/Hydro/SpecificEnthalpy.hpp"
 #include "PointwiseFunctions/Hydro/Tags.hpp"
 #include "Utilities/ContainerHelpers.hpp"
@@ -285,16 +286,16 @@ void compute_angular_coordinates(
 }  // namespace
 }  // namespace detail
 
-CcsnCollapse::CcsnCollapse(std::string progenitor_filename,
-                           double polytropic_constant, double adiabatic_index,
-                           double central_angular_velocity,
-                           double diff_rot_parameter,
-                           double max_dens_ratio_interp)
+CcsnCollapse::CcsnCollapse(
+    std::string progenitor_filename, double polytropic_transition_density,
+    double polytropic_constant_low, double adiabatic_index_low,
+    double adiabatic_index_high,
+    double central_angular_velocity, double diff_rot_parameter,
+    double max_dens_ratio_interp)
     : progenitor_filename_(std::move(progenitor_filename)),
       prog_data_{progenitor_filename_},
-      polytropic_constant_(polytropic_constant),
-      polytropic_exponent_(adiabatic_index),
-      equation_of_state_(polytropic_constant_, polytropic_exponent_),
+      equation_of_state_(polytropic_transition_density, polytropic_constant_low,
+                         adiabatic_index_low, adiabatic_index_high),
       central_angular_velocity_(central_angular_velocity),
       inv_diff_rot_parameter_(1.0 / diff_rot_parameter) {
   CcsnCollapse::prog_data_.set_dens_ratio(max_dens_ratio_interp);
@@ -311,8 +312,6 @@ void CcsnCollapse::pup(PUP::er& p) {
   InitialData::pup(p);
   p | progenitor_filename_;
   p | prog_data_;
-  p | polytropic_constant_;
-  p | polytropic_exponent_;
   p | equation_of_state_;
   p | central_angular_velocity_;
   p | inv_diff_rot_parameter_;

@@ -13,7 +13,7 @@
 #include "Options/String.hpp"
 #include "PointwiseFunctions/AnalyticData/AnalyticData.hpp"
 #include "PointwiseFunctions/AnalyticData/GrMhd/AnalyticData.hpp"
-#include "PointwiseFunctions/Hydro/EquationsOfState/PolytropicFluid.hpp"
+#include "PointwiseFunctions/Hydro/EquationsOfState/PiecewisePolytropicFluid.hpp"
 #include "PointwiseFunctions/InitialDataUtilities/InitialData.hpp"
 #include "Utilities/TMPL.hpp"
 #include "Utilities/TaggedTuple.hpp"
@@ -183,7 +183,8 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   };
 
  public:
-  using equation_of_state_type = EquationsOfState::PolytropicFluid<true>;
+  using equation_of_state_type =
+      EquationsOfState::PiecewisePolytropicFluid<true>;
 
   /// The massive star progenitor data file.
   struct ProgenitorFilename {
@@ -192,30 +193,69 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
         "The supernova progenitor data file."};
   };
 
-  /// The polytropic constant of the fluid.
+  /// The density demarcating the high and low density descriptions of the
+  /// fluid.
+  struct PiecewisePolytropicTransitionDensity {
+    using type = double;
+    static constexpr Options::String help = {
+        "Density below (above) which, the matter is described by a low (high) "
+        "density polytropic fluid."};
+    static double lower_bound() { return 0.0; }
+  };
+
+  /// The polytropic constant for the low density fluid.
   ///
-  /// The remaining hydrodynamic primitive variables (e.g., pressure)
-  /// will be calculated based on this \f$K\f$ for \f$P=K\rho^{\Gamma}\f$.
-  struct PolytropicConstant {
+  /// This constant \f$K\f$ describes the `cold' (i.e. not shock-heated)
+  /// material through the piecewise polytrope, \f$P=K\rho^{\Gamma}\f$.
+  struct PolytropicConstantLow {
     using type = double;
     static constexpr Options::String help = {
         "The polytropic constant of the fluid."};
     static type lower_bound() { return 0.; }
   };
 
-  /// Adiabatic index of the system at readin.
+  /// Adiabatic index of the system describing cold, low density material.
   ///
   /// Note the density profile used is from the initial profile calculated from
   /// the TOV equations, specified by ProgenitorFilename.  A lower, user
   /// defined, \f$\Gamma\f$ will cause a lower pressure for an equation of state
   /// of the form \f$P=K\rho^{\Gamma}\f$.  This effect triggers collapse for
   /// simplified CCSN models.
-  struct AdiabaticIndex {
+  struct PolytropicAdiabaticIndexLow {
     using type = double;
     static constexpr Options::String help = {
-        "The adiabatic index that will trigger collapse."};
+        "The adiabatic index of the low density"
+        " material that will trigger collapse."};
     static type lower_bound() { return 1.0; }
   };
+
+  /// Adiabatic index of the system describing cold, high density material.
+  ///
+  /// Note the density profile used is from the initial profile calculated from
+  /// the TOV equations, specified by ProgenitorFilename.  A lower, user
+  /// defined, \f$\Gamma\f$ will cause a lower pressure for an equation of state
+  /// of the form \f$P=K\rho^{\Gamma}\f$.  This effect triggers collapse for
+  /// simplified CCSN models.
+  struct PolytropicAdiabaticIndexHigh {
+    using type = double;
+    static constexpr Options::String help = {
+        "The adiabatic index of the low density"
+        " material that will trigger collapse."};
+    static type lower_bound() { return 1.0; }
+  };
+
+  //   /// Adiabatic index describing thermal, heated matter.
+  //   struct ThermalAdiabaticIndex {
+  //     using type = double;
+  //     static constexpr Options::String help = {"Adiabatic index Gamma_th"};
+  //   };
+
+  // struct EquationOfState {
+  //   using type = std::unique_ptr<Hydro::tags::EquationOfState<true, 2>>;
+  //   static constexpr Options::String help = {
+  //       "Equation of State ."};
+  //   static type lower_bound() { return 1.0; }
+  // };
 
   /// Central angular velocity artificially assigned at readin.
   ///
@@ -265,8 +305,10 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   };
 
   using options =
-      tmpl::list<ProgenitorFilename, PolytropicConstant, AdiabaticIndex,
-                 CentralAngularVelocity, DifferentialRotationParameter,
+      tmpl::list<ProgenitorFilename, PiecewisePolytropicTransitionDensity,
+                 PolytropicConstantLow, PolytropicAdiabaticIndexLow,
+                 PolytropicAdiabaticIndexHigh, CentralAngularVelocity,
+                 DifferentialRotationParameter,
                  MaxDensityRatioForLinearInterpolation>;
   static constexpr Options::String help = {
       "Core collapse supernova initial data, read in from a profile containing"
@@ -280,8 +322,10 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   CcsnCollapse& operator=(CcsnCollapse&& /*rhs*/) = default;
   ~CcsnCollapse() override = default;
 
-  CcsnCollapse(std::string progenitor_filename, double polytropic_constant,
-               double adiabatic_index, double central_angular_velocity,
+  CcsnCollapse(std::string progenitor_filename,
+               double polytropic_transition_density,
+               double polytropic_constant_low, double adiabatic_index_low,
+               double adiabatic_index_high, double central_angular_velocity,
                double diff_rot_parameter, double max_dens_ratio_interp);
 
   auto get_clone() const
@@ -306,7 +350,8 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   // NOLINTNEXTLINE(google-runtime-references)
   void pup(PUP::er& p) override;
 
-  const EquationsOfState::PolytropicFluid<true>& equation_of_state() const {
+  const EquationsOfState::PiecewisePolytropicFluid<true>& equation_of_state()
+      const {
     return equation_of_state_;
   }
 
@@ -480,44 +525,44 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
       const -> tuples::TaggedTuple<::Tags::dt<gr::Tags::Lapse<DataType>>>;
 
   template <typename DataType>
-  auto variables(const gsl::not_null<IntermediateVariables<DataType>*> vars,
-                 const tnsr::I<DataType, 3>& x,
-                 tmpl::list<::Tags::dt<gr::Tags::SpatialMetric<
-                     DataType, 3>>> /*meta*/) const
-      -> tuples::TaggedTuple<
-          ::Tags::dt<gr::Tags::SpatialMetric<DataType, 3>>>;
-
-  template <typename DataType>
   auto variables(
       const gsl::not_null<IntermediateVariables<DataType>*> vars,
       const tnsr::I<DataType, 3>& x,
-      tmpl::list<
-          ::Tags::dt<gr::Tags::Shift<DataType, 3>>> /*meta*/)
-      const -> tuples::TaggedTuple<
-          ::Tags::dt<gr::Tags::Shift<DataType, 3>>>;
+      tmpl::list<::Tags::dt<gr::Tags::SpatialMetric<DataType, 3>>> /*meta*/)
+      const
+      -> tuples::TaggedTuple<::Tags::dt<gr::Tags::SpatialMetric<DataType, 3>>>;
 
-//   template <typename DataType>
-//   auto variables(const gsl::not_null<IntermediateVariables<DataType>*> vars,
-//                  const tnsr::I<DataType, 3>& x,
-//                  tmpl::list<::Tags::dt<gr::Tags::Lapse<DataType>>> /*meta*/)
-//       const -> tuples::TaggedTuple<::Tags::dt<gr::Tags::Lapse<DataType>>>;
+  template <typename DataType>
+  auto variables(const gsl::not_null<IntermediateVariables<DataType>*> vars,
+                 const tnsr::I<DataType, 3>& x,
+                 tmpl::list<::Tags::dt<gr::Tags::Shift<DataType, 3>>> /*meta*/)
+      const -> tuples::TaggedTuple<::Tags::dt<gr::Tags::Shift<DataType, 3>>>;
 
-//   template <typename DataType>
-//   auto variables(const gsl::not_null<IntermediateVariables<DataType>*> vars,
-//                  const tnsr::I<DataType, 3>& x,
-//                  tmpl::list<::Tags::dt<gr::Tags::SpatialMetric<
-//                      DataType, 3>>> /*meta*/) const
-//       -> tuples::TaggedTuple<
-//           ::Tags::dt<gr::Tags::SpatialMetric<DataType, 3>>>;
+  //   template <typename DataType>
+  //   auto variables(const gsl::not_null<IntermediateVariables<DataType>*>
+  //   vars,
+  //                  const tnsr::I<DataType, 3>& x,
+  //                  tmpl::list<::Tags::dt<gr::Tags::Lapse<DataType>>>
+  //                  /*meta*/)
+  //       const -> tuples::TaggedTuple<::Tags::dt<gr::Tags::Lapse<DataType>>>;
 
-//   template <typename DataType>
-//   auto variables(
-//       const gsl::not_null<IntermediateVariables<DataType>*> vars,
-//       const tnsr::I<DataType, 3>& x,
-//       tmpl::list<
-//           ::Tags::dt<gr::Tags::Shift<DataType, 3>>> /*meta*/)
-//       const -> tuples::TaggedTuple<
-//           ::Tags::dt<gr::Tags::Shift<DataType, 3>>>;
+  //   template <typename DataType>
+  //   auto variables(const gsl::not_null<IntermediateVariables<DataType>*>
+  //   vars,
+  //                  const tnsr::I<DataType, 3>& x,
+  //                  tmpl::list<::Tags::dt<gr::Tags::SpatialMetric<
+  //                      DataType, 3>>> /*meta*/) const
+  //       -> tuples::TaggedTuple<
+  //           ::Tags::dt<gr::Tags::SpatialMetric<DataType, 3>>>;
+
+  //   template <typename DataType>
+  //   auto variables(
+  //       const gsl::not_null<IntermediateVariables<DataType>*> vars,
+  //       const tnsr::I<DataType, 3>& x,
+  //       tmpl::list<
+  //           ::Tags::dt<gr::Tags::Shift<DataType, 3>>> /*meta*/)
+  //       const -> tuples::TaggedTuple<
+  //           ::Tags::dt<gr::Tags::Shift<DataType, 3>>>;
 
   friend bool operator==(const CcsnCollapse& lhs, const CcsnCollapse& rhs);
 
@@ -525,7 +570,7 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   detail::ProgenitorProfile prog_data_{};
   double polytropic_constant_ = std::numeric_limits<double>::signaling_NaN();
   double polytropic_exponent_ = std::numeric_limits<double>::signaling_NaN();
-  EquationsOfState::PolytropicFluid<true> equation_of_state_{};
+  EquationsOfState::PiecewisePolytropicFluid<true> equation_of_state_{};
   double central_angular_velocity_ =
       std::numeric_limits<double>::signaling_NaN();
   double inv_diff_rot_parameter_ = std::numeric_limits<double>::signaling_NaN();
