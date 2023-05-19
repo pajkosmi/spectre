@@ -132,18 +132,18 @@ std::optional<std::string> HydroFreeOutflow::dg_ghost(
   dot_product(make_not_null(&normal_dot_interior_spatial_velocity),
               outward_directed_normal_covector, interior_spatial_velocity);
   for (size_t i = 0; i < number_of_grid_points; ++i) {
-    if (get(normal_dot_interior_spatial_velocity)[i] >= 0.0) {
-      for (size_t spatial_index = 0; spatial_index < 3; ++spatial_index) {
-        exterior_spatial_velocity.get(spatial_index)[i] =
-            interior_spatial_velocity.get(spatial_index)[i];
-      }
-    } else {
-      for (size_t spatial_index = 0; spatial_index < 3; ++spatial_index) {
-        exterior_spatial_velocity.get(spatial_index)[i] =
-            interior_spatial_velocity.get(spatial_index)[i] -
-            0.01 * get(normal_dot_interior_spatial_velocity)[i] *
-                outward_directed_normal_vector.get(spatial_index)[i];
-      }
+    // if (get(normal_dot_interior_spatial_velocity)[i] >= 0.0) {
+    // for (size_t spatial_index = 0; spatial_index < 3; ++spatial_index) {
+    //   exterior_spatial_velocity.get(spatial_index)[i] =
+    //       interior_spatial_velocity.get(spatial_index)[i];
+    //}
+    // } else {
+    for (size_t spatial_index = 0; spatial_index < 3; ++spatial_index) {
+      exterior_spatial_velocity.get(spatial_index)[i] =
+          interior_spatial_velocity.get(spatial_index)[i] -
+          0.01 * get(normal_dot_interior_spatial_velocity)[i] *
+              outward_directed_normal_vector.get(spatial_index)[i];
+      //   }
     }
   }
 
