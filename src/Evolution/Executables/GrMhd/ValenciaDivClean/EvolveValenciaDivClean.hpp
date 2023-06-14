@@ -82,6 +82,7 @@
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/Subcell/TimeDerivative.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/System.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/Tags.hpp"
+#include "Evolution/Tags/Filter.hpp"
 #include "Evolution/VariableFixing/Actions.hpp"
 #include "Evolution/VariableFixing/FixToAtmosphere.hpp"
 #include "Evolution/VariableFixing/Tags.hpp"
@@ -91,6 +92,8 @@
 #include "NumericalAlgorithms/DiscontinuousGalerkin/Formulation.hpp"
 #include "NumericalAlgorithms/DiscontinuousGalerkin/Tags.hpp"
 #include "NumericalAlgorithms/FiniteDifference/Minmod.hpp"
+#include "NumericalAlgorithms/LinearOperators/ExponentialFilter.hpp"
+#include "NumericalAlgorithms/LinearOperators/FilterAction.hpp"
 #include "Options/Protocols/FactoryCreation.hpp"
 #include "Options/String.hpp"
 #include "Parallel/Algorithms/AlgorithmSingleton.hpp"
@@ -395,6 +398,9 @@ struct EvolutionMetavars {
               tmpl::front<ordered_list_of_primitive_recovery_schemes>>>,
       VariableFixing::Actions::FixVariables<
           VariableFixing::FixToAtmosphere<volume_dim>>,
+      dg::Actions::Filter<
+          Filters::Exponential<0>,
+          tmpl::list<hydro::Tags::SpatialVelocity<DataVector, 3>>>,
       Actions::UpdateConservatives,
       Actions::Goto<evolution::dg::subcell::Actions::Labels::EndOfSolvers>,
 
