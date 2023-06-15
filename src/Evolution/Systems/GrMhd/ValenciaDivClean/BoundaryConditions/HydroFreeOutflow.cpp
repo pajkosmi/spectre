@@ -140,7 +140,7 @@ std::optional<std::string> HydroFreeOutflow::dg_ghost(
     // } else {
     for (size_t spatial_index = 0; spatial_index < 3; ++spatial_index) {
       exterior_spatial_velocity.get(spatial_index)[i] =
-          interior_spatial_velocity.get(spatial_index)[i] //-
+          interior_spatial_velocity.get(spatial_index)[i]; //-
           //0.01 * get(normal_dot_interior_spatial_velocity)[i] *
           //   outward_directed_normal_vector.get(spatial_index)[i];
       //   }
