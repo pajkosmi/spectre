@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "ApparentHorizons/Tags.hpp"
+#include "DataStructures/Tensor/EagerMath/Norms.hpp"
 #include "Domain/Creators/Factory3D.hpp"
 #include "Domain/Creators/RegisterDerivedWithCharm.hpp"
 #include "Domain/Creators/TimeDependence/RegisterDerivedWithCharm.hpp"
@@ -251,6 +252,8 @@ struct EvolutionMetavars {
       tmpl::append<
           typename system::variables_tag::tags_list,
           typename system::primitive_variables_tag::tags_list,
+          ::Tags::PointwiseL2NormCompute<
+              hydro::Tags::SpatialVelocity<DataVector, 3>>,
           tmpl::list<grmhd::ValenciaDivClean::Tags::
                          ComovingMagneticFieldMagnitudeCompute>,
           error_tags,
