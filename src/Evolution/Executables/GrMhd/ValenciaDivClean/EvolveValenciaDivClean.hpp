@@ -400,7 +400,8 @@ struct EvolutionMetavars {
           VariableFixing::FixToAtmosphere<volume_dim>>,
       dg::Actions::Filter<
           Filters::Exponential<0>,
-          tmpl::list<hydro::Tags::SpatialVelocity<DataVector, 3>>>,
+          tmpl::list<hydro::Tags::SpatialVelocity<DataVector, 3>,
+                     hydro::Tags::RestMassDensity<DataVector>>>,
       Actions::UpdateConservatives,
       Actions::Goto<evolution::dg::subcell::Actions::Labels::EndOfSolvers>,
 
