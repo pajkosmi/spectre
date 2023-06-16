@@ -140,7 +140,7 @@ std::optional<std::string> HydroFreeOutflow::dg_ghost(
     // } else {
     for (size_t spatial_index = 0; spatial_index < 3; ++spatial_index) {
       exterior_spatial_velocity.get(spatial_index)[i] =
-          interior_spatial_velocity.get(spatial_index)[i]; //-
+          0.95 * interior_spatial_velocity.get(spatial_index)[i]; //-
           //0.01 * get(normal_dot_interior_spatial_velocity)[i] *
           //   outward_directed_normal_vector.get(spatial_index)[i];
       //   }
@@ -153,7 +153,7 @@ std::optional<std::string> HydroFreeOutflow::dg_ghost(
       tilde_d, tilde_ye, tilde_tau, tilde_s, tilde_b, tilde_phi,
       interior_rest_mass_density, interior_electron_fraction,
       interior_specific_internal_energy, interior_pressure,
-      interior_spatial_velocity, interior_lorentz_factor,
+      exterior_spatial_velocity, interior_lorentz_factor,
       interior_magnetic_field, interior_sqrt_det_spatial_metric,
       interior_spatial_metric, exterior_divergence_cleaning_field);
 
@@ -162,7 +162,7 @@ std::optional<std::string> HydroFreeOutflow::dg_ghost(
                        *tilde_ye, *tilde_tau, *tilde_s, *tilde_b, *tilde_phi,
                        *lapse, *shift, interior_sqrt_det_spatial_metric,
                        interior_spatial_metric, *inv_spatial_metric,
-                       interior_pressure, interior_spatial_velocity,
+                       interior_pressure, exterior_spatial_velocity,
                        interior_lorentz_factor, interior_magnetic_field);
 
   return {};
