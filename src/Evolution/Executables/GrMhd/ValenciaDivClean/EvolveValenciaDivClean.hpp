@@ -252,8 +252,8 @@ struct EvolutionMetavars {
       tmpl::append<
           typename system::variables_tag::tags_list,
           typename system::primitive_variables_tag::tags_list,
-          ::Tags::PointwiseL2NormCompute<
-              hydro::Tags::SpatialVelocity<DataVector, 3>>,
+          tmpl::list<::Tags::PointwiseL2NormCompute<
+              hydro::Tags::SpatialVelocity<DataVector, 3>>>,
           tmpl::list<grmhd::ValenciaDivClean::Tags::
                          ComovingMagneticFieldMagnitudeCompute>,
           error_tags,
