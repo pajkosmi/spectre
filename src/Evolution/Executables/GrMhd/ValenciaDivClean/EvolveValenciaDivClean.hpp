@@ -82,6 +82,7 @@
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/Subcell/TimeDerivative.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/System.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/Tags.hpp"
+#include "Evolution/Tags/Filter.hpp"
 #include "Evolution/VariableFixing/Actions.hpp"
 #include "Evolution/VariableFixing/FixToAtmosphere.hpp"
 #include "Evolution/VariableFixing/Tags.hpp"
@@ -91,6 +92,8 @@
 #include "NumericalAlgorithms/DiscontinuousGalerkin/Formulation.hpp"
 #include "NumericalAlgorithms/DiscontinuousGalerkin/Tags.hpp"
 #include "NumericalAlgorithms/FiniteDifference/Minmod.hpp"
+#include "NumericalAlgorithms/LinearOperators/ExponentialFilter.hpp"
+#include "NumericalAlgorithms/LinearOperators/FilterAction.hpp"
 #include "Options/Protocols/FactoryCreation.hpp"
 #include "Options/String.hpp"
 #include "Parallel/Algorithms/AlgorithmSingleton.hpp"
@@ -248,6 +251,8 @@ struct EvolutionMetavars {
       tmpl::append<
           typename system::variables_tag::tags_list,
           typename system::primitive_variables_tag::tags_list,
+          db::wrap_tags_in<::Tags::dt,
+                           typename system::variables_tag::tags_list>,
           tmpl::list<grmhd::ValenciaDivClean::Tags::
                          ComovingMagneticFieldMagnitudeCompute>,
           error_tags,
@@ -396,6 +401,12 @@ struct EvolutionMetavars {
       VariableFixing::Actions::FixVariables<
           VariableFixing::FixToAtmosphere<volume_dim>>,
       Actions::UpdateConservatives,
+      dg::Actions::Filter<
+          Filters::Exponential<0>,
+          tmpl::list<grmhd::ValenciaDivClean::Tags::TildeD,
+                     grmhd::ValenciaDivClean::Tags::TildeS<Frame::Inertial>,
+                     grmhd::ValenciaDivClean::Tags::TildeTau,
+                     grmhd::ValenciaDivClean::Tags::TildeYe>>,
       Actions::Goto<evolution::dg::subcell::Actions::Labels::EndOfSolvers>,
 
       Actions::Label<evolution::dg::subcell::Actions::Labels::BeginSubcell>,
