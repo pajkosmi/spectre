@@ -26,6 +26,7 @@ set(LIBRARY_SOURCES
   Subcell/Test_PrimsAfterRollback.cpp
   Subcell/Test_ResizeAndComputePrimitives.cpp
   Subcell/Test_SwapGrTags.cpp
+  Subcell/Test_Spikes.cpp
   Subcell/Test_TciOnDgGrid.cpp
   Subcell/Test_TciOnFdGrid.cpp
   Subcell/Test_TciOptions.cpp
