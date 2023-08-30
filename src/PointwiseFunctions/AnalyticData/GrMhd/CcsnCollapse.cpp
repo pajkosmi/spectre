@@ -23,6 +23,7 @@
 #include "PointwiseFunctions/GeneralRelativity/Tags.hpp"
 #include "PointwiseFunctions/Hydro/SpecificEnthalpy.hpp"
 #include "PointwiseFunctions/Hydro/Tags.hpp"
+// #include "PointwiseFunctions/Hydro/Temperature.hpp"
 #include "Utilities/ContainerHelpers.hpp"
 #include "Utilities/ErrorHandling/Assert.hpp"
 #include "Utilities/ErrorHandling/Error.hpp"
@@ -285,22 +286,46 @@ void compute_angular_coordinates(
 }  // namespace
 }  // namespace detail
 
-CcsnCollapse::CcsnCollapse(std::string progenitor_filename,
-                           double polytropic_constant, double adiabatic_index,
-                           double central_angular_velocity,
-                           double diff_rot_parameter,
-                           double max_dens_ratio_interp)
+// CcsnCollapse::CcsnCollapse(std::string progenitor_filename,
+//                            double polytropic_constant, double
+//                            adiabatic_index, double central_angular_velocity,
+//                            double diff_rot_parameter,
+//                            double max_dens_ratio_interp)
+//     : progenitor_filename_(std::move(progenitor_filename)),
+//       prog_data_{progenitor_filename_},
+//       polytropic_constant_(polytropic_constant),
+//       polytropic_exponent_(adiabatic_index),
+//       equation_of_state_(polytropic_constant_, polytropic_exponent_),
+//       central_angular_velocity_(central_angular_velocity),
+//       inv_diff_rot_parameter_(1.0 / diff_rot_parameter) {
+//   CcsnCollapse::prog_data_.set_dens_ratio(max_dens_ratio_interp);
+// }
+
+// template <typename... EosArgs>
+CcsnCollapse::CcsnCollapse(
+    std::string progenitor_filename, double central_angular_velocity,
+    double diff_rot_parameter, double max_dens_ratio_interp,
+    std::unique_ptr<EquationsOfState::EquationOfState<true, 3>>
+        equation_of_state)
     : progenitor_filename_(std::move(progenitor_filename)),
       prog_data_{progenitor_filename_},
-      polytropic_constant_(polytropic_constant),
-      polytropic_exponent_(adiabatic_index),
-      equation_of_state_(polytropic_constant_, polytropic_exponent_),
+      // equation_of_state_(std::move(equation_of_state)),
+      equation_of_state_(std::move(equation_of_state)),
       central_angular_velocity_(central_angular_velocity),
       inv_diff_rot_parameter_(1.0 / diff_rot_parameter) {
   CcsnCollapse::prog_data_.set_dens_ratio(max_dens_ratio_interp);
 }
 
 CcsnCollapse::CcsnCollapse(CkMigrateMessage* msg) : InitialData(msg) {}
+
+// CcsnCollapse::CcsnCollapse(const CcsnCollapse& rhs) :
+// evolution::initial_data::InitialData(rhs),
+// progenitor_filename_(rhs.progenitor_filename_->get_clone()),
+//       prog_data_(rhs.progenitor_filename_),
+//       //equation_of_state_(std::move(equation_of_state)),
+//       equation_of_state_(rhs.equation_of_state_->get_clone()),
+//       central_angular_velocity_(rhs.central_angular_velocity_),
+//       inv_diff_rot_parameter_(rhs.inv_diff_rot_parameter_) {}
 
 std::unique_ptr<evolution::initial_data::InitialData> CcsnCollapse::get_clone()
     const {
@@ -311,8 +336,8 @@ void CcsnCollapse::pup(PUP::er& p) {
   InitialData::pup(p);
   p | progenitor_filename_;
   p | prog_data_;
-  p | polytropic_constant_;
-  p | polytropic_exponent_;
+  // p | polytropic_constant_;
+  // p | polytropic_exponent_;
   p | equation_of_state_;
   p | central_angular_velocity_;
   p | inv_diff_rot_parameter_;
@@ -493,21 +518,23 @@ CcsnCollapse::variables(
   return {Scalar<DataType>{vars->rest_mass_density.value()}};
 }
 
-// Specific enthalpy
+// Electron fraction
 template <typename DataType>
-tuples::TaggedTuple<hydro::Tags::SpecificEnthalpy<DataType>>
+tuples::TaggedTuple<hydro::Tags::ElectronFraction<DataType>>
 CcsnCollapse::variables(
     const gsl::not_null<IntermediateVariables<DataType>*> vars,
-    const tnsr::I<DataType, 3>& x,
-    tmpl::list<hydro::Tags::SpecificEnthalpy<DataType>> /*meta*/) const {
-  const auto rest_mass_density = get<hydro::Tags::RestMassDensity<DataType>>(
-      variables(vars, x, tmpl::list<hydro::Tags::RestMassDensity<DataType>>{}));
-  using std::max;
-  return {hydro::relativistic_specific_enthalpy(
-      Scalar<DataType>{DataType{max(1.0e-300, get(rest_mass_density))}},
-      equation_of_state_.specific_internal_energy_from_density(
-          rest_mass_density),
-      equation_of_state_.pressure_from_density(rest_mass_density))};
+    const tnsr::I<DataType, 3>& /*x*/,
+    tmpl::list<hydro::Tags::ElectronFraction<DataType>> /*meta*/) const {
+  return {Scalar<DataType>{vars->electron_fraction.value()}};
+}
+
+// Temperature
+template <typename DataType>
+tuples::TaggedTuple<hydro::Tags::Temperature<DataType>> CcsnCollapse::variables(
+    const gsl::not_null<IntermediateVariables<DataType>*> vars,
+    const tnsr::I<DataType, 3>& /*x*/,
+    tmpl::list<hydro::Tags::Temperature<DataType>> /*meta*/) const {
+  return {Scalar<DataType>{vars->temperature.value()}};
 }
 
 // Pressure
@@ -518,7 +545,14 @@ tuples::TaggedTuple<hydro::Tags::Pressure<DataType>> CcsnCollapse::variables(
     tmpl::list<hydro::Tags::Pressure<DataType>> /*meta*/) const {
   const auto rest_mass_density = get<hydro::Tags::RestMassDensity<DataType>>(
       variables(vars, x, tmpl::list<hydro::Tags::RestMassDensity<DataType>>{}));
-  return {equation_of_state_.pressure_from_density(rest_mass_density)};
+  const auto temperature = get<hydro::Tags::Temperature<DataType>>(
+      variables(vars, x, tmpl::list<hydro::Tags::Temperature<DataType>>{}));
+  const auto electron_fraction =
+      get<hydro::Tags::ElectronFraction<DataType>>(variables(
+          vars, x, tmpl::list<hydro::Tags::ElectronFraction<DataType>>{}));
+
+  return {equation_of_state_->pressure_from_density_and_temperature(
+      rest_mass_density, temperature, electron_fraction)};
 }
 
 // Specific internal energy
@@ -530,39 +564,45 @@ CcsnCollapse::variables(
     tmpl::list<hydro::Tags::SpecificInternalEnergy<DataType>> /*meta*/) const {
   const auto rest_mass_density = get<hydro::Tags::RestMassDensity<DataType>>(
       variables(vars, x, tmpl::list<hydro::Tags::RestMassDensity<DataType>>{}));
+  const auto temperature = get<hydro::Tags::Temperature<DataType>>(
+      variables(vars, x, tmpl::list<hydro::Tags::Temperature<DataType>>{}));
+  const auto electron_fraction =
+      get<hydro::Tags::ElectronFraction<DataType>>(variables(
+          vars, x, tmpl::list<hydro::Tags::ElectronFraction<DataType>>{}));
 
-  // Eventually, below will call for piecewise polytrope or tabulated EOS
-  //  auto temperature = vars->temperature;
-  //  auto electron_fraction = vars->electron_fraction;
-  // return{equation_of_state_.
-  // specific_internal_energy_from_density_and_temperature_and_ye_impl(
-  // rest_mass_density, temperature, electron_fraction)};
-
-  return {equation_of_state_.specific_internal_energy_from_density(
-      rest_mass_density)};
+  return {
+      equation_of_state_->specific_internal_energy_from_density_and_temperature(
+          rest_mass_density, temperature, electron_fraction)};
 }
 
-// Electron fraction
+// Specific enthalpy
 template <typename DataType>
-tuples::TaggedTuple<hydro::Tags::ElectronFraction<DataType>>
+tuples::TaggedTuple<hydro::Tags::SpecificEnthalpy<DataType>>
 CcsnCollapse::variables(
     const gsl::not_null<IntermediateVariables<DataType>*> vars,
-    const tnsr::I<DataType, 3>& /*x*/,
-    tmpl::list<hydro::Tags::ElectronFraction<DataType>> /*meta*/) const {
-  return {Scalar<DataType>{vars->electron_fraction.value()}};
+    const tnsr::I<DataType, 3>& x,
+    tmpl::list<hydro::Tags::SpecificEnthalpy<DataType>> /*meta*/) const {
+  const auto rest_mass_density = get<hydro::Tags::RestMassDensity<DataType>>(
+      variables(vars, x, tmpl::list<hydro::Tags::RestMassDensity<DataType>>{}));
+  const auto specific_internal_energy =
+      get<hydro::Tags::SpecificInternalEnergy<DataType>>(variables(
+          vars, x,
+          tmpl::list<hydro::Tags::SpecificInternalEnergy<DataType>>{}));
+  const auto pressure = get<hydro::Tags::Pressure<DataType>>(
+      variables(vars, x, tmpl::list<hydro::Tags::Pressure<DataType>>{}));
+
+  using std::max;
+  return {hydro::relativistic_specific_enthalpy(
+      Scalar<DataType>{DataType{max(1.0e-300, get(rest_mass_density))}},
+      specific_internal_energy, pressure)};
 }
 
-// Once temperature is added to hydro tags for the grmhd system,
-// temperature will be stored similar to below
-// // Temperature
-// template <typename DataType>
-// tuples::TaggedTuple<hydro::Tags::Temperature<DataType>>
-// CcsnCollapse::variables(
-//     const gsl::not_null<IntermediateVariables<DataType>*> vars,
-//     const tnsr::I<DataType, 3>& /*x*/,
-//     tmpl::list<hydro::Tags::Temperature<DataType>> /*meta*/) const {
-//   return {Scalar<DataType>{vars->temperature.value()}};
-// }
+// Eventually, below will call for piecewise polytrope or tabulated EOS
+//  auto temperature = vars->temperature;
+//  auto electron_fraction = vars->electron_fraction;
+// return{equation_of_state_.
+// specific_internal_energy_from_density_and_temperature_and_ye_impl(
+// rest_mass_density, temperature, electron_fraction)};
 
 // Velocity (typical spherical coord system rotating around z axis)
 template <typename DataType>
@@ -844,8 +884,9 @@ bool operator==(const CcsnCollapse& lhs, const CcsnCollapse& rhs) {
   // polytropic_constant_ are the same, then the solution and
   // EOS should be too.
   return lhs.progenitor_filename_ == rhs.progenitor_filename_ and
-         lhs.polytropic_constant_ == rhs.polytropic_constant_ and
-         lhs.polytropic_exponent_ == rhs.polytropic_exponent_ and
+         // lhs.polytropic_constant_ == rhs.polytropic_constant_ and
+         // lhs.polytropic_exponent_ == rhs.polytropic_exponent_ and
+         *lhs.equation_of_state_ == *rhs.equation_of_state_ and
          lhs.central_angular_velocity_ == rhs.central_angular_velocity_ and
          lhs.inv_diff_rot_parameter_ == rhs.inv_diff_rot_parameter_;
 }
@@ -889,8 +930,8 @@ GENERATE_INSTANTIATIONS(
     INSTANTIATE_SCALARS, (double, DataVector),
     (hydro::Tags::RestMassDensity, hydro::Tags::ElectronFraction,
      hydro::Tags::SpecificInternalEnergy, hydro::Tags::Pressure,
-     hydro::Tags::DivergenceCleaningField, hydro::Tags::LorentzFactor,
-     hydro::Tags::SpecificEnthalpy, gr::Tags::Lapse,
+     hydro::Tags::Temperature, hydro::Tags::DivergenceCleaningField,
+     hydro::Tags::LorentzFactor, hydro::Tags::SpecificEnthalpy, gr::Tags::Lapse,
      gr::Tags::SqrtDetSpatialMetric))
 
 #undef INSTANTIATE_SCALARS
