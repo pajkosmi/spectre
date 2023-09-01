@@ -13,13 +13,14 @@
 #include "Options/String.hpp"
 #include "PointwiseFunctions/AnalyticData/AnalyticData.hpp"
 #include "PointwiseFunctions/AnalyticData/GrMhd/AnalyticData.hpp"
-// #include "PointwiseFunctions/Hydro/EquationsOfState/PolytropicFluid.hpp"
-// #include "PointwiseFunctions/Hydro/EquationsOfState/Tabulated3d.hpp"
+#include "PointwiseFunctions/Hydro/EquationsOfState/EquationOfState.hpp"
 #include "PointwiseFunctions/Hydro/EquationsOfState/Factory.hpp"
+#include "PointwiseFunctions/Hydro/EquationsOfState/Tabulated3d.hpp"
 #include "PointwiseFunctions/Hydro/Tags.hpp"
 #include "PointwiseFunctions/Hydro/Temperature.hpp"
 #include "PointwiseFunctions/Hydro/Units.hpp"
 #include "PointwiseFunctions/InitialDataUtilities/InitialData.hpp"
+#include "Utilities/Serialization/RegisterDerivedClassesWithCharm.hpp"
 #include "Utilities/TMPL.hpp"
 #include "Utilities/TaggedTuple.hpp"
 
@@ -182,9 +183,7 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   };
 
  public:
-  //   using equation_of_state_type = EquationsOfState::PolytropicFluid<true>;
-  // NEEDS TO CHANGE
-  using equation_of_state_type = EquationsOfState::EquationOfState<true, 3>;
+  using equation_of_state_type = EquationsOfState::Tabulated3D<true>;
 
   /// The massive star progenitor data file.
   struct ProgenitorFilename {
@@ -265,6 +264,17 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
     static type lower_bound() { return 0.0; }
   };
 
+  struct TableFilename {
+    using type = std::string;
+    static constexpr Options::String help{"File name of the EOS table"};
+  };
+
+  struct TableSubFilename {
+    using type = std::string;
+    static constexpr Options::String help{
+        "Subfile name of the EOS table, e.g., 'dd2'."};
+  };
+
   //   using options =
   //       tmpl::list<ProgenitorFilename, PolytropicConstant, AdiabaticIndex,
   //                  CentralAngularVelocity, DifferentialRotationParameter,
@@ -279,10 +289,14 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   //                  CentralAngularVelocity, DifferentialRotationParameter,
   //                  MaxDensityRatioForLinearInterpolation>, typename
   //                  equation_of_state_type::options>;
-  using options = tmpl::list<ProgenitorFilename, CentralAngularVelocity,
-                             DifferentialRotationParameter,
-                             MaxDensityRatioForLinearInterpolation,
-                             hydro::OptionTags::EquationOfState<true, 3>>;
+  //   using options = tmpl::list<ProgenitorFilename, CentralAngularVelocity,
+  //                              DifferentialRotationParameter,
+  //                              MaxDensityRatioForLinearInterpolation,
+  //                              hydro::OptionTags::EquationOfState<true, 3>>;
+
+  using options = tmpl::list<
+      ProgenitorFilename, CentralAngularVelocity, DifferentialRotationParameter,
+      MaxDensityRatioForLinearInterpolation, TableFilename, TableSubFilename>;
 
   static constexpr Options::String help = {
       "Core collapse supernova initial data, read in from a profile containing"
@@ -303,8 +317,7 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   // template <typename... EosArgs>
   CcsnCollapse(std::string progenitor_filename, double central_angular_velocity,
                double diff_rot_parameter, double max_dens_ratio_interp,
-               std::unique_ptr<EquationsOfState::EquationOfState<true, 3>>
-                   equation_of_state);
+               std::string eos_filename, std::string eos_subfilename);
 
   auto get_clone() const
       -> std::unique_ptr<evolution::initial_data::InitialData> override;
@@ -328,9 +341,9 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   // NOLINTNEXTLINE(google-runtime-references)
   void pup(PUP::er& p) override;
 
-  // const EquationsOfState::PolytropicFluid<true>& equation_of_state()
-  const EquationsOfState::EquationOfState<true, 3>& equation_of_state() const {
-    return *equation_of_state_;
+  // const EquationsOfState::PolytropicFluid<true>& equation_of_state() const {
+  const EquationsOfState::Tabulated3D<true>& equation_of_state() const {
+    return equation_of_state_;
   }
 
  protected:
@@ -526,7 +539,7 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   // double polytropic_constant_ = std::numeric_limits<double>::signaling_NaN();
   // double polytropic_exponent_ = std::numeric_limits<double>::signaling_NaN();
   // EquationsOfState::PolytropicFluid<true> equation_of_state_{};
-  std::unique_ptr<equation_of_state_type> equation_of_state_;
+  equation_of_state_type equation_of_state_{};
   double central_angular_velocity_ =
       std::numeric_limits<double>::signaling_NaN();
   double inv_diff_rot_parameter_ = std::numeric_limits<double>::signaling_NaN();

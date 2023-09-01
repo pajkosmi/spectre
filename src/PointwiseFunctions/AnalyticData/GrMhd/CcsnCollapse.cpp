@@ -12,6 +12,8 @@
 #include <type_traits>
 #include <utility>
 
+// #include "Framework/TestHelpers.hpp"
+
 #include "DataStructures/DataVector.hpp"
 #include "DataStructures/Tensor/EagerMath/Determinant.hpp"
 #include "DataStructures/Tensor/EagerMath/DeterminantAndInverse.hpp"
@@ -24,6 +26,17 @@
 #include "PointwiseFunctions/Hydro/SpecificEnthalpy.hpp"
 #include "PointwiseFunctions/Hydro/Tags.hpp"
 // #include "PointwiseFunctions/Hydro/Temperature.hpp"
+#include "IO/Connectivity.hpp"
+#include "IO/H5/AccessType.hpp"
+#include "IO/H5/CheckH5.hpp"
+#include "IO/H5/EosTable.hpp"
+#include "IO/H5/File.hpp"
+#include "IO/H5/Header.hpp"
+#include "IO/H5/Helpers.hpp"
+#include "IO/H5/OpenGroup.hpp"
+#include "IO/H5/SourceArchive.hpp"
+#include "IO/H5/Version.hpp"
+#include "IO/H5/Wrappers.hpp"
 #include "Utilities/ContainerHelpers.hpp"
 #include "Utilities/ErrorHandling/Assert.hpp"
 #include "Utilities/ErrorHandling/Error.hpp"
@@ -31,6 +44,7 @@
 #include "Utilities/GenerateInstantiations.hpp"
 #include "Utilities/Gsl.hpp"
 
+#include <iostream>
 namespace grmhd::AnalyticData {
 namespace detail {
 ProgenitorProfile::ProgenitorProfile(const std::string& filename) {
@@ -77,8 +91,11 @@ ProgenitorProfile::ProgenitorProfile(const std::string& filename) {
         metric_potential_[i];
   }
   radius_ *= c2g_length_;
-  rest_mass_density_ *= c2g_dens_;
-  temperature_ *= c2g_temp_;
+  rest_mass_density_ = 1.0e-4;  // c2g_dens_;
+  // hack for specific internal energy read in instead T = (gamma - 1) * eps
+  temperature_ = 1;  // 1000.0 * (4.0 / 3.0 - 1.0) /
+  //                 (speed_of_light_cgs_ * speed_of_light_cgs_);  // c2g_temp_;
+  electron_fraction_ = 0.3;
   fluid_velocity_ /= speed_of_light_cgs_;
   maximum_radius_ = max(radius_);
 }
@@ -286,34 +303,136 @@ void compute_angular_coordinates(
 }  // namespace
 }  // namespace detail
 
-// CcsnCollapse::CcsnCollapse(std::string progenitor_filename,
-//                            double polytropic_constant, double
-//                            adiabatic_index, double central_angular_velocity,
-//                            double diff_rot_parameter,
-//                            double max_dens_ratio_interp)
-//     : progenitor_filename_(std::move(progenitor_filename)),
-//       prog_data_{progenitor_filename_},
-//       polytropic_constant_(polytropic_constant),
-//       polytropic_exponent_(adiabatic_index),
-//       equation_of_state_(polytropic_constant_, polytropic_exponent_),
-//       central_angular_velocity_(central_angular_velocity),
-//       inv_diff_rot_parameter_(1.0 / diff_rot_parameter) {
-//   CcsnCollapse::prog_data_.set_dens_ratio(max_dens_ratio_interp);
-// }
-
 // template <typename... EosArgs>
-CcsnCollapse::CcsnCollapse(
-    std::string progenitor_filename, double central_angular_velocity,
-    double diff_rot_parameter, double max_dens_ratio_interp,
-    std::unique_ptr<EquationsOfState::EquationOfState<true, 3>>
-        equation_of_state)
+CcsnCollapse::CcsnCollapse(std::string progenitor_filename,
+                           double central_angular_velocity,
+                           double diff_rot_parameter,
+                           double max_dens_ratio_interp,
+                           std::string eos_filename,
+                           std::string eos_subfilename)
     : progenitor_filename_(std::move(progenitor_filename)),
       prog_data_{progenitor_filename_},
       // equation_of_state_(std::move(equation_of_state)),
-      equation_of_state_(std::move(equation_of_state)),
+      // equation_of_state_(std::move(eos_filename),
+      // std::move(eos_subfilename)),
       central_angular_velocity_(central_angular_velocity),
       inv_diff_rot_parameter_(1.0 / diff_rot_parameter) {
   CcsnCollapse::prog_data_.set_dens_ratio(max_dens_ratio_interp);
+  // assign EOS file here
+  // std::string h5_file_name{
+  //"PointwiseFunctions/Hydro/EquationsOfState/dd2_unit_test.h5"};
+  ////
+  //   using TEoS = EquationsOfState::Tabulated3D<true>;
+
+  //   //MAKE_GENERATOR(gen);
+  //   std::uniform_int_distribution<size_t> dist_int(3, 5);
+
+  //   constexpr int Dim = 3;
+  //   constexpr int NumVar = TEoS::NumberOfVars;
+
+  //   std::array<double, Dim> lower_bounds{{
+  //       -3 * std::log(10),  // TEMP
+  //       -5 * std::log(10),  // RHO
+  //       0.01                // YE
+  //   }};
+
+  //   std::array<double, Dim> upper_bounds{{1 * std::log(10),   // TEMP
+  //                                         -1 * std::log(10),  // RHO
+  //                                         0.5}};
+
+  //   // Create data data structures
+  //   std::array<std::vector<double>, Dim> X_data;
+  //   Index<Dim> num_x_points;
+
+  //   size_t total_num_points = 1;
+  //   for (size_t n = 0; n < Dim; ++n) {
+  //     num_x_points[n] = 5;
+  //     total_num_points *= num_x_points[n];
+
+  //     X_data[n].resize(num_x_points[n]);
+
+  //     for (size_t m = 0; m < num_x_points[n]; m++) {
+  //       X_data[n][m] =
+  //           lower_bounds[n] + m * (upper_bounds[n] - lower_bounds[n]) /
+  //                                 static_cast<double>(num_x_points[n] - 1);
+  //     }
+  //   }
+  // // Correct for NumVars
+  //   total_num_points *= TEoS::NumberOfVars;
+
+  //   // Allocate storage for main table
+  //   std::vector<double> dependent_variables;
+  //   dependent_variables.resize(total_num_points);
+
+  //   // Fill dependent_variables
+  //   //
+  //   double energy_shift = 0;  // Will test this later
+
+  //   double eps_min = std::exp(lower_bounds[0]);
+
+  //   if (eps_min < 0) {
+  //     energy_shift = 2. * eps_min;
+  //   }
+
+  //   auto test_eos = [&](auto state) {
+
+  //     enum TableIndex { Temp = 0, Rho = 1, Ye = 2 };
+
+  //     // We use a simple ideal fluid like EOS with a Ye variable Gamma:
+  //     // p = (rho*eps)*Ye = rho T
+
+  //     std::array<double, TEoS::NumberOfVars> vars;
+
+  //     // This is not consistent, but better keep this simple
+  //     vars[TEoS::Epsilon] = state[TableIndex::Temp];
+  //     vars[TEoS::Pressure] = state[TableIndex::Temp] +
+  //     state[TableIndex::Rho]; vars[TEoS::CsSquared] = state[TableIndex::Ye];
+
+  //     return vars;
+  //   };
+
+  //     for (size_t ijk = 0; ijk < total_num_points / NumVar; ++ijk) {
+  //     Index<Dim> index;
+  //     auto tmp = std::array<double, Dim>{};
+
+  //     // Uncompress index
+  //     size_t myind = ijk;
+  //     for (size_t nn = 0; nn < Dim - 1; ++nn) {
+  //       index[nn] = myind % num_x_points[nn];
+  //       myind = (myind - index[nn]) / num_x_points[nn];
+  //       tmp[nn] = X_data[nn][index[nn]];
+  //     }
+  //     index[Dim - 1] = myind;
+  //     tmp[Dim - 1] = X_data[Dim - 1][index[Dim - 1]];
+
+  //     for (size_t nv = 0; nv < NumVar; ++nv) {
+  //       std::array<double, NumVar> Fx = test_eos(tmp);
+  //       dependent_variables[nv + NumVar * ijk] = Fx[nv];
+  //     }
+  //   }
+  //   double enthalpy_minimum = 1.;
+
+  //   equation_of_state_ = TEoS(X_data[2], X_data[1], X_data[0],
+  //   dependent_variables,
+  //                   energy_shift, enthalpy_minimum);
+  //   ////
+
+  h5::H5File<h5::AccessType::ReadOnly> eos_file{eos_filename};
+  const auto& compose_eos = eos_file.get<h5::EosTable>(eos_subfilename);
+
+  equation_of_state_.initialize(compose_eos);
+
+  std::array<double, 3> pure_state{{1., 1.e-4, 0.3}};
+  std::array<Scalar<double>, 3> state{};
+
+  for (size_t n = 0; n < 3; ++n) {
+    get(state[n]) = pure_state[n];
+  }
+
+  get(equation_of_state_.specific_internal_energy_from_density_and_temperature(
+      state[1], state[0], state[2]));
+
+  std::cout << "passed initialize \n";
 }
 
 CcsnCollapse::CcsnCollapse(CkMigrateMessage* msg) : InitialData(msg) {}
@@ -551,8 +670,12 @@ tuples::TaggedTuple<hydro::Tags::Pressure<DataType>> CcsnCollapse::variables(
       get<hydro::Tags::ElectronFraction<DataType>>(variables(
           vars, x, tmpl::list<hydro::Tags::ElectronFraction<DataType>>{}));
 
-  return {equation_of_state_->pressure_from_density_and_temperature(
-      rest_mass_density, temperature, electron_fraction)};
+  return {Scalar<DataType>{vars->temperature.value()}};
+
+  // return {equation_of_state_.pressure_from_density_and_temperature(
+  //     rest_mass_density, temperature, electron_fraction)};
+  // return {equation_of_state_.pressure_from_density(
+  //     rest_mass_density)};
 }
 
 // Specific internal energy
@@ -570,9 +693,44 @@ CcsnCollapse::variables(
       get<hydro::Tags::ElectronFraction<DataType>>(variables(
           vars, x, tmpl::list<hydro::Tags::ElectronFraction<DataType>>{}));
 
-  return {
-      equation_of_state_->specific_internal_energy_from_density_and_temperature(
-          rest_mass_density, temperature, electron_fraction)};
+  // return {Scalar<DataType>{vars->temperature.value()}};
+
+  // std::cout << "density lower----"
+  //           << equation_of_state_.rest_mass_density_lower_bound() << ":"
+  //           << equation_of_state_.rest_mass_density_upper_bound() << "|\n";
+  // // std::cout << "density" << rest_mass_density << "\n";
+  // std::cout << "temp lower----" <<
+  // equation_of_state_.temperature_lower_bound()
+  //           << ":" << equation_of_state_.temperature_upper_bound() << "|\n";
+  // // std::cout << "temperature" << temperature << "\n";
+  // std::cout << "Ye lower----"
+  //           << equation_of_state_.electron_fraction_lower_bound() << ":"
+  //           << equation_of_state_.electron_fraction_upper_bound() << "|\n";
+  // std::cout << "electron_fractions" << electron_fraction << "\n";
+  // std::array<double, 3> pure_state{{1., 1.e-4, 0.3}};
+  // std::array<Scalar<double>, 3> state{};
+
+  // for (size_t n = 0; n < 3; ++n) {
+  //   get(state[n]) = pure_state[n];
+  // }
+
+  // get(equation_of_state_.specific_internal_energy
+  //_from_density_and_temperature(
+  //     state[1], state[0], state[2]));
+  // equation_of_state_.specific_internal_energy
+  //_from_density_and_temperature(
+  //     state[1], state[0], state[2]);
+
+  return {Scalar<DataType>{vars->temperature.value()}};
+
+  // return {
+  //     equation_of_state_.specific_internal_energy_
+  //from_density_and_temperature(
+  //         rest_mass_density, temperature, electron_fraction)};
+
+  // return {
+  //     equation_of_state_.specific_internal_energy_from_density(
+  //         rest_mass_density)};
 }
 
 // Specific enthalpy
@@ -886,7 +1044,7 @@ bool operator==(const CcsnCollapse& lhs, const CcsnCollapse& rhs) {
   return lhs.progenitor_filename_ == rhs.progenitor_filename_ and
          // lhs.polytropic_constant_ == rhs.polytropic_constant_ and
          // lhs.polytropic_exponent_ == rhs.polytropic_exponent_ and
-         *lhs.equation_of_state_ == *rhs.equation_of_state_ and
+         lhs.equation_of_state_ == rhs.equation_of_state_ and
          lhs.central_angular_velocity_ == rhs.central_angular_velocity_ and
          lhs.inv_diff_rot_parameter_ == rhs.inv_diff_rot_parameter_;
 }
