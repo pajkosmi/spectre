@@ -243,8 +243,8 @@ struct EvolutionMetavars<InitialData, tmpl::list<InterpolationTargetTags...>> {
           typename InterpolationTargetTags::vars_to_interpolate_to_target...>>>;
 
   using ordered_list_of_primitive_recovery_schemes = tmpl::list<
-      grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl,
-      grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin,
+      //grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl,
+      //grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin,
       grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>;
 
   using interpolation_target_tags = tmpl::list<InterpolationTargetTags...>;

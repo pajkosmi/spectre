@@ -116,12 +116,13 @@ using KastaunThenNewmanThenPalenzuela =
       const EquationsOfState::EquationOfState<true, THERMO_DIM(data)>& eos,  \
       const grmhd::ValenciaDivClean::PrimitiveFromConservativeOptions&       \
           primitive_from_conservative_options);
-GENERATE_INSTANTIATIONS(INSTANTIATION,
-                        (tmpl::list<PrimitiveRecoverySchemes::KastaunEtAl>,
-                         tmpl::list<PrimitiveRecoverySchemes::NewmanHamlin>,
-                         tmpl::list<PrimitiveRecoverySchemes::PalenzuelaEtAl>,
-                         NewmanThenPalenzuela, KastaunThenNewmanThenPalenzuela),
-                        (1, 2))
+GENERATE_INSTANTIATIONS(
+    INSTANTIATION,
+    (  // tmpl::list<PrimitiveRecoverySchemes::KastaunEtAl>,
+       // tmpl::list<PrimitiveRecoverySchemes::NewmanHamlin>,
+        tmpl::list<PrimitiveRecoverySchemes::PalenzuelaEtAl>),
+    // NewmanThenPalenzuela, //KastaunThenNewmanThenPalenzuela),
+    (3))
 #undef INSTANTIATION
 #undef THERMO_DIM
 #undef RECOVERY

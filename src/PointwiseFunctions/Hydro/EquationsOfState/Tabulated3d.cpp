@@ -11,6 +11,7 @@
 #include "PointwiseFunctions/Hydro/Units.hpp"
 #include "Utilities/ConstantExpressions.hpp"
 
+#include <iostream>
 // IWYU pragma: no_forward_declare Tensor
 
 namespace EquationsOfState {
@@ -241,6 +242,21 @@ void Tabulated3D<IsRelativistic>::initialize_interpolator() {
 }
 
 template <bool IsRelativistic>
+void Tabulated3D<IsRelativistic>::initialize(
+    std::vector<double> electron_fraction, std::vector<double> log_density,
+    std::vector<double> log_temperature, std::vector<double> table_data,
+    double energy_shift, double enthalpy_minimum) {
+  energy_shift_ = energy_shift;
+  enthalpy_minimum_ = enthalpy_minimum;
+  table_electron_fraction_ = std::move(electron_fraction);
+  table_log_density_ = std::move(log_density);
+  table_log_temperature_ = std::move(log_temperature);
+  table_data_ = std::move(table_data);
+  // Need to table
+  initialize_interpolator();
+}
+
+template <bool IsRelativistic>
 bool Tabulated3D<IsRelativistic>::is_equal(
     const EquationOfState<IsRelativistic, 3>& rhs) const {
   const auto& derived_ptr =
@@ -370,7 +386,6 @@ void Tabulated3D<IsRelativistic>::pup(PUP::er& p) {
   p | table_log_density_;
   p | table_log_temperature_;
   p | table_data_;
-
   if (p.isUnpacking()) {
     initialize_interpolator();
   }

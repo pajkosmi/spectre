@@ -324,7 +324,7 @@ GENERATE_INSTANTIATIONS(INSTANTIATION, ORDERED_RECOVERY_LIST)
       const EquationsOfState::EquationOfState<true, THERMO_DIM(data)>& eos, \
       const grmhd::ValenciaDivClean::PrimitiveFromConservativeOptions&      \
         primitive_from_conservative_options) const;
-GENERATE_INSTANTIATIONS(INSTANTIATION, ORDERED_RECOVERY_LIST, (1, 2))
+GENERATE_INSTANTIATIONS(INSTANTIATION, ORDERED_RECOVERY_LIST, (3))
 #undef INSTANTIATION
 #undef THERMO_DIM
 #undef RECOVERY

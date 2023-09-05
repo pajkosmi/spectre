@@ -309,10 +309,10 @@ GENERATE_INSTANTIATIONS(
 
 GENERATE_INSTANTIATIONS(
     INSTANTIATION,
-    (grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl,
-     grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin,
+    (//grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl,
+     //grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin,
      grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl),
-    (1, 2))
+    (3))
 #undef INSTANTIATION
 #undef THERMO_DIM
 #undef RECOVERY

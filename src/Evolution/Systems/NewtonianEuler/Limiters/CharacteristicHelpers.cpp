@@ -245,7 +245,7 @@ void conserved_fields_from_characteristic_fields(
       const EquationsOfState::EquationOfState<false, THERMODIM(data)>&, \
       const tnsr::i<double, DIM(data)>&, const bool);
 
-GENERATE_INSTANTIATIONS(INSTANTIATE, (1, 2, 3), (1, 2))
+GENERATE_INSTANTIATIONS(INSTANTIATE, (1, 2, 3), (3))
 
 #undef THERMODIM
 #undef INSTANTIATE

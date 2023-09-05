@@ -9,6 +9,17 @@
 #include <string>
 
 #include "DataStructures/Tensor/TypeAliases.hpp"
+#include "IO/Connectivity.hpp"
+#include "IO/H5/AccessType.hpp"
+#include "IO/H5/CheckH5.hpp"
+#include "IO/H5/EosTable.hpp"
+#include "IO/H5/File.hpp"
+#include "IO/H5/Header.hpp"
+#include "IO/H5/Helpers.hpp"
+#include "IO/H5/OpenGroup.hpp"
+#include "IO/H5/SourceArchive.hpp"
+#include "IO/H5/Version.hpp"
+#include "IO/H5/Wrappers.hpp"
 #include "NumericalAlgorithms/LinearOperators/PartialDerivatives.hpp"
 #include "Options/String.hpp"
 #include "PointwiseFunctions/AnalyticData/AnalyticData.hpp"
@@ -539,7 +550,7 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   // double polytropic_constant_ = std::numeric_limits<double>::signaling_NaN();
   // double polytropic_exponent_ = std::numeric_limits<double>::signaling_NaN();
   // EquationsOfState::PolytropicFluid<true> equation_of_state_{};
-  equation_of_state_type equation_of_state_{};
+  EquationsOfState::Tabulated3D<true> equation_of_state_;
   double central_angular_velocity_ =
       std::numeric_limits<double>::signaling_NaN();
   double inv_diff_rot_parameter_ = std::numeric_limits<double>::signaling_NaN();

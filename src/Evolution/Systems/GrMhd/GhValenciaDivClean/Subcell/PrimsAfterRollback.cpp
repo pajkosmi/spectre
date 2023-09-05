@@ -130,11 +130,11 @@ using KastaunThenNewmanThenPalenzuela =
           primitive_from_conservative_options);
 GENERATE_INSTANTIATIONS(
     INSTANTIATION,
-    (tmpl::list<ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl>,
-     tmpl::list<ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin>,
-     tmpl::list<ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>,
-     NewmanThenPalenzuela, KastaunThenNewmanThenPalenzuela),
-    (1, 2))
+    (//tmpl::list<ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl>,
+     //tmpl::list<ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin>,
+     tmpl::list<ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>),
+     //NewmanThenPalenzuela, KastaunThenNewmanThenPalenzuela),
+    (3))
 #undef INSTANTIATION
 #undef THERMO_DIM
 #undef RECOVERY

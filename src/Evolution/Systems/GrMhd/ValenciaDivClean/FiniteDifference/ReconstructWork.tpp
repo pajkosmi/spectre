@@ -84,23 +84,29 @@ void compute_conservatives_for_reconstruction(
   // EoS calls based on reconstructed primitives
   if constexpr (ThermodynamicDim == 1) {
     specific_internal_energy =
-        eos.specific_internal_energy_from_density(
+        eos.specific_internal_energy_from_density_and_temperature(
             rest_mass_density);
     pressure = eos.pressure_from_density(rest_mass_density);
+    // temperature = eos.temperature_from_density(rest_mass_density);
   } else if constexpr (ThermodynamicDim == 2) {
     specific_internal_energy =
         eos.specific_internal_energy_from_density_and_temperature(
             rest_mass_density, temperature);
     pressure = eos.pressure_from_density_and_energy(rest_mass_density,
                                                     specific_internal_energy);
+    // temperature = eos.temperature_from_density_and_energy(
+    //     rest_mass_density, specific_internal_energy);
   } else if constexpr (ThermodynamicDim == 3) {
+    // we have rest mass density, and pressure at this point;
+    // temperature will eventually be reconstructed.  Electron
+    // fraction is reconstructed.
     specific_internal_energy =
         eos.specific_internal_energy_from_density_and_temperature(
             rest_mass_density, temperature, electron_fraction);
-    pressure = eos.pressure_from_density_and_temperature(
-        rest_mass_density, temperature, electron_fraction);
+    pressure = eos.pressure_from_density_and_energy(
+        rest_mass_density, specific_internal_energy, electron_fraction);
   } else {
-    ERROR("EOS Must be 1, 2, or 3d");
+    ERROR("1d, 2d, nor 3d EOS chosen");
   }
 
   auto& specific_enthalpy =

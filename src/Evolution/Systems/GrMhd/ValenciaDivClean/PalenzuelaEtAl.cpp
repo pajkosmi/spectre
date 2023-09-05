@@ -76,7 +76,12 @@ class FunctionOfX {
               Scalar<double>(current_rest_mass_density),
               Scalar<double>(current_specific_internal_energy)));
     } else if constexpr (ThermodynamicDim == 3) {
-      ERROR("3d EOS not implemented");
+      current_pressure =
+          get(equation_of_state_.pressure_from_density_and_energy(
+              Scalar<double>(current_rest_mass_density),
+              Scalar<double>(current_specific_internal_energy),
+              Scalar<double>(0.5)));
+      // ERROR("3d EOS not implemented");
     }
 
     return x - (1.0 + current_specific_internal_energy +
@@ -151,9 +156,15 @@ std::optional<PrimitiveRecoveryData> PalenzuelaEtAl::apply(
         Scalar<double>(rest_mass_density),
         Scalar<double>(specific_internal_energy)));
   } else if constexpr (ThermodynamicDim == 3) {
-    ERROR("3d EOS not implemented");
-  }
+    // new thermodim == 3 call
+    const double specific_internal_energy = f_of_x.specific_internal_energy(
+        specific_enthalpy_times_lorentz_factor, lorentz_factor);
 
+    pressure = get(equation_of_state.pressure_from_density_and_energy(
+        Scalar<double>(rest_mass_density),
+        Scalar<double>(specific_internal_energy),
+        Scalar<double>(electron_fraction)));
+  }
   return PrimitiveRecoveryData{rest_mass_density,
                                lorentz_factor,
                                pressure,

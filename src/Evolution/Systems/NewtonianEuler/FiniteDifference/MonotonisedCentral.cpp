@@ -168,7 +168,7 @@ GENERATE_INSTANTIATIONS(INSTANTIATION, (1, 2, 3))
       const Mesh<DIM(data)>& subcell_mesh,                                     \
       const Direction<DIM(data)> direction_to_reconstruct) const;
 
-GENERATE_INSTANTIATIONS(INSTANTIATION, (1, 2, 3), (1, 2))
+GENERATE_INSTANTIATIONS(INSTANTIATION, (1, 2, 3), (3))
 
 #undef INSTANTIATION
 #undef TAGS_LIST

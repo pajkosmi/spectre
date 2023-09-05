@@ -69,7 +69,7 @@ Scalar<DataType> sound_speed_squared(
       const EquationsOfState::EquationOfState<true, THERMO_DIM(data)>& \
           equation_of_state);
 
-GENERATE_INSTANTIATIONS(INSTANTIATE, (double, DataVector), (1, 2))
+GENERATE_INSTANTIATIONS(INSTANTIATE, (double, DataVector), (3))
 
 #undef DTYPE
 #undef THERMO_DIM

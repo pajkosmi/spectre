@@ -29,6 +29,7 @@ namespace grmhd::ValenciaDivClean::subcell {
  */
 class PrimitiveGhostVariables {
  private:
+  /// change pressure -> temperature here
   using prims_to_reconstruct_tags =
       tmpl::list<hydro::Tags::RestMassDensity<DataVector>,
                  hydro::Tags::ElectronFraction<DataVector>,

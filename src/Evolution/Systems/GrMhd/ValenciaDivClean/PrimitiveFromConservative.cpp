@@ -143,12 +143,10 @@ bool PrimitiveFromConservative<OrderedListOfPrimitiveRecoverySchemes,
             get(*electron_fraction)[s]};
       } else if constexpr (ThermodynamicDim == 1) {
         const double specific_energy_at_point =
-            get(equation_of_state
-                    .specific_internal_energy_from_density(
-                        Scalar<double>{floorD}));
-        const double pressure_at_point =
-            get(equation_of_state.pressure_from_density(
+            get(equation_of_state.specific_internal_energy_from_density(
                 Scalar<double>{floorD}));
+        const double pressure_at_point = get(
+            equation_of_state.pressure_from_density(Scalar<double>{floorD}));
         const double specific_enthalpy_at_point =
             1.0 + specific_energy_at_point + pressure_at_point / floorD;
         primitive_data = PrimitiveRecoverySchemes::PrimitiveRecoveryData{
@@ -337,7 +335,7 @@ GENERATE_INSTANTIATIONS(
      tmpl::list<
          grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>,
      NewmanHamlinThenPalenzuelaEtAl, KastaunThenNewmanThenPalenzuela),
-    (true, false), (1, 2), (true, false))
+    (true, false), (3))
 
 #undef INSTANTIATION
 #undef THERMODIM

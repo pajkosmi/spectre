@@ -120,7 +120,7 @@ GENERATE_INSTANTIATIONS(INSTANTIATION, (1, 2, 3))
       const evolution::dg::subcell::RdmpTciData& past_rdmp_tci_data,          \
       const evolution::dg::subcell::SubcellOptions& subcell_options,          \
       double persson_exponent, bool need_rdmp_data_only);
-GENERATE_INSTANTIATIONS(INSTANTIATION, (1, 2, 3), (1, 2))
+GENERATE_INSTANTIATIONS(INSTANTIATION, (1, 2, 3), (3))
 #undef INSTANTIATION
 #undef THERMO_DIM
 #undef DIM
