@@ -161,7 +161,7 @@ void test(const BoundaryConditionType& boundary_condition) {
   using Phi = gh::Tags::Phi<DataVector, 3>;
   using RestMassDensity = hydro::Tags::RestMassDensity<DataVector>;
   using ElectronFraction = hydro::Tags::ElectronFraction<DataVector>;
-  using Pressure = hydro::Tags::Pressure<DataVector>;
+  using Temperature = hydro::Tags::Temperature<DataVector>;
   using LorentzFactor = hydro::Tags::LorentzFactor<DataVector>;
   using SpatialVelocity = hydro::Tags::SpatialVelocity<DataVector, 3>;
   using MagneticField = hydro::Tags::MagneticField<DataVector, 3>;
@@ -214,7 +214,7 @@ void test(const BoundaryConditionType& boundary_condition) {
 
   get(get<RestMassDensity>(volume_prim_vars)) = 1.0;
   get(get<ElectronFraction>(volume_prim_vars)) = 0.1;
-  get(get<Pressure>(volume_prim_vars)) = 1.0;
+  get(get<Temperature>(volume_prim_vars)) = 1.0;
   get(get<LorentzFactor>(volume_prim_vars)) = 2.0;
   for (size_t i = 0; i < 3; ++i) {
     get<SpatialVelocity>(volume_prim_vars).get(i) = 0.1;
@@ -286,13 +286,13 @@ void test(const BoundaryConditionType& boundary_condition) {
         logical_to_grid_map(ghost_logical_coords), time, functions_of_time);
 
     const auto [expected_rest_mass_density, expected_electron_fraction,
-                expected_pressure, expected_lorentz_factor,
+                expected_Temperature, expected_lorentz_factor,
                 expected_spatial_velocity, expected_magnetic_field,
                 expected_div_cleaning_field, expected_spacetime_metric,
                 expected_pi, expected_phi] =
         solution.variables(
             ghost_inertial_coords, time,
-            tmpl::list<RestMassDensity, ElectronFraction, Pressure,
+            tmpl::list<RestMassDensity, ElectronFraction, Temperature,
                        LorentzFactor, SpatialVelocity, MagneticField,
                        DivergenceCleaningField, SpacetimeMetric, Pi, Phi>{});
 
@@ -301,7 +301,8 @@ void test(const BoundaryConditionType& boundary_condition) {
                           expected_rest_mass_density);
     CHECK_ITERABLE_APPROX(get<ElectronFraction>(fd_ghost_vars),
                           expected_electron_fraction);
-    CHECK_ITERABLE_APPROX(get<Pressure>(fd_ghost_vars), expected_pressure);
+    CHECK_ITERABLE_APPROX(get<Temperature>(fd_ghost_vars),
+                          expected_Temperature);
     {
       tnsr::I<DataVector, 3> expected_lorentz_factor_times_spatial_velocity{
           ghost_zone_size * num_face_pts};
