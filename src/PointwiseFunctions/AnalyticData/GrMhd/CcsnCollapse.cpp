@@ -91,11 +91,9 @@ ProgenitorProfile::ProgenitorProfile(const std::string& filename) {
         metric_potential_[i];
   }
   radius_ *= c2g_length_;
-  rest_mass_density_ = 1.0e-3;  // c2g_dens_;
+  rest_mass_density_ *= c2g_dens_;
   // hack for specific internal energy read in instead T = (gamma - 1) * eps
-  temperature_ = 1;  // 1000.0 * (4.0 / 3.0 - 1.0) /
-  //                 (speed_of_light_cgs_ * speed_of_light_cgs_);  // c2g_temp_;
-  electron_fraction_ = 0.3;
+  temperature_ = temperature_ / (speed_of_light_cgs_ * speed_of_light_cgs_);
   fluid_velocity_ /= speed_of_light_cgs_;
   maximum_radius_ = max(radius_);
 }
@@ -312,35 +310,13 @@ CcsnCollapse::CcsnCollapse(std::string progenitor_filename,
                            std::string eos_subfilename)
     : progenitor_filename_(std::move(progenitor_filename)),
       prog_data_{progenitor_filename_},
-      // equation_of_state_(std::move(equation_of_state)),
-      // equation_of_state_(std::move(eos_filename),
-      // std::move(eos_subfilename)),
       central_angular_velocity_(central_angular_velocity),
       inv_diff_rot_parameter_(1.0 / diff_rot_parameter) {
   CcsnCollapse::prog_data_.set_dens_ratio(max_dens_ratio_interp);
-  // assign EOS file here
-  // std::string h5_file_name{
-  //"PointwiseFunctions/Hydro/EquationsOfState/dd2_unit_test.h5"};
-
   h5::H5File<h5::AccessType::ReadOnly> eos_file{eos_filename};
   const auto& compose_eos = eos_file.get<h5::EosTable>(eos_subfilename);
 
   equation_of_state_.initialize(compose_eos);
-
-  std::array<double, 3> pure_state{{1., 1.e-4, 0.3}};
-  // std::array<Data, 3> pure_state{{{1., 1.2}, {1.e-4, 1.2e-4}, {0.3, 0.35}}};
-  std::array<Scalar<double>, 3> state{};
-
-  for (size_t n = 0; n < 3; ++n) {
-    get(state[n]) = pure_state[n];
-  }
-
-  // seems like eos can run here but outside of this call it defaults to
-  // Tabulated3D<false> even though I specify true
-  equation_of_state_.specific_internal_energy_from_density_and_temperature(
-      state[1], state[0], state[2]);
-
-  std::cout << "passed initialize \n";
 }
 
 CcsnCollapse::CcsnCollapse(CkMigrateMessage* msg) : InitialData(msg) {}
@@ -363,8 +339,6 @@ void CcsnCollapse::pup(PUP::er& p) {
   InitialData::pup(p);
   p | progenitor_filename_;
   p | prog_data_;
-  // p | polytropic_constant_;
-  // p | polytropic_exponent_;
   p | equation_of_state_;
   p | central_angular_velocity_;
   p | inv_diff_rot_parameter_;
@@ -555,13 +529,34 @@ CcsnCollapse::variables(
   return {Scalar<DataType>{vars->electron_fraction.value()}};
 }
 
+// Specific internal energy
+template <typename DataType>
+tuples::TaggedTuple<hydro::Tags::SpecificInternalEnergy<DataType>>
+CcsnCollapse::variables(
+    const gsl::not_null<IntermediateVariables<DataType>*> vars,
+    const tnsr::I<DataType, 3>& x,
+    tmpl::list<hydro::Tags::SpecificInternalEnergy<DataType>> /*meta*/) const {
+  return {Scalar<DataType>{vars->temperature.value()}};
+}
+
 // Temperature
 template <typename DataType>
 tuples::TaggedTuple<hydro::Tags::Temperature<DataType>> CcsnCollapse::variables(
     const gsl::not_null<IntermediateVariables<DataType>*> vars,
-    const tnsr::I<DataType, 3>& /*x*/,
+    const tnsr::I<DataType, 3>& x,
     tmpl::list<hydro::Tags::Temperature<DataType>> /*meta*/) const {
-  return {Scalar<DataType>{vars->temperature.value()}};
+  const auto rest_mass_density = get<hydro::Tags::RestMassDensity<DataType>>(
+      variables(vars, x, tmpl::list<hydro::Tags::RestMassDensity<DataType>>{}));
+  const auto specific_internal_energy =
+      get<hydro::Tags::SpecificInternalEnergy<DataType>>(variables(
+          vars, x,
+          tmpl::list<hydro::Tags::SpecificInternalEnergy<DataType>>{}));
+  const auto electron_fraction =
+      get<hydro::Tags::ElectronFraction<DataType>>(variables(
+          vars, x, tmpl::list<hydro::Tags::ElectronFraction<DataType>>{}));
+
+  return {equation_of_state_.temperature_from_density_and_energy(
+      rest_mass_density, specific_internal_energy, electron_fraction)};
 }
 
 // Pressure
@@ -585,85 +580,8 @@ tuples::TaggedTuple<hydro::Tags::Pressure<DataType>> CcsnCollapse::variables(
     get(state[n]) = pure_state[n];
   }
 
-  // template <typename T>
-  // void print_type() {
-  //   std::cout << __FUNCSIG__ << '\n';
-  // }
-  // std::cout << print_type<equation_of_state_type>() << "++++++++++\n";
-
-  // std::cout << typeid(equation_of_state_).name() << "-------eostype \n";
-
-  // equation_of_state_.pressure_from_density
-  //_and_temperature
-  //(Scalar<DataVector>(10,
-  // 1.e-4), Scalar<DataVector>(10, 1),
-  // Scalar<DataVector>(10,
-  //                                                          0.3));
-
-  equation_of_state_.pressure_from_density_and_temperature(
-      Scalar<double>(1.0), Scalar<double>(2.0), Scalar<double>(3.0));
-
-  return {Scalar<DataType>{vars->temperature.value()}};
-
-  // return {equation_of_state_.pressure_from_density_and_temperature(
-  //     rest_mass_density, temperature, electron_fraction)};
-  // return {equation_of_state_.pressure_from_density(
-  //     rest_mass_density)};
-}
-
-// Specific internal energy
-template <typename DataType>
-tuples::TaggedTuple<hydro::Tags::SpecificInternalEnergy<DataType>>
-CcsnCollapse::variables(
-    const gsl::not_null<IntermediateVariables<DataType>*> vars,
-    const tnsr::I<DataType, 3>& x,
-    tmpl::list<hydro::Tags::SpecificInternalEnergy<DataType>> /*meta*/) const {
-  const auto rest_mass_density = get<hydro::Tags::RestMassDensity<DataType>>(
-      variables(vars, x, tmpl::list<hydro::Tags::RestMassDensity<DataType>>{}));
-  const auto temperature = get<hydro::Tags::Temperature<DataType>>(
-      variables(vars, x, tmpl::list<hydro::Tags::Temperature<DataType>>{}));
-  const auto electron_fraction =
-      get<hydro::Tags::ElectronFraction<DataType>>(variables(
-          vars, x, tmpl::list<hydro::Tags::ElectronFraction<DataType>>{}));
-
-  // return {Scalar<DataType>{vars->temperature.value()}};
-
-  // std::cout << "density lower----"
-  //           << equation_of_state_.rest_mass_density_lower_bound() << ":"
-  //           << equation_of_state_.rest_mass_density_upper_bound() << "|\n";
-  // // std::cout << "density" << rest_mass_density << "\n";
-  // std::cout << "temp lower----" <<
-  // equation_of_state_.temperature_lower_bound()
-  //           << ":" << equation_of_state_.temperature_upper_bound() << "|\n";
-  // // std::cout << "temperature" << temperature << "\n";
-  // std::cout << "Ye lower----"
-  //           << equation_of_state_.electron_fraction_lower_bound() << ":"
-  //           << equation_of_state_.electron_fraction_upper_bound() << "|\n";
-  // std::cout << "electron_fractions" << electron_fraction << "\n";
-  // std::array<double, 3> pure_state{{1., 1.e-4, 0.3}};
-  // std::array<Scalar<double>, 3> state{};
-
-  // for (size_t n = 0; n < 3; ++n) {
-  //   get(state[n]) = pure_state[n];
-  // }
-
-  // get(equation_of_state_.specific_internal_energy
-  //_from_density_and_temperature(
-  //     state[1], state[0], state[2]));
-  // equation_of_state_.specific_internal_energy
-  //_from_density_and_temperature(
-  //     state[1], state[0], state[2]);
-
-  return {Scalar<DataType>{vars->temperature.value()}};
-
-  // return {
-  //     equation_of_state_.
-  //specific_internal_energy_from_density_and_temperature(
-  //         rest_mass_density, temperature, electron_fraction)};
-
-  // return {
-  //     equation_of_state_.specific_internal_energy_from_density(
-  //         rest_mass_density)};
+  return {equation_of_state_.pressure_from_density_and_temperature(
+      rest_mass_density, temperature, electron_fraction)};
 }
 
 // Specific enthalpy
@@ -687,13 +605,6 @@ CcsnCollapse::variables(
       Scalar<DataType>{DataType{max(1.0e-300, get(rest_mass_density))}},
       specific_internal_energy, pressure)};
 }
-
-// Eventually, below will call for piecewise polytrope or tabulated EOS
-//  auto temperature = vars->temperature;
-//  auto electron_fraction = vars->electron_fraction;
-// return{equation_of_state_.
-// specific_internal_energy_from_density_and_temperature_and_ye_impl(
-// rest_mass_density, temperature, electron_fraction)};
 
 // Velocity (typical spherical coord system rotating around z axis)
 template <typename DataType>
@@ -975,8 +886,6 @@ bool operator==(const CcsnCollapse& lhs, const CcsnCollapse& rhs) {
   // polytropic_constant_ are the same, then the solution and
   // EOS should be too.
   return lhs.progenitor_filename_ == rhs.progenitor_filename_ and
-         // lhs.polytropic_constant_ == rhs.polytropic_constant_ and
-         // lhs.polytropic_exponent_ == rhs.polytropic_exponent_ and
          lhs.equation_of_state_ == rhs.equation_of_state_ and
          lhs.central_angular_velocity_ == rhs.central_angular_velocity_ and
          lhs.inv_diff_rot_parameter_ == rhs.inv_diff_rot_parameter_;

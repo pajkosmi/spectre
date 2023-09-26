@@ -241,20 +241,20 @@ void Tabulated3D<IsRelativistic>::initialize_interpolator() {
       num_x_points);
 }
 
-template <bool IsRelativistic>
-void Tabulated3D<IsRelativistic>::initialize(
-    std::vector<double> electron_fraction, std::vector<double> log_density,
-    std::vector<double> log_temperature, std::vector<double> table_data,
-    double energy_shift, double enthalpy_minimum) {
-  energy_shift_ = energy_shift;
-  enthalpy_minimum_ = enthalpy_minimum;
-  table_electron_fraction_ = std::move(electron_fraction);
-  table_log_density_ = std::move(log_density);
-  table_log_temperature_ = std::move(log_temperature);
-  table_data_ = std::move(table_data);
-  // Need to table
-  initialize_interpolator();
-}
+// template <bool IsRelativistic>
+// void Tabulated3D<IsRelativistic>::initialize(
+//     std::vector<double> electron_fraction, std::vector<double> log_density,
+//     std::vector<double> log_temperature, std::vector<double> table_data,
+//     double energy_shift, double enthalpy_minimum) {
+//   energy_shift_ = energy_shift;
+//   enthalpy_minimum_ = enthalpy_minimum;
+//   table_electron_fraction_ = std::move(electron_fraction);
+//   table_log_density_ = std::move(log_density);
+//   table_log_temperature_ = std::move(log_temperature);
+//   table_data_ = std::move(table_data);
+//   // Need to table
+//   initialize_interpolator();
+// }
 
 template <bool IsRelativistic>
 bool Tabulated3D<IsRelativistic>::is_equal(
@@ -406,6 +406,9 @@ Tabulated3D<IsRelativistic>::temperature_from_density_and_energy_impl(
 
   temperature = make_with_value<Scalar<DataType>>(rest_mass_density,
                                                   temperature_lower_bound());
+
+  // temperature = make_with_value<Scalar<DataType>>(rest_mass_density,
+  //                                               4.99);
 
   convert_to_table_quantities(
       make_not_null(&converted_electron_fraction),

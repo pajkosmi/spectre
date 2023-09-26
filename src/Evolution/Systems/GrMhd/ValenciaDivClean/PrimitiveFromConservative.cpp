@@ -180,16 +180,17 @@ bool PrimitiveFromConservative<OrderedListOfPrimitiveRecoverySchemes,
         }
       };
 
-      // Check consistency
-      if (use_hydro_optimization and
-          (get(magnetic_field_squared)[s] <
-           100.0 * std::numeric_limits<double>::epsilon() * tau[s])) {
-        tmpl::for_each<
-            tmpl::list<grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::
-                           KastaunEtAlHydro>>(apply_scheme);
-      } else {
-        tmpl::for_each<OrderedListOfPrimitiveRecoverySchemes>(apply_scheme);
-      }
+      //   // Check consistency
+      //   if (use_hydro_optimization and
+      //       (get(magnetic_field_squared)[s] <
+      //        100.0 * std::numeric_limits<double>::epsilon() * tau[s])) {
+      //     tmpl::for_each<
+      //         tmpl::list<grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::
+      //                        KastaunEtAlHydro<EnforcePhysicality>>>(apply_scheme);
+      //   } else {
+      //     tmpl::for_each<OrderedListOfPrimitiveRecoverySchemes>(apply_scheme);
+      //   }
+      tmpl::for_each<OrderedListOfPrimitiveRecoverySchemes>(apply_scheme);
     }
 
     if (primitive_data.has_value()) {
@@ -273,21 +274,21 @@ bool PrimitiveFromConservative<OrderedListOfPrimitiveRecoverySchemes,
   template struct grmhd::ValenciaDivClean::PrimitiveFromConservative< \
       RECOVERY(data), ERROR_ON_FAILURE(data)>;
 
-using NewmanHamlinThenPalenzuelaEtAl = tmpl::list<
-    grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin,
-    grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>;
-using KastaunThenNewmanThenPalenzuela = tmpl::list<
-    grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl,
-    grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin,
-    grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>;
+// using NewmanHamlinThenPalenzuelaEtAl = tmpl::list<
+//     grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin,
+//     grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>;
+// using KastaunThenNewmanThenPalenzuela = tmpl::list<
+//     grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl,
+//     grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin,
+//     grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>;
 
 GENERATE_INSTANTIATIONS(
     INSTANTIATION,
-    (tmpl::list<
-         grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin>,
-     tmpl::list<
-         grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>,
-     NewmanHamlinThenPalenzuelaEtAl),
+    (  // tmpl::list<
+       // grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin>,
+        tmpl::list<
+            grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>),
+    // NewmanHamlinThenPalenzuelaEtAl),
     (true, false))
 
 #undef INSTANTIATION
@@ -327,14 +328,11 @@ GENERATE_INSTANTIATIONS(
 
 GENERATE_INSTANTIATIONS(
     INSTANTIATION,
-    (tmpl::list<grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl>,
-     tmpl::list<
-         grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAlHydro>,
-     tmpl::list<
-         grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin>,
-     tmpl::list<
-         grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>,
-     NewmanHamlinThenPalenzuelaEtAl, KastaunThenNewmanThenPalenzuela),
+    (//tmpl::list<grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl>,
+     //tmpl::list<grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAlHydro>,
+     //tmpl::list<grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin>,
+     tmpl::list<grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>),
+     //NewmanHamlinThenPalenzuelaEtAl, KastaunThenNewmanThenPalenzuela),
     (true, false), (3))
 
 #undef INSTANTIATION

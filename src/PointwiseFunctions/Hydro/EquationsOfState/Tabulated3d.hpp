@@ -217,7 +217,7 @@ class Tabulated3D : public EquationOfState<IsRelativistic, 3> {
   }
 
  private:
-  void initialize_interpolator();
+  // void initialize_interpolator();
   EQUATION_OF_STATE_FORWARD_DECLARE_MEMBER_IMPLS(3)
 
   void initialize_interpolator();
