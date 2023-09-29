@@ -80,7 +80,7 @@ class FunctionOfX {
           get(equation_of_state_.pressure_from_density_and_energy(
               Scalar<double>(current_rest_mass_density),
               Scalar<double>(current_specific_internal_energy),
-              Scalar<double>(0.5)));
+              Scalar<double>(electron_fraction_)));
       // ERROR("3d EOS not implemented");
     }
 

@@ -126,6 +126,12 @@ std::optional<PrimitiveRecoveryData> NewmanHamlin::apply(
                         Scalar<double>(current_rest_mass_density),
                         Scalar<double>(current_pressure)));
       } else if constexpr (ThermodynamicDim == 3) {
+        // Tabulated EoS needs *_and_pressure call
+        // current_specific_internal_energy =
+        //     get(equation_of_state
+        //             .specific_internal_energy_from_density_and_temperature(
+        //                 Scalar<double>(current_rest_mass_density),
+        //                 Scalar<double>(current_pressure)));
         ERROR("3d EOS not implemented");
       }
       return PrimitiveRecoveryData{

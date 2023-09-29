@@ -297,7 +297,10 @@ Primitives FunctionOfMu<EnforcePhysicality, ThermodynamicDim>::primitives(
     p_hat = get(equation_of_state_.pressure_from_density_and_energy(
         Scalar<double>(rho_hat), Scalar<double>(epsilon_hat)));
   } else if constexpr (ThermodynamicDim == 3) {
-    ERROR("3d EOS not implemented");
+    p_hat = get(equation_of_state_.pressure_from_density_and_energy(
+        Scalar<double>(rho_hat), Scalar<double>(epsilon_hat),
+        Scalar<double>(electron_fraction_)));
+    // ERROR("3d EOS not implemented");
   }
   return Primitives{rho_hat, w_hat, p_hat, epsilon_hat, q_bar, r_bar_squared};
 }
@@ -349,7 +352,7 @@ std::optional<PrimitiveRecoveryData> KastaunEtAl::apply(
       std::numeric_limits<double>::signaling_NaN();
   try {
     // Bracket for master function, see Sec. II.F
-    const auto[lower_bound, upper_bound] = f_of_mu.root_bracket(
+    const auto [lower_bound, upper_bound] = f_of_mu.root_bracket(
         rest_mass_density_times_lorentz_factor, absolute_tolerance_,
         relative_tolerance_, max_iterations_);
 
@@ -363,8 +366,8 @@ std::optional<PrimitiveRecoveryData> KastaunEtAl::apply(
     return std::nullopt;
   }
 
-  const auto[rest_mass_density, lorentz_factor, pressure,
-             specific_internal_energy, q_bar, r_bar_squared] =
+  const auto [rest_mass_density, lorentz_factor, pressure,
+              specific_internal_energy, q_bar, r_bar_squared] =
       f_of_mu.primitives(one_over_specific_enthalpy_times_lorentz_factor);
 
   (void)(q_bar);
