@@ -107,6 +107,7 @@
 #include "Evolution/VariableFixing/Actions.hpp"
 #include "Evolution/VariableFixing/FixToAtmosphere.hpp"
 #include "Evolution/VariableFixing/LimitLorentzFactor.hpp"
+#include "Evolution/VariableFixing/ParameterizedDeleptonization.hpp"
 #include "Evolution/VariableFixing/Tags.hpp"
 #include "IO/Importers/Actions/ReadVolumeData.hpp"
 #include "IO/Importers/Actions/ReceiveVolumeData.hpp"
@@ -232,6 +233,8 @@
 #include "Utilities/ProtocolHelpers.hpp"
 #include "Utilities/TMPL.hpp"
 
+#include <iostream>
+
 // Check if SpEC is linked and therefore we can load SpEC initial data
 #ifdef HAS_SPEC_EXPORTER
 #include "PointwiseFunctions/AnalyticData/GrMhd/SpecInitialData.hpp"
@@ -299,8 +302,8 @@ struct GhValenciaDivCleanDefaults {
       tmpl::append<typename system::primitive_variables_tag::tags_list,
                    typename system::gh_system::variables_tag::tags_list>;
   using ordered_list_of_primitive_recovery_schemes = tmpl::list<
-    //   grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl,
-    //   grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin,
+      //   grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl,
+      //   grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin,
       grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>;
 
   // Do not limit the divergence-cleaning field Phi or the GH fields
@@ -310,6 +313,17 @@ struct GhValenciaDivCleanDefaults {
                                      grmhd::ValenciaDivClean::Tags::TildeS<>,
                                      grmhd::ValenciaDivClean::Tags::TildeB<>>>>;
 
+  //   using parameterized_deleptonization = tmpl::conditional_t<
+  //       std::is_same_v<evolution::initial_data,
+  //       grmhd::AnalyticData::CcsnCollapse>,
+  //       VariableFixing::Actions::FixVariables<
+  //           VariableFixing::ParameterizedDeleptonization>,
+  //       tmpl::list<>>;
+
+  //   using parameterized_deleptonization =
+  //   VariableFixing::Actions::FixVariables<
+  //           VariableFixing::ParameterizedDeleptonization>
+
   using initialize_initial_data_dependent_quantities_actions = tmpl::list<
       gh::Actions::InitializeGhAnd3Plus1Variables<volume_dim>,
       Actions::MutateApply<tmpl::conditional_t<
@@ -318,6 +332,7 @@ struct GhValenciaDivCleanDefaults {
       Initialization::Actions::AddComputeTags<
           tmpl::list<gr::Tags::SqrtDetSpatialMetricCompute<
               DataVector, volume_dim, domain_frame>>>,
+      //   parameterized_deleptonization,
       VariableFixing::Actions::FixVariables<
           VariableFixing::FixToAtmosphere<volume_dim>>,
       VariableFixing::Actions::FixVariables<VariableFixing::LimitLorentzFactor>,
@@ -339,7 +354,7 @@ struct GhValenciaDivCleanDefaults {
               Actions::MutateApply<
                   grmhd::GhValenciaDivClean::subcell::ResizeAndComputePrims<
                       ordered_list_of_primitive_recovery_schemes>>,
-
+              // parameterized_deleptonization,
               VariableFixing::Actions::FixVariables<
                   VariableFixing::FixToAtmosphere<volume_dim>>,
               VariableFixing::Actions::FixVariables<
@@ -434,6 +449,13 @@ struct GhValenciaDivCleanTemplateBase<
       hydro::Tags::EquationOfState<std::unique_ptr<
           EquationsOfState::EquationOfState<true, thermodynamic_dim>>>>;
 
+  //   using parameterized_deleptonization = tmpl::conditional_t<
+  //       std::is_same_v<initial_data, grmhd::AnalyticData::CcsnCollapse>,
+  //       VariableFixing::Actions::FixVariables<
+  //           VariableFixing::ParameterizedDeleptonization>,
+  //       tmpl::list<>>;
+  using parameterized_deleptonization = VariableFixing::Actions::FixVariables<
+      VariableFixing::ParameterizedDeleptonization>;
   using initial_data_list = gh::solutions_including_matter<3>;
 
   using initial_data_tag =
@@ -681,19 +703,18 @@ struct GhValenciaDivCleanTemplateBase<
                        use_control_systems,
                        tmpl::list<::domain::creators::BinaryCompactObject>,
                        domain_creators<volume_dim>>>,
-        tmpl::pair<
-            Event,
-            tmpl::flatten<tmpl::list<
-                Events::Completion,
-                dg::Events::field_observations<volume_dim, observe_fields,
-                                               non_tensor_compute_tags>,
-                Events::ObserveAtExtremum<observe_fields,
-                                          non_tensor_compute_tags>,
-                Events::time_events<system>,
-                control_system::control_system_events<control_systems>,
-                intrp::Events::InterpolateWithoutInterpComponent<
-                    volume_dim, InterpolationTargetTags,
-                    interpolator_source_vars>...>>>,
+        tmpl::pair<Event,
+                   tmpl::flatten<tmpl::list<
+                       Events::Completion,
+                       dg::Events::field_observations<
+                           volume_dim, observe_fields, non_tensor_compute_tags>,
+                       Events::ObserveAtExtremum<observe_fields,
+                                                 non_tensor_compute_tags>,
+                       Events::time_events<system>,
+                       control_system::control_system_events<control_systems>,
+                       intrp::Events::InterpolateWithoutInterpComponent<
+                           volume_dim, InterpolationTargetTags,
+                           interpolator_source_vars>...>>>,
         tmpl::pair<
             grmhd::GhValenciaDivClean::BoundaryConditions::BoundaryCondition,
             boundary_conditions>,
@@ -811,6 +832,16 @@ struct GhValenciaDivCleanTemplateBase<
           grmhd::ValenciaDivClean::FixConservatives>,
       Actions::UpdatePrimitives>>;
 
+  //   using parameterized_deleptonization = tmpl::conditional_t<
+  //       std::is_same_v<initial_data, grmhd::AnalyticData::CcsnCollapse>,
+  //       VariableFixing::Actions::FixVariables<
+  //           VariableFixing::ParameterizedDeleptonization>,
+  //       tmpl::list<>>;
+
+  //   using parameterized_deleptonization =
+  //   VariableFixing::Actions::FixVariables<
+  //       VariableFixing::ParameterizedDeleptonization>;
+
   using dg_subcell_step_actions = tmpl::flatten<tmpl::list<
       evolution::dg::subcell::Actions::SelectNumericalMethod,
 
@@ -833,10 +864,10 @@ struct GhValenciaDivCleanTemplateBase<
       evolution::dg::subcell::Actions::TciAndRollback<
           grmhd::GhValenciaDivClean::subcell::TciOnDgGrid<
               tmpl::front<ordered_list_of_primitive_recovery_schemes>>>,
+      parameterized_deleptonization,
       VariableFixing::Actions::FixVariables<
           VariableFixing::FixToAtmosphere<volume_dim>>,
-      VariableFixing::Actions::FixVariables<
-          VariableFixing::LimitLorentzFactor>,
+      VariableFixing::Actions::FixVariables<VariableFixing::LimitLorentzFactor>,
       Actions::UpdateConservatives,
       Actions::Goto<evolution::dg::subcell::Actions::Labels::EndOfSolvers>,
 
@@ -865,10 +896,10 @@ struct GhValenciaDivCleanTemplateBase<
       Actions::MutateApply<
           grmhd::GhValenciaDivClean::subcell::ResizeAndComputePrims<
               ordered_list_of_primitive_recovery_schemes>>,
+      parameterized_deleptonization,
       VariableFixing::Actions::FixVariables<
           VariableFixing::FixToAtmosphere<volume_dim>>,
-      VariableFixing::Actions::FixVariables<
-          VariableFixing::LimitLorentzFactor>,
+      VariableFixing::Actions::FixVariables<VariableFixing::LimitLorentzFactor>,
       Actions::UpdateConservatives,
 
       Actions::Label<evolution::dg::subcell::Actions::Labels::EndOfSolvers>>>;
@@ -936,6 +967,7 @@ struct GhValenciaDivCleanTemplateBase<
           Parallel::PhaseActions<
               Parallel::Phase::Evolve,
               tmpl::list<::domain::Actions::CheckFunctionsOfTimeAreReady,
+                         parameterized_deleptonization,
                          VariableFixing::Actions::FixVariables<
                              VariableFixing::FixToAtmosphere<volume_dim>>,
                          VariableFixing::Actions::FixVariables<
