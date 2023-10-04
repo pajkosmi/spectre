@@ -92,10 +92,15 @@ ProgenitorProfile::ProgenitorProfile(const std::string& filename) {
   }
   radius_ *= c2g_length_;
   rest_mass_density_ *= c2g_dens_;
-  // hack for specific internal energy read in instead T = (gamma - 1) * eps
-  temperature_ = temperature_ / (speed_of_light_cgs_ * speed_of_light_cgs_);
+  // convert K to MeV
+  const double K_to_MeV = 8.621738e-11;
+  temperature_ = temperature_ * K_to_MeV;
   fluid_velocity_ /= speed_of_light_cgs_;
+  fluid_velocity_ = abs(fluid_velocity_);
   maximum_radius_ = max(radius_);
+
+  // readins look normal
+  // std::cout <<"fluid_velocity_ " << fluid_velocity_ << "\n";
 }
 
 void ProgenitorProfile::pup(PUP::er& p) {
@@ -393,6 +398,8 @@ void CcsnCollapse::interpolate_vars_if_necessary(
     get_element(vars->electron_fraction.value(), i) = interpolated_data[3];
     get_element(vars->metric_data->chi, i) = interpolated_data[4];
     get_element(vars->metric_data->metric_potential, i) = interpolated_data[5];
+
+    // std::cout << interpolated_data[2] << "\n";
   }
 }
 
@@ -529,6 +536,15 @@ CcsnCollapse::variables(
   return {Scalar<DataType>{vars->electron_fraction.value()}};
 }
 
+// Temperature
+template <typename DataType>
+tuples::TaggedTuple<hydro::Tags::Temperature<DataType>> CcsnCollapse::variables(
+    const gsl::not_null<IntermediateVariables<DataType>*> vars,
+    const tnsr::I<DataType, 3>& /*x*/,
+    tmpl::list<hydro::Tags::Temperature<DataType>> /*meta*/) const {
+  return {Scalar<DataType>{vars->temperature.value()}};
+}
+
 // Specific internal energy
 template <typename DataType>
 tuples::TaggedTuple<hydro::Tags::SpecificInternalEnergy<DataType>>
@@ -536,27 +552,22 @@ CcsnCollapse::variables(
     const gsl::not_null<IntermediateVariables<DataType>*> vars,
     const tnsr::I<DataType, 3>& x,
     tmpl::list<hydro::Tags::SpecificInternalEnergy<DataType>> /*meta*/) const {
-  return {Scalar<DataType>{vars->temperature.value()}};
-}
-
-// Temperature
-template <typename DataType>
-tuples::TaggedTuple<hydro::Tags::Temperature<DataType>> CcsnCollapse::variables(
-    const gsl::not_null<IntermediateVariables<DataType>*> vars,
-    const tnsr::I<DataType, 3>& x,
-    tmpl::list<hydro::Tags::Temperature<DataType>> /*meta*/) const {
   const auto rest_mass_density = get<hydro::Tags::RestMassDensity<DataType>>(
       variables(vars, x, tmpl::list<hydro::Tags::RestMassDensity<DataType>>{}));
-  const auto specific_internal_energy =
-      get<hydro::Tags::SpecificInternalEnergy<DataType>>(variables(
-          vars, x,
-          tmpl::list<hydro::Tags::SpecificInternalEnergy<DataType>>{}));
   const auto electron_fraction =
       get<hydro::Tags::ElectronFraction<DataType>>(variables(
           vars, x, tmpl::list<hydro::Tags::ElectronFraction<DataType>>{}));
+  const auto temperature = get<hydro::Tags::Temperature<DataType>>(
+      variables(vars, x, tmpl::list<hydro::Tags::Temperature<DataType>>{}));
 
-  return {equation_of_state_.temperature_from_density_and_energy(
-      rest_mass_density, specific_internal_energy, electron_fraction)};
+  // // negative eint
+  // std::cout << "Eps  " <<
+  // equation_of_state_.specific_internal_energy_from_density_and_temperature(
+  //         rest_mass_density, temperature, electron_fraction) << "\n";
+
+  return {
+      equation_of_state_.specific_internal_energy_from_density_and_temperature(
+          rest_mass_density, temperature, electron_fraction)};
 }
 
 // Pressure
@@ -572,13 +583,6 @@ tuples::TaggedTuple<hydro::Tags::Pressure<DataType>> CcsnCollapse::variables(
   const auto electron_fraction =
       get<hydro::Tags::ElectronFraction<DataType>>(variables(
           vars, x, tmpl::list<hydro::Tags::ElectronFraction<DataType>>{}));
-
-  std::array<double, 3> pure_state{{1., 1.e-4, 0.3}};
-  std::array<Scalar<double>, 3> state{};
-
-  for (size_t n = 0; n < 3; ++n) {
-    get(state[n]) = pure_state[n];
-  }
 
   return {equation_of_state_.pressure_from_density_and_temperature(
       rest_mass_density, temperature, electron_fraction)};
@@ -636,18 +640,20 @@ CcsnCollapse::variables(
 
   // vx = vr*sin(theta)*cos(phi) - vphi*sin(phi)
   get<0>(spatial_velocity) =
-      vars->fluid_velocity.value() * vars->sin_theta * cos(vars->phi) -
+      (-vars->fluid_velocity.value()) * vars->sin_theta * cos(vars->phi) -
       get<2>(spatial_velocity) * sin(vars->phi);
 
   // vy = vr*sin(theta)*sin(phi) + vphi*cos(phi)
   get<1>(spatial_velocity) =
-      vars->fluid_velocity.value() * vars->sin_theta * sin(vars->phi) +
+      (-vars->fluid_velocity.value()) * vars->sin_theta * sin(vars->phi) +
       get<2>(spatial_velocity) * cos(vars->phi);
 
   // vz = vr*cos(theta)
   get<2>(spatial_velocity) =
-      vars->fluid_velocity.value() * sqrt(1.0 - square(vars->sin_theta));
+      (-vars->fluid_velocity.value()) * sqrt(1.0 - square(vars->sin_theta));
 
+  // nans in velocity profile
+  // std::cout << "velocity " << vars->fluid_velocity.value() << "\n";
   return {std::move(spatial_velocity)};
 }
 
