@@ -201,21 +201,21 @@ TciOnDgGrid<RecoveryScheme>::apply(
     return {false, std::move(rdmp_tci_data)};
   }
 
-  {
-    // require: tilde{B}^2 <= 2sqrt{gamma}(1-epsilon_B)\tilde{tau}
-    Scalar<DataVector>& tilde_b_squared =
-        get<hydro::Tags::RestMassDensity<DataVector>>(*dg_prim_vars);
-    dot_product(make_not_null(&tilde_b_squared), tilde_b, tilde_b,
-                spatial_metric);
-    for (size_t i = 0; i < num_dg_pts; ++i) {
-      if (get(tilde_b_squared)[i] >
-          (1.0 - tci_options.safety_factor_for_magnetic_field) * 2.0 *
-              get(tilde_tau)[i] * get(sqrt_det_spatial_metric)[i]) {
-        equate_pre_tci_prims();
-        return {-3, std::move(rdmp_tci_data)};
-      }
-    }
-  }
+//   {
+//     // require: tilde{B}^2 <= 2sqrt{gamma}(1-epsilon_B)\tilde{tau}
+//     Scalar<DataVector>& tilde_b_squared =
+//         get<hydro::Tags::RestMassDensity<DataVector>>(*dg_prim_vars);
+//     dot_product(make_not_null(&tilde_b_squared), tilde_b, tilde_b,
+//                 spatial_metric);
+//     for (size_t i = 0; i < num_dg_pts; ++i) {
+//       if (get(tilde_b_squared)[i] >
+//           (1.0 - tci_options.safety_factor_for_magnetic_field) * 2.0 *
+//               get(tilde_tau)[i] * get(sqrt_det_spatial_metric)[i]) {
+//         equate_pre_tci_prims();
+//         return {-3, std::move(rdmp_tci_data)};
+//       }
+//     }
+//   }
 
   // Try to recover the primitive variables.
   // We assign them to a temporary so that if recovery fails at any of the

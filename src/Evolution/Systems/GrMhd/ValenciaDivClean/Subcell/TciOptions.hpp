@@ -52,7 +52,7 @@ struct TciOptions {
   /// Used to identify places where the energy has suddenly become negative
   struct MinimumValueOfTildeTau {
     using type = double;
-    static type lower_bound() { return 0.0; }
+    //static type lower_bound() { return 0.0; }
     static constexpr Options::String help = {
         "Minimum value of tilde tau before we switch to subcell."};
   };
