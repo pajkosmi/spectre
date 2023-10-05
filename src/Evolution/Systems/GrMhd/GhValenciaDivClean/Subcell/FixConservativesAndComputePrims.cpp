@@ -70,15 +70,15 @@ void FixConservativesAndComputePrims<OrderedListOfRecoverySchemes>::apply(
   CAPTURE_FOR_ERROR(det_spatial_metric);
   get(sqrt_det_spatial_metric) = sqrt(get(det_spatial_metric));
 
-  *needed_fixing = fix_conservatives(
-      make_not_null(&get<ValenciaDivClean::Tags::TildeD>(*conserved_vars_ptr)),
-      make_not_null(&get<ValenciaDivClean::Tags::TildeYe>(*conserved_vars_ptr)),
-      make_not_null(
-          &get<ValenciaDivClean::Tags::TildeTau>(*conserved_vars_ptr)),
-      make_not_null(&get<ValenciaDivClean::Tags::TildeS<Frame::Inertial>>(
-          *conserved_vars_ptr)),
-      get<ValenciaDivClean::Tags::TildeB<Frame::Inertial>>(*conserved_vars_ptr),
-      spatial_metric, inverse_spatial_metric, sqrt_det_spatial_metric);
+  //*needed_fixing = fix_conservatives(
+  // make_not_null(&get<ValenciaDivClean::Tags::TildeD>(*conserved_vars_ptr)),
+  // make_not_null(&get<ValenciaDivClean::Tags::TildeYe>(*conserved_vars_ptr)),
+  // make_not_null(
+  //        &get<ValenciaDivClean::Tags::TildeTau>(*conserved_vars_ptr)),
+  // make_not_null(&get<ValenciaDivClean::Tags::TildeS<Frame::Inertial>>(
+  //        *conserved_vars_ptr)),
+  // get<ValenciaDivClean::Tags::TildeB<Frame::Inertial>>(*conserved_vars_ptr),
+  // spatial_metric, inverse_spatial_metric, sqrt_det_spatial_metric);
   grmhd::ValenciaDivClean::
       PrimitiveFromConservative<OrderedListOfRecoverySchemes, true>::apply(
           make_not_null(&get<hydro::Tags::RestMassDensity<DataVector>>(
@@ -142,10 +142,10 @@ using KastaunThenNewmanThenPalenzuela =
 
 GENERATE_INSTANTIATIONS(
     INSTANTIATION,
-    (//tmpl::list<ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl>,
-     //tmpl::list<ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin>,
-     tmpl::list<ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>),
-     //NewmanThenPalenzuela, KastaunThenNewmanThenPalenzuela),
+    (  // tmpl::list<ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl>,
+       // tmpl::list<ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin>,
+        tmpl::list<ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>),
+    // NewmanThenPalenzuela, KastaunThenNewmanThenPalenzuela),
     (3))
 
 #undef INSTANTIATION
