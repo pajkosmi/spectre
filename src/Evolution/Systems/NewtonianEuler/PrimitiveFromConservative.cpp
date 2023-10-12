@@ -76,7 +76,7 @@ GENERATE_INSTANTIATIONS(INSTANTIATION, (1, 2, 3))
       const EquationsOfState::EquationOfState<false, THERMO_DIM(data)>&      \
           equation_of_state);
 
-GENERATE_INSTANTIATIONS(INSTANTIATION, (1, 2, 3), (3))
+GENERATE_INSTANTIATIONS(INSTANTIATION, (1, 2, 3), (1, 2))
 
 #undef INSTANTIATION
 #undef THERMO_DIM

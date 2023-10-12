@@ -146,7 +146,7 @@ FlattenerAction flatten_solution(
       const Scalar<DataVector>&,                                  \
       const EquationsOfState::EquationOfState<false, THERMODIM(data)>&);
 
-GENERATE_INSTANTIATIONS(INSTANTIATE, (1, 2, 3), (3))
+GENERATE_INSTANTIATIONS(INSTANTIATE, (1, 2, 3), (1, 2))
 
 #undef INSTANTIATE
 #undef THERMODIM

@@ -565,7 +565,7 @@ GENERATE_INSTANTIATIONS(INSTANTIATE, (1, 2, 3))
           boost::hash<                                                         \
               std::pair<Direction<DIM(data)>, ElementId<DIM(data)>>>>&) const;
 
-GENERATE_INSTANTIATIONS(INSTANTIATE, (1, 2, 3), (3))
+GENERATE_INSTANTIATIONS(INSTANTIATE, (1, 2, 3), (1, 2))
 
 #undef INSTANTIATE
 #undef DIM
