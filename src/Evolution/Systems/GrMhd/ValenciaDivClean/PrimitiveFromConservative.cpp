@@ -180,17 +180,17 @@ bool PrimitiveFromConservative<OrderedListOfPrimitiveRecoverySchemes,
         }
       };
 
-      //   // Check consistency
-      //   if (use_hydro_optimization and
-      //       (get(magnetic_field_squared)[s] <
-      //        100.0 * std::numeric_limits<double>::epsilon() * tau[s])) {
-      //     tmpl::for_each<
-      //         tmpl::list<grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::
-      //                        KastaunEtAlHydro<EnforcePhysicality>>>(apply_scheme);
-      //   } else {
-      //     tmpl::for_each<OrderedListOfPrimitiveRecoverySchemes>(apply_scheme);
-      //   }
-      tmpl::for_each<OrderedListOfPrimitiveRecoverySchemes>(apply_scheme);
+      // Check consistency
+      if (use_hydro_optimization and
+          (get(magnetic_field_squared)[s] <
+           100.0 * std::numeric_limits<double>::epsilon() * tau[s])) {
+        tmpl::for_each<
+            tmpl::list<grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::
+                           KastaunEtAlHydro>>(apply_scheme);
+      } else {
+        tmpl::for_each<OrderedListOfPrimitiveRecoverySchemes>(apply_scheme);
+      }
+      //   tmpl::for_each<OrderedListOfPrimitiveRecoverySchemes>(apply_scheme);
     }
 
     if (primitive_data.has_value()) {
@@ -328,12 +328,15 @@ GENERATE_INSTANTIATIONS(
 
 GENERATE_INSTANTIATIONS(
     INSTANTIATION,
-    (//tmpl::list<grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl>,
-     //tmpl::list<grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAlHydro>,
-     //tmpl::list<grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin>,
-     tmpl::list<grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>),
-     //NewmanHamlinThenPalenzuelaEtAl, KastaunThenNewmanThenPalenzuela),
-    (true, false), (3))
+    (tmpl::list<grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl>,
+     tmpl::list<
+         grmhd::ValenciaDivClean ::PrimitiveRecoverySchemes::KastaunEtAlHydro>,
+     // tmpl::list<grmhd::ValenciaDivClean
+     //::PrimitiveRecoverySchemes::NewmanHamlin>,
+     tmpl::list<
+         grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>),
+    // NewmanHamlinThenPalenzuelaEtAl, KastaunThenNewmanThenPalenzuela),
+    (true, false), (3), (true, false))
 
 #undef INSTANTIATION
 #undef THERMODIM
