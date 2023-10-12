@@ -123,7 +123,8 @@ class FunctionOfMu {
                ? std::max(
                      tau / rest_mass_density_times_lorentz_factor,
                      equation_of_state.specific_internal_energy_lower_bound(
-                         rest_mass_density_times_lorentz_factor / lorentz_max))
+                         rest_mass_density_times_lorentz_factor / lorentz_max,
+                         0.5))
                : (tau / rest_mass_density_times_lorentz_factor)),
         r_squared_(momentum_density_squared /
                    square(rest_mass_density_times_lorentz_factor)),
@@ -147,7 +148,7 @@ class FunctionOfMu {
     } else {
       const double eps_min =
           equation_of_state_.specific_internal_energy_lower_bound(
-              rest_mass_density_times_lorentz_factor_ / lorentz_max);
+              rest_mass_density_times_lorentz_factor_ / lorentz_max, 0.5);
       if (q_ < eps_min or r_squared_ > r_squared_bound) {
         state_is_unphysical_ = true;
       }
@@ -278,11 +279,14 @@ Primitives FunctionOfMu<EnforcePhysicality, ThermodynamicDim>::primitives(
       q_ - 0.5 * b_squared_ -
       0.5 * square(mu * x) * (r_squared_ * b_squared_ - r_dot_b_squared_);
   // Equation (42) with bounds from Equation (6)
-  const double epsilon_hat = std::clamp(
-      w_hat * (q_bar - mu * r_bar_squared) +
-          v_hat_squared * square(w_hat) / (1.0 + w_hat),
-      equation_of_state_.specific_internal_energy_lower_bound(rho_hat, 0.5),
-      equation_of_state_.specific_internal_energy_upper_bound(rho_hat, 0.5));
+  // double epsilon_hat = std::clamp(
+  //     w_hat * (q_bar - mu * r_bar_squared) +
+  //         v_hat_squared * square(w_hat) / (1.0 + w_hat),
+  //     equation_of_state_.specific_internal_energy_lower_bound(rho_hat, 0.5),
+  //     equation_of_state_.specific_internal_energy_upper_bound(rho_hat, 0.5));
+
+  double epsilon_hat = w_hat * (q_bar - mu * r_bar_squared) +
+                       v_hat_squared * square(w_hat) / (1.0 + w_hat);
   // Pressure from EOS
   double p_hat = std::numeric_limits<double>::signaling_NaN();
   if constexpr (ThermodynamicDim == 1) {
@@ -293,13 +297,33 @@ Primitives FunctionOfMu<EnforcePhysicality, ThermodynamicDim>::primitives(
     // internal energy and specific enthalpy using the EOS.
     p_hat =
         get(equation_of_state_.pressure_from_density(Scalar<double>(rho_hat)));
+
+    // epsilon_hat = std::clamp(
+    //     epsilon_hat,
+    //     equation_of_state_.specific_internal_energy_lower_bound(rho_hat),
+    //     equation_of_state_.specific_internal_energy_upper_bound(rho_hat));
+
   } else if constexpr (ThermodynamicDim == 2) {
     p_hat = get(equation_of_state_.pressure_from_density_and_energy(
         Scalar<double>(rho_hat), Scalar<double>(epsilon_hat)));
+
+    // epsilon_hat = std::clamp(
+    //     epsilon_hat,
+    //     equation_of_state_.specific_internal_energy_lower_bound(rho_hat),
+    //     equation_of_state_.specific_internal_energy_upper_bound(rho_hat));
   } else if constexpr (ThermodynamicDim == 3) {
     p_hat = get(equation_of_state_.pressure_from_density_and_energy(
         Scalar<double>(rho_hat), Scalar<double>(epsilon_hat),
         Scalar<double>(electron_fraction_)));
+
+    // epsilon_hat = std::clamp(
+    //     epsilon_hat,
+    //     equation_of_state_.
+    // specific_internal_energy_lower_bound(rho_hat,
+    //     0.5),
+    //     equation_of_state_.
+    // specific_internal_energy_upper_bound(rho_hat,
+    //     0.5));
     // ERROR("3d EOS not implemented");
   }
   return Primitives{rho_hat, w_hat, p_hat, epsilon_hat, q_bar, r_bar_squared};
@@ -308,7 +332,7 @@ Primitives FunctionOfMu<EnforcePhysicality, ThermodynamicDim>::primitives(
 template <bool EnforcePhysicality, size_t ThermodynamicDim>
 double FunctionOfMu<EnforcePhysicality, ThermodynamicDim>::operator()(
     const double mu) const {
-  const auto[rho_hat, w_hat, p_hat, epsilon_hat, q_bar, r_bar_squared] =
+  const auto [rho_hat, w_hat, p_hat, epsilon_hat, q_bar, r_bar_squared] =
       primitives(mu);
   // Equation (43)
   const double a_hat = p_hat / (rho_hat * (1.0 + epsilon_hat));
@@ -402,7 +426,7 @@ std::optional<PrimitiveRecoveryData> KastaunEtAl::apply(
       const grmhd::ValenciaDivClean::PrimitiveFromConservativeOptions&       \
           primitive_from_conservative_options);
 
-GENERATE_INSTANTIATIONS(INSTANTIATION, (1, 2), (true, false))
+GENERATE_INSTANTIATIONS(INSTANTIATION, (3), (true, false))
 
 #undef INSTANTIATION
 #undef THERMODIM
