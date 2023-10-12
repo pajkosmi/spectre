@@ -298,33 +298,32 @@ Primitives FunctionOfMu<EnforcePhysicality, ThermodynamicDim>::primitives(
     p_hat =
         get(equation_of_state_.pressure_from_density(Scalar<double>(rho_hat)));
 
-    // epsilon_hat = std::clamp(
-    //     epsilon_hat,
-    //     equation_of_state_.specific_internal_energy_lower_bound(rho_hat),
-    //     equation_of_state_.specific_internal_energy_upper_bound(rho_hat));
+    epsilon_hat = std::clamp(
+        epsilon_hat,
+        equation_of_state_.specific_internal_energy_lower_bound(rho_hat),
+        equation_of_state_.specific_internal_energy_upper_bound(rho_hat));
 
   } else if constexpr (ThermodynamicDim == 2) {
     p_hat = get(equation_of_state_.pressure_from_density_and_energy(
         Scalar<double>(rho_hat), Scalar<double>(epsilon_hat)));
 
-    // epsilon_hat = std::clamp(
-    //     epsilon_hat,
-    //     equation_of_state_.specific_internal_energy_lower_bound(rho_hat),
-    //     equation_of_state_.specific_internal_energy_upper_bound(rho_hat));
+    epsilon_hat = std::clamp(
+        epsilon_hat,
+        equation_of_state_.specific_internal_energy_lower_bound(rho_hat),
+        equation_of_state_.specific_internal_energy_upper_bound(rho_hat));
   } else if constexpr (ThermodynamicDim == 3) {
     p_hat = get(equation_of_state_.pressure_from_density_and_energy(
         Scalar<double>(rho_hat), Scalar<double>(epsilon_hat),
         Scalar<double>(electron_fraction_)));
 
-    // epsilon_hat = std::clamp(
-    //     epsilon_hat,
-    //     equation_of_state_.
-    // specific_internal_energy_lower_bound(rho_hat,
-    //     0.5),
-    //     equation_of_state_.
-    // specific_internal_energy_upper_bound(rho_hat,
-    //     0.5));
-    // ERROR("3d EOS not implemented");
+    epsilon_hat = std::clamp(
+        epsilon_hat,
+        equation_of_state_.
+    specific_internal_energy_lower_bound(rho_hat,
+        0.5),
+        equation_of_state_.
+    specific_internal_energy_upper_bound(rho_hat,
+        0.5));
   }
   return Primitives{rho_hat, w_hat, p_hat, epsilon_hat, q_bar, r_bar_squared};
 }
