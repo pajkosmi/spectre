@@ -193,7 +193,7 @@ std::optional<PrimitiveRecoveryData> PalenzuelaEtAl::apply(
       const grmhd::ValenciaDivClean::PrimitiveFromConservativeOptions&       \
           primitive_from_conservative_options);
 
-GENERATE_INSTANTIATIONS(INSTANTIATION, (1, 2), (true, false))
+GENERATE_INSTANTIATIONS(INSTANTIATION, (1, 2, 3), (true, false))
 
 #undef INSTANTIATION
 #undef THERMODIM
