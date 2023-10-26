@@ -422,6 +422,7 @@ struct ComputeTimeDerivImpl<
               get(cell_centered_det_inv_jacobian), var_correction[i],
               subcell_mesh.extents(), dim);
         }
+        // update 408 to 424
       }());
     }
   }
@@ -530,6 +531,8 @@ struct TimeDerivative {
               *box));
     }
 
+    // 521 comment out kreiss oliger dissipation
+
     // Velocity of the moving mesh on the dg grid, if applicable.
     const std::optional<tnsr::I<DataVector, 3, Frame::Inertial>>&
         mesh_velocity_dg = db::get<domain::Tags::MeshVelocity<3>>(*box);
@@ -559,8 +562,11 @@ struct TimeDerivative {
         make_not_null(&cell_centered_gh_derivs), evolved_vars,
         db::get<evolution::dg::subcell::Tags::GhostDataForReconstruction<3>>(
             *box),
-        recons.ghost_zone_size()*2, subcell_mesh,
+        recons.ghost_zone_size() * 2, subcell_mesh,
         cell_centered_logical_to_inertial_inv_jacobian);
+
+    // replace y and z derivatives with x derivatives spacetime_derivatives for
+    // metric and fluxes
 
     // Now package the data and compute the correction
     //
