@@ -12,6 +12,7 @@ spectre_target_headers(
   ActiveGrid.hpp
   BackgroundGrVars.hpp
   CartesianFluxDivergence.hpp
+  CartoonFluxDivergence.hpp
   CellCenteredFlux.hpp
   ComputeBoundaryTerms.hpp
   CorrectPackagedData.hpp
@@ -48,6 +49,7 @@ spectre_target_sources(
   PRIVATE
   ActiveGrid.cpp
   CartesianFluxDivergence.cpp
+  CartoonFluxDivergence.cpp
   GhostData.cpp
   GhostZoneLogicalCoordinates.cpp
   InitialTciData.cpp
