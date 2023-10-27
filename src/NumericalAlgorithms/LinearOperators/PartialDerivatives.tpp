@@ -72,21 +72,6 @@ void partial_derivatives_cartoon(
 
   double dfdx = 0.0;
 
-  // loop over mesh
-  for (size_t k = 0; k < subcell_extents[2]; ++k) {
-    for (size_t j = 0; j < subcell_extents[1]; ++j) {
-      for (size_t i = 0; i < subcell_extents[0]; ++i) {
-        Index<3> index(i, j, k);
-        const size_t volume_index = collapsed_index(index, subcell_extents);
-        // access current coordinate
-        inertial_coords.get(0)[volume_index];
-
-        dfdx = 2.0 * volume_vars[volume_index] /
-               inertial_coords.get(0)[volume_index];
-      }
-    }
-  }
-
   // Set with inverse jacobians along each direction
   // MIKE set all to deriv_index = 0?
   std::array<std::array<size_t, Dim>, Dim> indices{};
@@ -117,17 +102,30 @@ void partial_derivatives_cartoon(
       //   deriv_index))) *
       //         logical_du;
 
-      // for higher dimensions, point to y and z derivs.
-      // MIKE you'll assign ( 3.0 * dfdx      , if x = 0
-      // or                 ( dfdx + 2 * f / x, otherwise
-
-      if (inertial_coords.get(0)[1] == 0) {
-        lhs = 3.0 *
-              (*(inverse_jacobian.begin() + gsl::at(indices[0], deriv_index))) *
-              logical_du;
-      } else {
-        lhs = (*(inverse_jacobian.begin() + gsl::at(indices[0], deriv_index))) *
-              logical_du;  // + 2.0 * f / x;
+      // loop over mesh
+      for (size_t k = 0; k < subcell_extents[2]; ++k) {
+        for (size_t j = 0; j < subcell_extents[1]; ++j) {
+          for (size_t i = 0; i < subcell_extents[0]; ++i) {
+            Index<3> index(i, j, k);
+            const size_t volume_index = collapsed_index(index, subcell_extents);
+            // access current coordinate
+            if (inertial_coords.get(0)[volume_index] == 0.0) {
+              // 3 * df/dx (numerical derivative)
+              dfdx = 3.0 *
+                     (*(inverse_jacobian.begin() +
+                        gsl::at(indices[0], deriv_index)))[volume_index] *
+                     logical_du[volume_index];
+            } else {
+              // df/dx (numerical) + 2 * f / x (analytic)
+              dfdx = (*(inverse_jacobian.begin() +
+                        gsl::at(indices[0], deriv_index)))[volume_index] *
+                         logical_du[volume_index] +
+                     2.0 * volume_vars[volume_index] /
+                         inertial_coords.get(0)[volume_index];
+            }
+            lhs[volume_index] += dfdx;
+          }
+        }
       }
 
       //   for (size_t logical_deriv_index = 1; logical_deriv_index < Dim;
