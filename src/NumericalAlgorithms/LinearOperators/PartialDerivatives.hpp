@@ -13,6 +13,7 @@
 #include "DataStructures/DataBox/PrefixHelpers.hpp"
 #include "DataStructures/DataBox/Tag.hpp"
 #include "DataStructures/DataBox/TagName.hpp"
+#include "DataStructures/Tensor/Tensor.hpp"
 #include "DataStructures/Variables.hpp"
 #include "Utilities/Requires.hpp"
 #include "Utilities/TMPL.hpp"
@@ -174,6 +175,16 @@ void partial_derivatives(
         logical_partial_derivatives_of_u,
     const InverseJacobian<DataVector, Dim, Frame::ElementLogical,
                           DerivativeFrame>& inverse_jacobian);
+
+template <typename ResultTags, typename DerivativeTags, size_t Dim,
+          typename DerivativeFrame>
+void partial_derivatives(
+    gsl::not_null<Variables<ResultTags>*> du,
+    const std::array<Variables<DerivativeTags>, Dim>&
+        logical_partial_derivatives_of_u,
+    const InverseJacobian<DataVector, Dim, Frame::ElementLogical,
+                          DerivativeFrame>& inverse_jacobian,
+    const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coords);
 
 template <typename ResultTags, typename VariableTags, size_t Dim,
           typename DerivativeFrame>

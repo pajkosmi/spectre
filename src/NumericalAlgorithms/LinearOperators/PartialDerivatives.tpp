@@ -9,6 +9,7 @@
 #include "DataStructures/DataBox/Prefixes.hpp"
 #include "DataStructures/DataVector.hpp"
 #include "DataStructures/Matrix.hpp"
+#include "DataStructures/Tensor/Tensor.hpp"
 #include "DataStructures/Transpose.hpp"
 #include "DataStructures/Variables.hpp"
 #include "NumericalAlgorithms/Spectral/Mesh.hpp"
@@ -59,12 +60,19 @@ void partial_derivatives_impl(
     const std::array<const double*, Dim>& logical_partial_derivatives_of_u,
     const size_t number_of_independent_components,
     const InverseJacobian<DataVector, Dim, Frame::ElementLogical,
-                          DerivativeFrame>& inverse_jacobian) {
+                          DerivativeFrame>& inverse_jacobian,
+    const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coords) {
+  // TODO: pass in logical coordinates
+  // TODO: pass in volume vars
+
+  // pdu points to du
   double* pdu = du->data();
   const size_t num_grid_points = du->number_of_grid_points();
   DataVector lhs{};
   DataVector logical_du{};
 
+  // Set with inverse jacobians along each direction
+  // MIKE set all to deriv_index = 0?
   std::array<std::array<size_t, Dim>, Dim> indices{};
   for (size_t deriv_index = 0; deriv_index < Dim; ++deriv_index) {
     for (size_t d = 0; d < Dim; ++d) {
@@ -77,30 +85,53 @@ void partial_derivatives_impl(
   for (size_t component_index = 0;
        component_index < number_of_independent_components; ++component_index) {
     for (size_t deriv_index = 0; deriv_index < Dim; ++deriv_index) {
+      // pdu now points to lhs?
       lhs.set_data_ref(pdu, num_grid_points);
       // clang-tidy: const cast is fine since we won't modify the data and we
       // need it to easily hook into the expression templates.
+
+      // logical_du now points to logical_partial_derivatives_of_u?
       logical_du.set_data_ref(
-          const_cast<double*>(  // NOLINT
+          const_cast<double*>(                                 // NOLINT
               gsl::at(logical_partial_derivatives_of_u, 0)) +  // NOLINT
               component_index * num_grid_points,
           num_grid_points);
-      lhs = (*(inverse_jacobian.begin() + gsl::at(indices[0], deriv_index))) *
-            logical_du;
-      for (size_t logical_deriv_index = 1; logical_deriv_index < Dim;
-           ++logical_deriv_index) {
-        // clang-tidy: const cast is fine since we won't modify the data and we
-        // need it to easily hook into the expression templates.
-        logical_du.set_data_ref(const_cast<double*>(  // NOLINT
-                                    gsl::at(logical_partial_derivatives_of_u,
-                                            logical_deriv_index)) +  // NOLINT
-                                    component_index * num_grid_points,
-                                num_grid_points);
-        lhs +=
-            (*(inverse_jacobian.begin() +
-               gsl::at(gsl::at(indices, logical_deriv_index), deriv_index))) *
-            logical_du;
+      // scale lhs (logical_du) by inverse jacobian--giving pdu
+      //   lhs = (*(inverse_jacobian.begin() + gsl::at(indices[0],
+      //   deriv_index))) *
+      //         logical_du;
+
+      // for higher dimensions, point to y and z derivs.
+      // MIKE you'll assign ( 3.0 * dfdx      , if x = 0
+      // or                 ( dfdx + 2 * f / x, otherwise
+
+      if (0 == 0) {
+        lhs = 3.0 *
+              (*(inverse_jacobian.begin() + gsl::at(indices[0], deriv_index))) *
+              logical_du;
+      } else {
+        lhs = (*(inverse_jacobian.begin() + gsl::at(indices[0], deriv_index))) *
+              logical_du;  // + 2.0 * f / x;
       }
+
+      //   for (size_t logical_deriv_index = 1; logical_deriv_index < Dim;
+      //        ++logical_deriv_index) {
+      //     // clang-tidy: const cast is fine since we won't modify the data
+      //     and we
+      //     // need it to easily hook into the expression templates.
+      //     logical_du.set_data_ref(const_cast<double*>(  // NOLINT
+      //
+      // gsl::at(logical_partial_derivatives_of_u,
+      //                                         logical_deriv_index)) +  //
+      //                                         NOLINT
+      //                                 component_index * num_grid_points,
+      //                             num_grid_points);
+      //     lhs +=
+      //         (*(inverse_jacobian.begin() +
+      //            gsl::at(gsl::at(indices, logical_deriv_index),
+      //            deriv_index))) *
+      //         logical_du;
+      //   }
       // clang-tidy: no pointer arithmetic
       pdu += num_grid_points;  // NOLINT
     }
@@ -231,7 +262,7 @@ void partial_derivatives(
   partial_derivatives_detail::partial_derivatives_impl(
       make_not_null(&partial_derivatives_of_u), const_logical_derivs,
       Variables<DerivativeTags>::number_of_independent_components,
-      inverse_jacobian);
+      inverse_jacobian, inertial_coords);
 }
 
 template <typename DerivativeTags, typename VariableTags, size_t Dim,
@@ -245,8 +276,8 @@ partial_derivatives(
   Variables<db::wrap_tags_in<Tags::deriv, DerivativeTags, tmpl::size_t<Dim>,
                              DerivativeFrame>>
       partial_derivatives_of_u(u.number_of_grid_points());
-  partial_derivatives(make_not_null(&partial_derivatives_of_u),
-                                      u, mesh, inverse_jacobian);
+  partial_derivatives(make_not_null(&partial_derivatives_of_u), u, mesh,
+                      inverse_jacobian);
   return partial_derivatives_of_u;
 }
 

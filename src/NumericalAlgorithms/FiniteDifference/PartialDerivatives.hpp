@@ -6,6 +6,7 @@
 #include <array>
 #include <cstddef>
 
+#include "DataStructures/Tensor/Tensor.hpp"
 #include "DataStructures/Tensor/TypeAliases.hpp"
 #include "NumericalAlgorithms/LinearOperators/PartialDerivatives.hpp"
 #include "Utilities/Gsl.hpp"
@@ -64,4 +65,16 @@ void partial_derivatives(
     const Mesh<Dim>& volume_mesh, size_t number_of_variables, size_t fd_order,
     const InverseJacobian<DataVector, Dim, Frame::ElementLogical,
                           DerivativeFrame>& inverse_jacobian);
+
+template <typename DerivativeTags, size_t Dim, typename DerivativeFrame>
+void cartoon_partial_derivatives(
+    gsl::not_null<Variables<db::wrap_tags_in<
+        Tags::deriv, DerivativeTags, tmpl::size_t<Dim>, DerivativeFrame>>*>
+        partial_derivatives,
+    const gsl::span<const double>& volume_vars,
+    const DirectionMap<Dim, gsl::span<const double>>& ghost_cell_vars,
+    const Mesh<Dim>& volume_mesh, size_t number_of_variables, size_t fd_order,
+    const InverseJacobian<DataVector, Dim, Frame::ElementLogical,
+                          DerivativeFrame>& inverse_jacobian,
+    const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coords);
 }  // namespace fd

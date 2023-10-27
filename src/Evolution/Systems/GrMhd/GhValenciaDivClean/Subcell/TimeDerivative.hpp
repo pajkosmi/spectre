@@ -407,13 +407,17 @@ struct ComputeTimeDerivImpl<
         get<Tags::TraceReversedStressEnergy>(temp_tags),
         get<gr::Tags::Lapse<DataVector>>(temp_tags));
 
-    for (size_t dim = 0; dim < 3; ++dim) {
+    // spherical symmetry, assume dim = 0
+    // loop over dimensions (x, y, z)
+    // for (size_t dim = 0; dim < 3; ++dim) {
+    for (size_t dim = 0; dim < 1; ++dim) {
       const auto& boundary_correction_in_axis =
           gsl::at(boundary_corrections, dim);
       const double inverse_delta = gsl::at(one_over_delta_xi, dim);
       EXPAND_PACK_LEFT_TO_RIGHT([&dt_vars_ptr, &boundary_correction_in_axis,
                                  &cell_centered_det_inv_jacobian, dim,
-                                 inverse_delta, &subcell_mesh]() {
+                                 inverse_delta, &subcell_mesh,
+                                 &inertial_coords]() {
         auto& dt_var = *get<::Tags::dt<GrmhdDtTags>>(dt_vars_ptr);
         const auto& var_correction =
             get<GrmhdDtTags>(boundary_correction_in_axis);
@@ -421,7 +425,7 @@ struct ComputeTimeDerivImpl<
           evolution::dg::subcell::add_cartesian_flux_divergence(
               make_not_null(&dt_var[i]), inverse_delta,
               get(cell_centered_det_inv_jacobian), var_correction[i],
-              subcell_mesh.extents(), dim);
+              subcell_mesh.extents(), dim, inertial_coords);
         }
         // update 408 to 424
       }());
@@ -564,7 +568,7 @@ struct TimeDerivative {
         db::get<evolution::dg::subcell::Tags::GhostDataForReconstruction<3>>(
             *box),
         recons.ghost_zone_size() * 2, subcell_mesh,
-        cell_centered_logical_to_inertial_inv_jacobian);
+        cell_centered_logical_to_inertial_inv_jacobian, inertial_coords);
 
     // replace y and z derivatives with x derivatives spacetime_derivatives for
     // metric and fluxes

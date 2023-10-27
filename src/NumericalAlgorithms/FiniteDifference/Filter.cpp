@@ -395,6 +395,7 @@ void filter_impl(
       ghost_cell_vars.at(Direction<Dim>::lower_xi()),
       ghost_cell_vars.at(Direction<Dim>::upper_xi()), volume_extents,
       number_of_variables, args...);
+  return;
 
   if constexpr (Dim > 1) {
     ASSERT(ghost_cell_vars.contains(Direction<Dim>::lower_eta()),

@@ -89,4 +89,53 @@ void partial_derivatives(
       inverse_jacobian);
 }
 
+template <typename DerivativeTags, size_t Dim, typename DerivativeFrame>
+void cartoon_partial_derivatives(
+    const gsl::not_null<Variables<db::wrap_tags_in<
+        Tags::deriv, DerivativeTags, tmpl::size_t<Dim>, DerivativeFrame>>*>
+        partial_derivatives,
+    const gsl::span<const double>& volume_vars,
+    const DirectionMap<Dim, gsl::span<const double>>& ghost_cell_vars,
+    const Mesh<Dim>& volume_mesh, const size_t number_of_variables,
+    const size_t fd_order,
+    const InverseJacobian<DataVector, Dim, Frame::ElementLogical,
+                          DerivativeFrame>& inverse_jacobian,
+    const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coords) {
+  const size_t logical_derivs_internal_buffer_size =
+      Dim == 1
+          ? static_cast<size_t>(0)
+          : (volume_vars.size() +
+             2 * alg::max_element(ghost_cell_vars,
+                                  [](const auto& a, const auto& b) {
+                                    return a.second.size() < b.second.size();
+                                  })
+                     ->second.size() +
+             volume_vars.size());
+  DataVector buffer(Dim * volume_vars.size() +
+                    logical_derivs_internal_buffer_size);
+  std::array<gsl::span<double>, Dim> logical_partial_derivs{};
+  for (size_t i = 0; i < Dim; ++i) {
+    gsl::at(logical_partial_derivs, i) =
+        gsl::make_span(&buffer[i * volume_vars.size()], volume_vars.size());
+  }
+
+  logical_partial_derivatives(make_not_null(&logical_partial_derivs),
+                              volume_vars, ghost_cell_vars, volume_mesh,
+                              number_of_variables, fd_order);
+
+  std::array<const double*, Dim> logical_partial_derivs_ptrs{};
+  for (size_t i = 0; i < Dim; ++i) {
+    gsl::at(logical_partial_derivs_ptrs, i) =
+        gsl::at(logical_partial_derivs, i).data();
+  }
+  // TODO: pass in logical coords
+  // TODO: pass in volume vars
+  ::partial_derivatives_detail::partial_derivatives_impl(
+      partial_derivatives, logical_partial_derivs_ptrs,
+      Variables<DerivativeTags>::number_of_independent_components,
+      inverse_jacobian, inertial_coords);
+}
+
 }  // namespace fd
+
+// TimeDerivative

@@ -5,6 +5,8 @@
 
 #include <cstddef>
 
+#include "DataStructures/Tensor/Tensor.hpp"
+
 /// \cond
 class DataVector;
 template <size_t Dim>
@@ -35,11 +37,10 @@ void add_cartesian_flux_divergence(gsl::not_null<DataVector*> dt_var,
                                    const Index<2>& subcell_extents,
                                    size_t dimension);
 
-void add_cartesian_flux_divergence(gsl::not_null<DataVector*> dt_var,
-                                   double one_over_delta,
-                                   const DataVector& inv_jacobian,
-                                   const DataVector& boundary_correction,
-                                   const Index<3>& subcell_extents,
-                                   size_t dimension);
+void add_cartesian_flux_divergence(
+    gsl::not_null<DataVector*> dt_var, double one_over_delta,
+    const DataVector& inv_jacobian, const DataVector& boundary_correction,
+    const Index<3>& subcell_extents, size_t dimension,
+    const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coords);
 /// @}
 }  // namespace evolution::dg::subcell
