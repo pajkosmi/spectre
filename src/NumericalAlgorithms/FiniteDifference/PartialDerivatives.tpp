@@ -128,12 +128,11 @@ void cartoon_partial_derivatives(
     gsl::at(logical_partial_derivs_ptrs, i) =
         gsl::at(logical_partial_derivs, i).data();
   }
-  // TODO: pass in logical coords
-  // TODO: pass in volume vars
-  ::partial_derivatives_detail::partial_derivatives_impl(
+
+  ::partial_derivatives_detail::partial_derivatives_cartoon(
       partial_derivatives, logical_partial_derivs_ptrs,
       Variables<DerivativeTags>::number_of_independent_components,
-      inverse_jacobian, inertial_coords);
+      inverse_jacobian, inertial_coords, volume_vars, volume_mesh.extents());
 }
 
 }  // namespace fd
