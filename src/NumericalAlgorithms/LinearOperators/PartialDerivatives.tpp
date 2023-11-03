@@ -77,9 +77,13 @@ void partial_derivatives_cartoon(
   std::array<std::array<size_t, Dim>, Dim> indices{};
   for (size_t deriv_index = 0; deriv_index < Dim; ++deriv_index) {
     for (size_t d = 0; d < Dim; ++d) {
+      //   gsl::at(gsl::at(indices, d), deriv_index) =
+      //       InverseJacobian<DataVector, Dim, Frame::ElementLogical,
+      //                       DerivativeFrame>::get_storage_index(d,
+      //                       deriv_index);
       gsl::at(gsl::at(indices, d), deriv_index) =
           InverseJacobian<DataVector, Dim, Frame::ElementLogical,
-                          DerivativeFrame>::get_storage_index(d, deriv_index);
+                          DerivativeFrame>::get_storage_index(d, 0.0);
     }
   }
 
@@ -97,10 +101,6 @@ void partial_derivatives_cartoon(
               gsl::at(logical_partial_derivatives_of_u, 0)) +  // NOLINT
               component_index * num_grid_points,
           num_grid_points);
-      // scale lhs (logical_du) by inverse jacobian--giving pdu
-      //   lhs = (*(inverse_jacobian.begin() + gsl::at(indices[0],
-      //   deriv_index))) *
-      //         logical_du;
 
       // loop over mesh to check if x coordinate = 0
       for (size_t k = 0; k < subcell_extents[2]; ++k) {
@@ -110,6 +110,7 @@ void partial_derivatives_cartoon(
             const size_t volume_index = collapsed_index(index, subcell_extents);
             // access current coordinate
             if (inertial_coords.get(0)[volume_index] == 0.0) {
+              // scale lhs (logical_du) by inverse jacobian--giving pdu
               // 3 * df/dx (numerical derivative)
               dfdx = 3.0 *
                      (*(inverse_jacobian.begin() +

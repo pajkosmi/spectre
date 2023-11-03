@@ -113,11 +113,14 @@ void BoundaryConditionGhostData::apply(
       NeighborVariables::number_of_independent_components;
 
   for (const auto& direction : element.external_boundaries()) {
-    const auto& boundary_condition_at_direction =
-        *external_boundary_condition.at(direction);
+    // Only apply boundary data if in the +/- x direction, otherwise skip
+    if (direction == Direction<3>::lower_xi() or
+        direction == Direction<3>::upper_xi()) {
+      const auto& boundary_condition_at_direction =
+          *external_boundary_condition.at(direction);
 
-    const size_t num_face_pts{
-        subcell_mesh.extents().slice_away(direction.dimension()).product()};
+      const size_t num_face_pts{
+          subcell_mesh.extents().slice_away(direction.dimension()).product()};
 
     // Allocate a vector to store the computed FD ghost data and assign a
     // non-owning Variables on it.
@@ -135,70 +138,76 @@ void BoundaryConditionGhostData::apply(
     Variables<reconstruction_tags> ghost_data_vars{boundary_ghost_data.data(),
                                                    boundary_ghost_data.size()};
 
-    // We don't need to care about boundary ghost data when using the periodic
-    // condition, so exclude it from the type list
-    using factory_classes =
-        typename std::decay_t<decltype(db::get<Parallel::Tags::Metavariables>(
-            *box))>::factory_creation::factory_classes;
-    using derived_boundary_conditions_for_subcell = tmpl::remove_if<
-        tmpl::at<factory_classes, typename System::boundary_conditions_base>,
-        tmpl::or_<
-            std::is_base_of<domain::BoundaryConditions::MarkAsPeriodic,
-                            tmpl::_1>,
-            std::is_base_of<domain::BoundaryConditions::MarkAsNone, tmpl::_1>>>;
+      // We don't need to care about boundary ghost data when using the periodic
+      // condition, so exclude it from the type list
+      using factory_classes =
+          typename std::decay_t<decltype(db::get<Parallel::Tags::Metavariables>(
+              *box))>::factory_creation::factory_classes;
+      using derived_boundary_conditions_for_subcell = tmpl::remove_if<
+          tmpl::at<factory_classes, typename System::boundary_conditions_base>,
+          tmpl::or_<std::is_base_of<domain::BoundaryConditions::MarkAsPeriodic,
+                                    tmpl::_1>,
+                    std::is_base_of<domain::BoundaryConditions::MarkAsNone,
+                                    tmpl::_1>>>;
 
-    // Now apply subcell boundary conditions
-    call_with_dynamic_type<void, derived_boundary_conditions_for_subcell>(
-        &boundary_condition_at_direction,
-        [&box, &direction, &ghost_data_vars](const auto* boundary_condition) {
-          using BoundaryCondition = std::decay_t<decltype(*boundary_condition)>;
-          using bcondition_interior_evolved_vars_tags =
-              typename BoundaryCondition::fd_interior_evolved_variables_tags;
-          using bcondition_interior_temporary_tags =
-              typename BoundaryCondition::fd_interior_temporary_tags;
-          using bcondition_interior_primitive_vars_tags =
-              typename BoundaryCondition::fd_interior_primitive_variables_tags;
-          using bcondition_gridless_tags =
-              typename BoundaryCondition::fd_gridless_tags;
+      // Now apply subcell boundary conditions
+      call_with_dynamic_type<void, derived_boundary_conditions_for_subcell>(
+          &boundary_condition_at_direction,
+          [&box, &direction, &ghost_data_vars](const auto* boundary_condition) {
+            using BoundaryCondition =
+                std::decay_t<decltype(*boundary_condition)>;
+            using bcondition_interior_evolved_vars_tags =
+                typename BoundaryCondition::fd_interior_evolved_variables_tags;
+            using bcondition_interior_temporary_tags =
+                typename BoundaryCondition::fd_interior_temporary_tags;
+            using bcondition_interior_primitive_vars_tags =
+                typename BoundaryCondition::
+                    fd_interior_primitive_variables_tags;
+            using bcondition_gridless_tags =
+                typename BoundaryCondition::fd_gridless_tags;
 
-          using bcondition_interior_tags =
-              tmpl::append<bcondition_interior_evolved_vars_tags,
-                           bcondition_interior_temporary_tags,
-                           bcondition_interior_primitive_vars_tags,
-                           bcondition_gridless_tags>;
+            using bcondition_interior_tags =
+                tmpl::append<bcondition_interior_evolved_vars_tags,
+                             bcondition_interior_temporary_tags,
+                             bcondition_interior_primitive_vars_tags,
+                             bcondition_gridless_tags>;
 
-          if constexpr (BoundaryCondition::bc_type ==
-                            evolution::BoundaryConditions::Type::Ghost or
-                        BoundaryCondition::bc_type ==
-                            evolution::BoundaryConditions::Type::
-                                GhostAndTimeDerivative) {
-            const auto apply_fd_ghost =
-                [&boundary_condition, &direction,
-                 &ghost_data_vars](const auto&... boundary_ghost_data_args) {
-                  (*boundary_condition)
-                      .fd_ghost(
-                          make_not_null(&get<SpacetimeMetric>(ghost_data_vars)),
-                          make_not_null(&get<Pi>(ghost_data_vars)),
-                          make_not_null(&get<Phi>(ghost_data_vars)),
-                          make_not_null(&get<RestMassDensity>(ghost_data_vars)),
-                          make_not_null(
-                              &get<ElectronFraction>(ghost_data_vars)),
-                          make_not_null(&get<Temperature>(ghost_data_vars)),
-                          make_not_null(&get<LorentzFactorTimesSpatialVelocity>(
-                              ghost_data_vars)),
-                          make_not_null(&get<MagneticField>(ghost_data_vars)),
-                          make_not_null(
-                              &get<DivergenceCleaningField>(ghost_data_vars)),
-                          direction, boundary_ghost_data_args...);
-                };
-            apply_subcell_boundary_condition_impl(apply_fd_ghost, box,
-                                                  bcondition_interior_tags{});
-          } else {
-            ERROR("Unsupported boundary condition "
-                  << pretty_type::short_name<BoundaryCondition>()
-                  << " when using finite-difference");
-          }
-        });
+            if constexpr (BoundaryCondition::bc_type ==
+                              evolution::BoundaryConditions::Type::Ghost or
+                          BoundaryCondition::bc_type ==
+                              evolution::BoundaryConditions::Type::
+                                  GhostAndTimeDerivative) {
+              const auto apply_fd_ghost =
+                  [&boundary_condition, &direction,
+                   &ghost_data_vars](const auto&... boundary_ghost_data_args) {
+                    (*boundary_condition)
+                        .fd_ghost(
+                            make_not_null(
+                                &get<SpacetimeMetric>(ghost_data_vars)),
+                            make_not_null(&get<Pi>(ghost_data_vars)),
+                            make_not_null(&get<Phi>(ghost_data_vars)),
+                            make_not_null(
+                                &get<RestMassDensity>(ghost_data_vars)),
+                            make_not_null(
+                                &get<ElectronFraction>(ghost_data_vars)),
+                            make_not_null(&get<Temperature>(ghost_data_vars)),
+                            make_not_null(
+                                &get<LorentzFactorTimesSpatialVelocity>(
+                                    ghost_data_vars)),
+                            make_not_null(&get<MagneticField>(ghost_data_vars)),
+                            make_not_null(
+                                &get<DivergenceCleaningField>(ghost_data_vars)),
+                            direction, boundary_ghost_data_args...);
+                  };
+              apply_subcell_boundary_condition_impl(apply_fd_ghost, box,
+                                                    bcondition_interior_tags{});
+            } else {
+              ERROR("Unsupported boundary condition "
+                    << pretty_type::short_name<BoundaryCondition>()
+                    << " when using finite-difference");
+            }
+          });
+    }
   }
 }
 }  // namespace grmhd::GhValenciaDivClean::fd

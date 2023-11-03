@@ -464,12 +464,13 @@ struct TimeDerivative {
     const Mesh<3>& dg_mesh = db::get<domain::Tags::Mesh<3>>(*box);
     const Mesh<3>& subcell_mesh =
         db::get<evolution::dg::subcell::Tags::Mesh<3>>(*box);
-    ASSERT(
-        subcell_mesh == Mesh<3>(subcell_mesh.extents(0), subcell_mesh.basis(0),
-                                subcell_mesh.quadrature(0)),
-        "The subcell/FD mesh must be isotropic for the FD time derivative but "
-        "got "
-            << subcell_mesh);
+    // ASSERT(
+    //     subcell_mesh == Mesh<3>(subcell_mesh.extents(0),
+    //     subcell_mesh.basis(0),
+    //                             subcell_mesh.quadrature(0)),
+    //     "The subcell/FD mesh must be isotropic for the FD time derivative but
+    //     " "got "
+    //         << subcell_mesh);
     const size_t num_pts = subcell_mesh.number_of_grid_points();
     const size_t reconstructed_num_pts =
         (subcell_mesh.extents(0) + 1) *
@@ -648,7 +649,8 @@ struct TimeDerivative {
               reconstructed_num_pts};
 
           // Compute fluxes on faces
-          for (size_t i = 0; i < 3; ++i) {
+          //   for (size_t i = 0; i < 3; ++i) {
+          for (size_t i = 0; i < 1; ++i) {
             auto& vars_upper_face = gsl::at(package_data_argvars_upper_face, i);
             auto& vars_lower_face = gsl::at(package_data_argvars_lower_face, i);
             grmhd::ValenciaDivClean::subcell::compute_fluxes(

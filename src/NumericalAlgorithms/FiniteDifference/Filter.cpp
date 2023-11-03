@@ -364,9 +364,10 @@ void filter_impl(
     const Mesh<Dim>& volume_mesh, const size_t number_of_variables,
     const Args&... args) {
 #ifdef SPECTRE_DEBUG
-  ASSERT(volume_mesh == Mesh<Dim>(volume_mesh.extents(0), volume_mesh.basis(0),
-                                  volume_mesh.quadrature(0)),
-         "The mesh must be isotropic, but got " << volume_mesh);
+  // ASSERT(volume_mesh == Mesh<Dim>(volume_mesh.extents(0),
+  // volume_mesh.basis(0),
+  //                                 volume_mesh.quadrature(0)),
+  //        "The mesh must be isotropic, but got " << volume_mesh);
   ASSERT(
       volume_mesh.basis(0) == Spectral::Basis::FiniteDifference,
       "Mesh basis must be FiniteDifference but got " << volume_mesh.basis(0));

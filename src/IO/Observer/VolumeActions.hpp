@@ -393,6 +393,7 @@ struct ContributeVolumeDataToWriter {
           }
         }();
         // Write the data to the file
+        // MIKE:
         volume_file.write_volume_data(
             observation_id.hash(), observation_id.value(), volume_data_to_write,
             serialized_domain, serialized_functions_of_time);

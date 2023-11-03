@@ -19,6 +19,8 @@
 #include "Utilities/Gsl.hpp"
 #include "Utilities/TMPL.hpp"
 
+#include <iostream>
+
 namespace fd {
 namespace detail {
 template <size_t Dim>
@@ -122,6 +124,8 @@ void cartoon_partial_derivatives(
   logical_partial_derivatives(make_not_null(&logical_partial_derivs),
                               volume_vars, ghost_cell_vars, volume_mesh,
                               number_of_variables, fd_order);
+
+//   std::cout << 'logical_partial_derivs' << logical_partial_derivs << "\n";
 
   std::array<const double*, Dim> logical_partial_derivs_ptrs{};
   for (size_t i = 0; i < Dim; ++i) {

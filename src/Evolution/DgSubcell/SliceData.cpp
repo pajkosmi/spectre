@@ -90,7 +90,9 @@ DirectionMap<Dim, DataVector> slice_data_impl(
   const size_t num_pts = subcell_extents.product();
   const size_t number_of_components = volume_subcell_vars.size() / num_pts;
   std::array<size_t, Dim> result_grid_points{};
-  for (size_t d = 0; d < Dim; ++d) {
+//  for (size_t d = 0; d < Dim; ++d) {
+  for (size_t d = 0; d < 1; ++d) {
+
     const size_t num_sliced_pts =
         number_of_ghost_points * subcell_extents.slice_away(d).product();
 

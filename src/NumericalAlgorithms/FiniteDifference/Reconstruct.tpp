@@ -280,10 +280,11 @@ void reconstruct_impl(
          "If ReturnReconstructionOrder is true then reconstruction_order must "
          "have a value");
 #ifdef SPECTRE_DEBUG
-  ASSERT(volume_extents == Index<Dim>(volume_extents[0]),
-         "The extents must be isotropic, but got " << volume_extents);
+  // ASSERT(volume_extents == Index<Dim>(volume_extents[0]),
+  //        "The extents must be isotropic, but got " << volume_extents);
   const size_t number_of_points = volume_extents.product();
-  for (size_t i = 0; i < Dim; ++i) {
+  // for (size_t i = 0; i < Dim; ++i) {
+  for (size_t i = 0; i < 1; ++i) {
     const size_t expected_pts =
         number_of_points / volume_extents[i] * (volume_extents[i] + 1);
     const size_t upper_num_pts =
@@ -322,94 +323,107 @@ void reconstruct_impl(
       ghost_cell_vars.at(Direction<Dim>::upper_xi()), volume_extents,
       number_of_variables, args_for_reconstructor...);
 
-  if constexpr (Dim > 1) {
-    // We transpose from (x,y,z,vars) ordering to (y,z,vars,x) ordering
-    // Might not be the most efficient (unclear), but easiest.
-    // We use a single large buffer for both the y and z reconstruction
-    // to reduce the number of memory allocations and improve data locality.
-    const auto& lower_ghost = ghost_cell_vars.at(Direction<Dim>::lower_eta());
-    const auto& upper_ghost = ghost_cell_vars.at(Direction<Dim>::upper_eta());
-    DataVector buffer(volume_vars.size() + lower_ghost.size() +
-                      upper_ghost.size() +
-                      2 * (*reconstructed_upper_side_of_face_vars)[1].size());
-    raw_transpose(make_not_null(buffer.data()), volume_vars.data(),
-                  volume_extents[0], volume_vars.size() / volume_extents[0]);
-    raw_transpose(make_not_null(buffer.data() + volume_vars.size()),
-                  lower_ghost.data(), volume_extents[0],
-                  lower_ghost.size() / volume_extents[0]);
-    raw_transpose(
-        make_not_null(buffer.data() + volume_vars.size() + lower_ghost.size()),
-        upper_ghost.data(), volume_extents[0],
-        upper_ghost.size() / volume_extents[0]);
+  // (*reconstructed_lower_side_of_face_vars)[1] =
+  // (*reconstructed_lower_side_of_face_vars)[1];
+  // (*reconstructed_lower_side_of_face_vars)[2] =
+  // (*reconstructed_lower_side_of_face_vars)[2];
 
-    // Note: assumes isotropic extents
-    const size_t recons_offset_in_buffer =
-        volume_vars.size() + lower_ghost.size() + upper_ghost.size();
-    const size_t recons_size =
-        (*reconstructed_upper_side_of_face_vars)[1].size();
-    gsl::span<double> recons_upper_view =
-        gsl::make_span(buffer.data() + recons_offset_in_buffer, recons_size);
-    gsl::span<double> recons_lower_view = gsl::make_span(
-        buffer.data() + recons_offset_in_buffer + recons_size, recons_size);
-    reconstruct_impl<ReturnReconstructionOrder, Reconstructor>(
-        make_not_null(&recons_upper_view), make_not_null(&recons_lower_view),
-        make_not_null(&(ReturnReconstructionOrder
-                            ? reconstruction_order->value()[1]
-                            : empty_span)),
-        gsl::make_span(&buffer[0], volume_vars.size()),
-        gsl::make_span(buffer.data() + volume_vars.size(), lower_ghost.size()),
-        gsl::make_span(buffer.data() + volume_vars.size() + lower_ghost.size(),
-                       upper_ghost.size()),
-        volume_extents, number_of_variables, args_for_reconstructor...);
-    // Transpose result back
-    raw_transpose(
-        make_not_null((*reconstructed_upper_side_of_face_vars)[1].data()),
-        recons_upper_view.data(), recons_upper_view.size() / volume_extents[0],
-        volume_extents[0]);
-    raw_transpose(
-        make_not_null((*reconstructed_lower_side_of_face_vars)[1].data()),
-        recons_lower_view.data(), recons_lower_view.size() / volume_extents[0],
-        volume_extents[0]);
+  // (*reconstructed_upper_side_of_face_vars)[1] =
+  // (*reconstructed_upper_side_of_face_vars)[1];
+  // (*reconstructed_upper_side_of_face_vars)[2] =
+  // (*reconstructed_upper_side_of_face_vars)[2]; if constexpr (Dim > 1) {
+  //   // We transpose from (x,y,z,vars) ordering to (y,z,vars,x) ordering
+  //   // Might not be the most efficient (unclear), but easiest.
+  //   // We use a single large buffer for both the y and z reconstruction
+  //   // to reduce the number of memory allocations and improve data locality.
+  //   const auto& lower_ghost =
+  //   ghost_cell_vars.at(Direction<Dim>::lower_eta()); const auto& upper_ghost
+  //   = ghost_cell_vars.at(Direction<Dim>::upper_eta()); DataVector
+  //   buffer(volume_vars.size() + lower_ghost.size() +
+  //                     upper_ghost.size() +
+  //                     2 *
+  //                     (*reconstructed_upper_side_of_face_vars)[1].size());
+  //   raw_transpose(make_not_null(buffer.data()), volume_vars.data(),
+  //                 volume_extents[0], volume_vars.size() / volume_extents[0]);
+  //   raw_transpose(make_not_null(buffer.data() + volume_vars.size()),
+  //                 lower_ghost.data(), volume_extents[0],
+  //                 lower_ghost.size() / volume_extents[0]);
+  //   raw_transpose(
+  //       make_not_null(buffer.data() + volume_vars.size() +
+  //       lower_ghost.size()), upper_ghost.data(), volume_extents[0],
+  //       upper_ghost.size() / volume_extents[0]);
 
-    if constexpr (Dim > 2) {
-      const size_t chunk_size = volume_extents[0] * volume_extents[1];
-      const size_t number_of_volume_chunks = volume_vars.size() / chunk_size;
-      const size_t number_of_neighbor_chunks =
-          ghost_cell_vars.at(Direction<Dim>::lower_zeta()).size() / chunk_size;
+  //   // Note: assumes isotropic extents
+  //   const size_t recons_offset_in_buffer =
+  //       volume_vars.size() + lower_ghost.size() + upper_ghost.size();
+  //   const size_t recons_size =
+  //       (*reconstructed_upper_side_of_face_vars)[1].size();
+  //   gsl::span<double> recons_upper_view =
+  //       gsl::make_span(buffer.data() + recons_offset_in_buffer, recons_size);
+  //   gsl::span<double> recons_lower_view = gsl::make_span(
+  //       buffer.data() + recons_offset_in_buffer + recons_size, recons_size);
+  //   reconstruct_impl<ReturnReconstructionOrder, Reconstructor>(
+  //       make_not_null(&recons_upper_view), make_not_null(&recons_lower_view),
+  //       make_not_null(&(ReturnReconstructionOrder
+  //                           ? reconstruction_order->value()[1]
+  //                           : empty_span)),
+  //       gsl::make_span(&buffer[0], volume_vars.size()),
+  //       gsl::make_span(buffer.data() + volume_vars.size(),
+  //       lower_ghost.size()), gsl::make_span(buffer.data() +
+  //       volume_vars.size() + lower_ghost.size(),
+  //                      upper_ghost.size()),
+  //       volume_extents, number_of_variables, args_for_reconstructor...);
+  //   // Transpose result back
+  //   raw_transpose(
+  //       make_not_null((*reconstructed_upper_side_of_face_vars)[1].data()),
+  //       recons_upper_view.data(), recons_upper_view.size() /
+  //       volume_extents[0], volume_extents[0]);
+  //   raw_transpose(
+  //       make_not_null((*reconstructed_lower_side_of_face_vars)[1].data()),
+  //       recons_lower_view.data(), recons_lower_view.size() /
+  //       volume_extents[0], volume_extents[0]);
 
-      raw_transpose(make_not_null(buffer.data()), volume_vars.data(),
-                    chunk_size, number_of_volume_chunks);
-      raw_transpose(make_not_null(buffer.data() + volume_vars.size()),
-                    ghost_cell_vars.at(Direction<Dim>::lower_zeta()).data(),
-                    chunk_size, number_of_neighbor_chunks);
-      raw_transpose(make_not_null(buffer.data() + volume_vars.size() +
-                                  lower_ghost.size()),
-                    ghost_cell_vars.at(Direction<Dim>::upper_zeta()).data(),
-                    chunk_size, number_of_neighbor_chunks);
+  //   if constexpr (Dim > 2) {
+  //     const size_t chunk_size = volume_extents[0] * volume_extents[1];
+  //     const size_t number_of_volume_chunks = volume_vars.size() / chunk_size;
+  //     const size_t number_of_neighbor_chunks =
+  //         ghost_cell_vars.at(Direction<Dim>::lower_zeta()).size() /
+  //         chunk_size;
 
-      reconstruct_impl<ReturnReconstructionOrder, Reconstructor>(
-          make_not_null(&recons_upper_view), make_not_null(&recons_lower_view),
-          make_not_null(&(ReturnReconstructionOrder
-                              ? reconstruction_order->value()[2]
-                              : empty_span)),
-          gsl::make_span(&buffer[0], volume_vars.size()),
-          gsl::make_span(buffer.data() + volume_vars.size(),
-                         lower_ghost.size()),
-          gsl::make_span(
-              buffer.data() + volume_vars.size() + lower_ghost.size(),
-              upper_ghost.size()),
-          volume_extents, number_of_variables, args_for_reconstructor...);
-      // Transpose result back
-      raw_transpose(
-          make_not_null((*reconstructed_upper_side_of_face_vars)[2].data()),
-          recons_upper_view.data(), recons_upper_view.size() / chunk_size,
-          chunk_size);
-      raw_transpose(
-          make_not_null((*reconstructed_lower_side_of_face_vars)[2].data()),
-          recons_lower_view.data(), recons_lower_view.size() / chunk_size,
-          chunk_size);
-    }
-  }
+  //     raw_transpose(make_not_null(buffer.data()), volume_vars.data(),
+  //                   chunk_size, number_of_volume_chunks);
+  //     raw_transpose(make_not_null(buffer.data() + volume_vars.size()),
+  //                   ghost_cell_vars.at(Direction<Dim>::lower_zeta()).data(),
+  //                   chunk_size, number_of_neighbor_chunks);
+  //     raw_transpose(make_not_null(buffer.data() + volume_vars.size() +
+  //                                 lower_ghost.size()),
+  //                   ghost_cell_vars.at(Direction<Dim>::upper_zeta()).data(),
+  //                   chunk_size, number_of_neighbor_chunks);
+
+  //     reconstruct_impl<ReturnReconstructionOrder, Reconstructor>(
+  //         make_not_null(&recons_upper_view),
+  //         make_not_null(&recons_lower_view),
+  //         make_not_null(&(ReturnReconstructionOrder
+  //                             ? reconstruction_order->value()[2]
+  //                             : empty_span)),
+  //         gsl::make_span(&buffer[0], volume_vars.size()),
+  //         gsl::make_span(buffer.data() + volume_vars.size(),
+  //                        lower_ghost.size()),
+  //         gsl::make_span(
+  //             buffer.data() + volume_vars.size() + lower_ghost.size(),
+  //             upper_ghost.size()),
+  //         volume_extents, number_of_variables, args_for_reconstructor...);
+  //     // Transpose result back
+  //     raw_transpose(
+  //         make_not_null((*reconstructed_upper_side_of_face_vars)[2].data()),
+  //         recons_upper_view.data(), recons_upper_view.size() / chunk_size,
+  //         chunk_size);
+  //     raw_transpose(
+  //         make_not_null((*reconstructed_lower_side_of_face_vars)[2].data()),
+  //         recons_lower_view.data(), recons_lower_view.size() / chunk_size,
+  //         chunk_size);
+  //   }
+  // }
 }
 
 template <typename Reconstructor, size_t Dim, typename... ArgsForReconstructor>

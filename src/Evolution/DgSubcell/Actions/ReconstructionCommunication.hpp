@@ -172,6 +172,7 @@ struct SendDataForReconstruction {
     const DirectionMap<Dim, DataVector> all_sliced_data = slice_data(
         volume_data_to_slice, subcell_mesh.extents(), ghost_zone_size,
         element.internal_boundaries(), 0,
+        // {Direction<3>::lower_xi(), Direction<3>::upper_xi()}, 0,
         db::get<
             evolution::dg::subcell::Tags::InterpolatorsFromFdToNeighborFd<Dim>>(
             box));

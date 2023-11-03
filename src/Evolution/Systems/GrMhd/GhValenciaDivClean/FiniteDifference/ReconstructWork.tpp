@@ -60,9 +60,9 @@ void reconstruct_prims_work(
         neighbor_data,
     const Mesh<3>& subcell_mesh, const size_t ghost_zone_size,
     const bool compute_conservatives) {
-  ASSERT(Mesh<3>(subcell_mesh.extents(0), subcell_mesh.basis(0),
-                 subcell_mesh.quadrature(0)) == subcell_mesh,
-         "The subcell mesh should be isotropic but got " << subcell_mesh);
+  // ASSERT(Mesh<3>(subcell_mesh.extents(0), subcell_mesh.basis(0),
+  //                subcell_mesh.quadrature(0)) == subcell_mesh,
+  //        "The subcell mesh should be isotropic but got " << subcell_mesh);
   const size_t volume_num_pts = subcell_mesh.number_of_grid_points();
   const size_t reconstructed_num_pts =
       (subcell_mesh.extents(0) + 1) *
@@ -121,8 +121,11 @@ void reconstruct_prims_work(
                          number_of_variables * reconstructed_num_pts);
     }
 
+    // MIKE: 1 directions
     DirectionMap<3, gsl::span<const double>> ghost_cell_vars{};
-    for (const auto& direction : Direction<3>::all_directions()) {
+    // for (const auto& direction : Direction<3>::all_directions()) {
+    for (const auto& direction :
+         {Direction<3>::lower_xi(), Direction<3>::upper_xi()}) {
       if (element.neighbors().contains(direction)) {
         const auto& neighbors_in_direction = element.neighbors().at(direction);
         ASSERT(neighbors_in_direction.size() == 1,
@@ -179,8 +182,11 @@ void reconstruct_prims_work(
               number_of_variables * reconstructed_num_pts);
         }
 
+        // MIKE: DIRECTION
         DirectionMap<3, gsl::span<const double>> ghost_cell_vars{};
-        for (const auto& direction : Direction<3>::all_directions()) {
+        // for (const auto& direction : Direction<3>::all_directions()) {
+        for (const auto& direction :
+             {Direction<3>::lower_xi(), Direction<3>::upper_xi()}) {
           if (element.neighbors().contains(direction)) {
             const auto& neighbors_in_direction =
                 element.neighbors().at(direction);
