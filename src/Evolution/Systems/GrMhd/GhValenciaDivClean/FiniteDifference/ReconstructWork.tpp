@@ -63,13 +63,15 @@ void reconstruct_prims_work(
   // ASSERT(Mesh<3>(subcell_mesh.extents(0), subcell_mesh.basis(0),
   //                subcell_mesh.quadrature(0)) == subcell_mesh,
   //        "The subcell mesh should be isotropic but got " << subcell_mesh);
-  const size_t volume_num_pts = subcell_mesh.number_of_grid_points();
+  const size_t volume_num_pts =
+      subcell_mesh.number_of_grid_points();  // num FD cells/element
   const size_t reconstructed_num_pts =
       (subcell_mesh.extents(0) + 1) *
-      subcell_mesh.extents().slice_away(0).product();
+      subcell_mesh.extents().slice_away(0).product();  // num cell faces
   const size_t neighbor_num_pts =
-      ghost_zone_size * subcell_mesh.extents().slice_away(0).product();
-  size_t vars_in_neighbor_count = 0;
+      ghost_zone_size *
+      subcell_mesh.extents().slice_away(0).product();  // 2 neighbor pts
+  size_t vars_in_neighbor_count = 0;                   // hydro prims
   tmpl::for_each<PrimTagsForReconstruction>([&element, &neighbor_data,
                                              neighbor_num_pts,
                                              &hydro_reconstructor,
@@ -158,7 +160,7 @@ void reconstruct_prims_work(
                         number_of_variables);
 
     vars_in_neighbor_count += number_of_variables;
-  });
+  });  // spacetime reconstruction
   tmpl::for_each<SpacetimeTagsToReconstruct>(
       [&element, &neighbor_data, neighbor_num_pts, &spacetime_reconstructor,
        reconstructed_num_pts, volume_num_pts, &volume_spacetime_and_cons_vars,
@@ -281,7 +283,7 @@ void reconstruct_fd_neighbor_work(
                             ghost_data_extents.product())),
               neighbor_prims.data());
   }
-
+  // reconstruct prims for FD neighbors
   tmpl::for_each<PrimTagsForReconstruction>(
       [&direction_to_reconstruct, &ghost_data_extents, &neighbor_prims,
        &reconstruct_lower_neighbor_hydro, &reconstruct_upper_neighbor_hydro,
@@ -332,7 +334,7 @@ void reconstruct_fd_neighbor_work(
           }
         }
       });
-
+  // reconstruct spacetime for FD neighbors
   tmpl::for_each<SpacetimeTagsToReconstruct>(
       [&direction_to_reconstruct, &ghost_data_extents, &neighbor_prims,
        &reconstruct_lower_neighbor_spacetime,

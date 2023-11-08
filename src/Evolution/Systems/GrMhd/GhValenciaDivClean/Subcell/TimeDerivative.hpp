@@ -421,7 +421,9 @@ struct ComputeTimeDerivImpl<
         auto& dt_var = *get<::Tags::dt<GrmhdDtTags>>(dt_vars_ptr);
         const auto& var_correction =
             get<GrmhdDtTags>(boundary_correction_in_axis);
-        for (size_t i = 0; i < dt_var.size(); ++i) {
+        // This loops over dimensions
+        // for (size_t i = 0; i < dt_var.size(); ++i) {
+        for (size_t i = 0; i < 1; ++i) {
           evolution::dg::subcell::add_cartesian_flux_divergence(
               make_not_null(&dt_var[i]), inverse_delta,
               get(cell_centered_det_inv_jacobian), var_correction[i],
@@ -517,25 +519,27 @@ struct TimeDerivative {
     std::optional<std::array<gsl::span<std::uint8_t>, 3>>
         reconstruction_order{};
 
-    if (const auto& filter_options =
-            db::get<grmhd::GhValenciaDivClean::fd::Tags::FilterOptions>(*box);
-        filter_options.spacetime_dissipation.has_value()) {
-      db::mutate<evolved_vars_tag>(
-          [&filter_options, &recons, &subcell_mesh](const auto evolved_vars_ptr,
-                                                    const auto& ghost_data) {
-            typename evolved_vars_tag::type filtered_vars = *evolved_vars_ptr;
-            // $(recons.ghost_zone_size() - 1) * 2 + 1$ => always use highest
-            // order dissipation filter possible.
-            grmhd::GhValenciaDivClean::fd::spacetime_kreiss_oliger_filter(
-                make_not_null(&filtered_vars), *evolved_vars_ptr, ghost_data,
-                subcell_mesh, 2 * recons.ghost_zone_size(),
-                filter_options.spacetime_dissipation.value());
-            *evolved_vars_ptr = filtered_vars;
-          },
-          box,
-          db::get<evolution::dg::subcell::Tags::GhostDataForReconstruction<3>>(
-              *box));
-    }
+    // if (const auto& filter_options =
+    //       db::get<grmhd::GhValenciaDivClean::fd::Tags::FilterOptions>(*box);
+    //     filter_options.spacetime_dissipation.has_value()) {
+    //   db::mutate<evolved_vars_tag>(
+    //       [&filter_options, &recons, &subcell_mesh](const auto
+    //       evolved_vars_ptr,
+    //                                                 const auto& ghost_data) {
+    //         typename evolved_vars_tag::type filtered_vars =
+    //         *evolved_vars_ptr;
+    //         // $(recons.ghost_zone_size() - 1) * 2 + 1$ => always use highest
+    //         // order dissipation filter possible.
+    //         grmhd::GhValenciaDivClean::fd::spacetime_kreiss_oliger_filter(
+    //             make_not_null(&filtered_vars), *evolved_vars_ptr, ghost_data,
+    //             subcell_mesh, 2 * recons.ghost_zone_size(),
+    //             filter_options.spacetime_dissipation.value());
+    //         *evolved_vars_ptr = filtered_vars;
+    //       },
+    //       box,
+    //    db::get<evolution::dg::subcell::Tags::GhostDataForReconstruction<3>>(
+    //           *box));
+    // }
 
     // 521 comment out kreiss oliger dissipation
 
@@ -660,8 +664,10 @@ struct TimeDerivative {
 
             // Build extents of mesh shifted by half a grid cell in direction i
             const unsigned long& num_subcells_1d = subcell_mesh.extents(0);
-            Index<3> face_mesh_extents(std::array<size_t, 3>{
-                num_subcells_1d, num_subcells_1d, num_subcells_1d});
+            // Index<3> face_mesh_extents(std::array<size_t, 3>{
+            //     num_subcells_1d, num_subcells_1d, num_subcells_1d});
+            Index<3> face_mesh_extents(
+                std::array<size_t, 3>{num_subcells_1d, 1, 1});
             face_mesh_extents[i] = num_subcells_1d + 1;
             // Add moving mesh corrections to the fluxes, if needed
             std::optional<tnsr::I<DataVector, 3, Frame::Inertial>>
@@ -726,7 +732,9 @@ struct TimeDerivative {
             // with "i" the current face.
             tnsr::i<DataVector, 3, Frame::Inertial> lower_outward_conormal{
                 reconstructed_num_pts, 0.0};
-            for (size_t j = 0; j < 3; j++) {
+            // for (size_t j = 0; j < 3; j++) {
+            // changes size from 12 to 1452
+            for (size_t j = 0; j < 1; j++) {
               lower_outward_conormal.get(j) =
                   evolution::dg::subcell::fd::project_to_faces(
                       inv_jacobian_dg.get(i, j), dg_mesh, face_mesh_extents, i);

@@ -42,7 +42,6 @@
 #include "Utilities/Numeric.hpp"
 #include "Utilities/StdHelpers.hpp"
 
-#include <iostream>
 
 namespace h5 {
 namespace {

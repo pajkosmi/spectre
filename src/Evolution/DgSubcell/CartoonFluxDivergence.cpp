@@ -11,10 +11,12 @@
 #include "Utilities/Gsl.hpp"
 
 namespace evolution::dg::subcell {
-void add_cartesian_flux_divergence(
-    const gsl::not_null<DataVector*> dt_var, const double one_over_delta,
-    const DataVector& inv_jacobian, const DataVector& boundary_correction,
-    const Index<1>& subcell_extents, const size_t dimension) {
+void add_cartesian_flux_divergence(const gsl::not_null<DataVector*> dt_var,
+                                   const double one_over_delta,
+                                   const DataVector& inv_jacobian,
+                                   const DataVector& boundary_correction,
+                                   const Index<1>& subcell_extents,
+                                   const size_t dimension) {
   (void)dimension;
   ASSERT(dimension == 0, "dimension must be 0 but is " << dimension);
   for (size_t i = 0; i < subcell_extents[0]; ++i) {
@@ -23,10 +25,12 @@ void add_cartesian_flux_divergence(
   }
 }
 
-void add_cartesian_flux_divergence(
-    const gsl::not_null<DataVector*> dt_var, const double one_over_delta,
-    const DataVector& inv_jacobian, const DataVector& boundary_correction,
-    const Index<2>& subcell_extents, const size_t dimension) {
+void add_cartesian_flux_divergence(const gsl::not_null<DataVector*> dt_var,
+                                   const double one_over_delta,
+                                   const DataVector& inv_jacobian,
+                                   const DataVector& boundary_correction,
+                                   const Index<2>& subcell_extents,
+                                   const size_t dimension) {
   ASSERT(dimension == 0 or dimension == 1,
          "dimension must be 0 or 1 but is " << dimension);
   Index<2> subcell_face_extents = subcell_extents;
@@ -81,11 +85,10 @@ void add_cartesian_flux_divergence(
                      (0.5 *
                       (boundary_correction[boundary_correction_upper_index] +
                        boundary_correction[boundary_correction_lower_index])) /
-                     inertial_coords.get(0)[volume_index] +
+                     abs(inertial_coords.get(0)[volume_index]) +
                  one_over_delta * inv_jacobian[volume_index] *
                      (boundary_correction[boundary_correction_upper_index] -
                       boundary_correction[boundary_correction_lower_index]);
-          ;
         }
         (*dt_var)[volume_index] += dfdx;
         // (*dt_var)[volume_index] +=

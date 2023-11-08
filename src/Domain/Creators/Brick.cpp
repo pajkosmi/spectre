@@ -154,8 +154,11 @@ Domain<3> Brick::create_domain() const {
   Domain<3> domain{
       make_vector_coordinate_map_base<Frame::BlockLogical, Frame::Inertial>(
           Affine3D{Affine{-1., 1., lower_xyz_[0], upper_xyz_[0]},
-                   Affine{-1., 1., lower_xyz_[1], upper_xyz_[1]},
-                   Affine{-1., 1., lower_xyz_[2], upper_xyz_[2]}}),
+                   //  Affine{-1., 1., lower_xyz_[1], upper_xyz_[1]},
+                   //  Affine{-1., 1., lower_xyz_[2], upper_xyz_[2]}
+                   // Hard coded so only the x-direction term (above)
+                   // contributes to the inverse jacobian transformation
+                   Affine{-1., 1., -1.0, 1.0}, Affine{-1., 1., -1.0, 1.0}}),
       std::vector<std::array<size_t, 8>>{{{0, 1, 2, 3, 4, 5, 6, 7}}},
       identifications,
       {},
