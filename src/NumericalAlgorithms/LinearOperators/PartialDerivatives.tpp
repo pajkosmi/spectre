@@ -122,7 +122,7 @@ void partial_derivatives_cartoon(
                         gsl::at(indices[0], deriv_index)))[volume_index] *
                          logical_du[volume_index] +
                      2.0 * volume_vars[volume_index] /
-                         inertial_coords.get(0)[volume_index];
+                         abs(inertial_coords.get(0)[volume_index]);
             }
             lhs[volume_index] = dfdx;
           }
