@@ -375,15 +375,19 @@ void HydroFreeOutflow::fd_ghost_impl(
     for (size_t i = 0; i < 3; ++i) {
       if (i == dim_direction) {
         if (direction.sign() > 0.0) {
+          // let velocity do what it naturally wants to at the outer domain
           get<LorentzFactorTimesSpatialVelocity>(outermost_prim_vars).get(i) =
               get(get_boundary_val(interior_lorentz_factor)) *
-              max(normal_spatial_velocity_at_boundary,
-                  normal_spatial_velocity_at_boundary * 0.0);
+              normal_spatial_velocity_at_boundary;
+          //   max(normal_spatial_velocity_at_boundary,
+          //       normal_spatial_velocity_at_boundary * 0.0);
         } else {
+          // flip sign at inside origin of spherically symmetric domain
           get<LorentzFactorTimesSpatialVelocity>(outermost_prim_vars).get(i) =
               get(get_boundary_val(interior_lorentz_factor)) *
-              min(normal_spatial_velocity_at_boundary,
-                  normal_spatial_velocity_at_boundary * 0.0);
+              (-normal_spatial_velocity_at_boundary);
+          //   min(normal_spatial_velocity_at_boundary,
+          //       normal_spatial_velocity_at_boundary * 0.0);
         }
       } else {
         get<LorentzFactorTimesSpatialVelocity>(outermost_prim_vars).get(i) =

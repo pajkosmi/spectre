@@ -229,6 +229,7 @@ struct ComputeTimeDerivImpl<
       // quantities already computed inside the GH RHS computation to minimize
       // FLOPs.
       const auto& lapse = get<gr::Tags::Lapse<DataVector>>(temp_tags);
+      //   const auto& shift = get<gr::Tags::Shift<DataVector, 3>>(temp_tags);
       const auto& half_phi_two_normals =
           get<gh::Tags::HalfPhiTwoNormals<3>>(temp_tags);
       const auto& phi = get<gh::Tags::Phi<DataVector, 3>>(evolved_vars);
@@ -268,6 +269,7 @@ struct ComputeTimeDerivImpl<
           for (size_t j = i; j < 3; ++j) {
             get<deriv_spatial_metric>(temp_tags).get(k, i, j) =
                 phi.get(k, i + 1, j + 1);
+            // phi.get(k, i + 1, j + 1) / inertial_coords.get(0);
           }
         }
       }
@@ -284,10 +286,14 @@ struct ComputeTimeDerivImpl<
       }
     }  // End scope for computing metric terms in GRMHD source terms.
 
+    // pass in inertial coordinates for cartoon source term calculation
+    const auto& shift = get<gr::Tags::Shift<DataVector, 3>>(temp_tags);
+
     grmhd::ValenciaDivClean::ComputeSources::apply(
         get<::Tags::dt<GrmhdSourceTags>>(dt_vars_ptr)...,
         get<GrmhdArgumentSourceTags>(temp_tags, primitive_vars, evolved_vars,
-                                     *box)...);
+                                     *box)...,
+        inertial_coords, shift);
 
     // Zero GRMHD tags that don't have sources.
     tmpl::for_each<tmpl::list<GrmhdDtTags...>>([&dt_vars_ptr](
@@ -432,6 +438,12 @@ struct ComputeTimeDerivImpl<
         // update 408 to 424
       }());
     }
+    EXPAND_PACK_LEFT_TO_RIGHT([&dt_vars_ptr]() {
+      for (size_t i = 0; i < get<::Tags::dt<GhDtTags>>(*dt_vars_ptr).size();
+           ++i) {
+        get<::Tags::dt<GhDtTags>>(*dt_vars_ptr)[i] = 0.0;
+      }
+    }());
   }
 };
 }  // namespace detail
@@ -568,6 +580,7 @@ struct TimeDerivative {
     Variables<db::wrap_tags_in<::Tags::deriv, gradients_tags, tmpl::size_t<3>,
                                Frame::Inertial>>
         cell_centered_gh_derivs{num_pts};
+
     grmhd::GhValenciaDivClean::fd::spacetime_derivatives(
         make_not_null(&cell_centered_gh_derivs), evolved_vars,
         db::get<evolution::dg::subcell::Tags::GhostDataForReconstruction<3>>(

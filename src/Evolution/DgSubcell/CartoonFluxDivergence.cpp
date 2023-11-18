@@ -5,6 +5,7 @@
 
 #include <cstddef>
 
+#include <iostream>
 #include "DataStructures/DataVector.hpp"
 #include "DataStructures/Index.hpp"
 #include "Utilities/ErrorHandling/Assert.hpp"
@@ -76,19 +77,37 @@ void add_cartesian_flux_divergence(
         ++index[dimension];
         const size_t boundary_correction_upper_index =
             collapsed_index(index, subcell_face_extents);
-        if (inertial_coords.get(0)[volume_index] == 0.0) {
+        // if (inertial_coords.get(0)[volume_index] == 0.0) {
+        if (abs(inertial_coords.get(0)[volume_index] -
+                0.5 / one_over_delta / inv_jacobian[volume_index]) < 1.0e-14) {
           dfdx = 3.0 * one_over_delta * inv_jacobian[volume_index] *
                  (boundary_correction[boundary_correction_upper_index] -
                   boundary_correction[boundary_correction_lower_index]);
         } else {
-          dfdx = 2.0 *
-                     (0.5 *
-                      (boundary_correction[boundary_correction_upper_index] +
-                       boundary_correction[boundary_correction_lower_index])) /
-                     abs(inertial_coords.get(0)[volume_index]) +
-                 one_over_delta * inv_jacobian[volume_index] *
-                     (boundary_correction[boundary_correction_upper_index] -
-                      boundary_correction[boundary_correction_lower_index]);
+          // if spherically symmetric inner boundary, no flux should leave or
+          // enter
+          double rescale_delta = 1.0;
+          double fac = 1.0;
+          // if (abs(inertial_coords.get(0)[volume_index] -
+          //         0.5 / one_over_delta / inv_jacobian[volume_index]) <
+          //     1.0e-14) {
+          //   fac = 0.0;
+          //   rescale_delta =
+          //       boundary_correction[boundary_correction_upper_index] /
+          //       boundary_correction[boundary_correction_lower_index];
+          // }
+
+          dfdx =
+              2.0 *
+                  (0.5 *
+                   (boundary_correction[boundary_correction_upper_index] +
+                    rescale_delta *
+                        boundary_correction[boundary_correction_lower_index])) /
+                  abs(inertial_coords.get(0)[volume_index]) +
+              one_over_delta * inv_jacobian[volume_index] *
+                  (boundary_correction[boundary_correction_upper_index] -
+                   fac * boundary_correction[boundary_correction_lower_index]);
+
         }
         (*dt_var)[volume_index] += dfdx;
         // (*dt_var)[volume_index] +=

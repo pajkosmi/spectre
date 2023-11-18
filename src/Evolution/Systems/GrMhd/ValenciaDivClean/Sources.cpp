@@ -144,6 +144,10 @@ void sources_impl(
         source_tilde_s->get(i) += 0.5 * get(lapse) *
                                   d_spatial_metric.get(i, m, n) *
                                   densitized_stress->get(m, n);
+        // std::cout << "d_spatial_metric.get(i, m, n) "
+        //           << d_spatial_metric.get(0, m, n) << " "
+        //           << d_spatial_metric.get(1, m, n) << " "
+        //           << d_spatial_metric.get(2, m, n) << "\n";
       }
     }
   }
@@ -190,7 +194,9 @@ void ComputeSources::apply(
     const tnsr::II<DataVector, 3, Frame::Inertial>& inv_spatial_metric,
     const Scalar<DataVector>& sqrt_det_spatial_metric,
     const tnsr::ii<DataVector, 3, Frame::Inertial>& extrinsic_curvature,
-    const double constraint_damping_parameter) {
+    const double constraint_damping_parameter,
+    const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coords,
+    const tnsr::I<DataVector, 3, Frame::Inertial>& shift) {
   Variables<
       tmpl::list<TildeSUp, DensitizedStress, MagneticFieldOneForm,
                  hydro::Tags::MagneticFieldDotSpatialVelocity<DataVector>,
@@ -240,6 +246,83 @@ void ComputeSources::apply(
   trace_last_indices(make_not_null(&trace_spatial_christoffel_second),
                      spatial_christoffel_second_kind, inv_spatial_metric);
 
+  // begin cartoon
+  // shift
+  tnsr::iJ<DataVector, 3, Frame::Inertial> d_shift_cartoon;
+  // y derivatives (1)
+  // beta^x
+  d_shift_cartoon.get(1, 0) = -shift.get(1) / inertial_coords.get(0);
+  // beta^y
+  d_shift_cartoon.get(1, 1) = shift.get(0) / inertial_coords.get(0);
+  // beta^z
+  d_shift_cartoon.get(1, 2) = 0.0;
+
+  // z derivatives (2)
+  // beta^x
+  d_shift_cartoon.get(2, 0) = -shift.get(2) / inertial_coords.get(0);
+  // beta^y
+  d_shift_cartoon.get(2, 1) = 0.0;
+  // beta^z
+  d_shift_cartoon.get(2, 1) = shift.get(0) / inertial_coords.get(0);
+
+  // spatial metric
+  tnsr::ijj<DataVector, 3, Frame::Inertial> d_spatial_metric_cartoon;
+  // auto& d_spatial_metric_cartoon = d_spatial_metric;
+
+  // y (1) derivatives
+  // gxx
+  d_spatial_metric_cartoon.get(1, 0, 0) =
+      -2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
+  // gxy
+  d_spatial_metric_cartoon.get(1, 0, 1) =
+      (spatial_metric.get(0, 0) - spatial_metric.get(1, 1)) /
+      inertial_coords.get(0);
+  // gyx = gxy symmetry
+  d_spatial_metric_cartoon.get(1, 1, 0) = d_spatial_metric_cartoon.get(1, 0, 1);
+  // gxz
+  d_spatial_metric_cartoon.get(1, 0, 2) =
+      -spatial_metric.get(0, 1) / inertial_coords.get(0);
+  // gzx = gxz symmetry
+  d_spatial_metric_cartoon.get(1, 2, 0) = d_spatial_metric_cartoon.get(1, 0, 2);
+  // gyy
+  d_spatial_metric_cartoon.get(1, 1, 1) =
+      2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
+  // gyz
+  d_spatial_metric_cartoon.get(1, 1, 2) =
+      -spatial_metric.get(0, 2) / inertial_coords.get(0);
+  // gzy = gyz symmetry
+  d_spatial_metric_cartoon.get(1, 2, 1) = d_spatial_metric_cartoon.get(1, 1, 2);
+  // gzz
+  d_spatial_metric_cartoon.get(1, 2, 2) = 0.0;
+
+  // z (2) derivatives
+  // gxx
+  d_spatial_metric_cartoon.get(2, 0, 0) =
+      -2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
+  // gxy
+  d_spatial_metric_cartoon.get(2, 0, 1) =
+      -spatial_metric.get(2, 0) / inertial_coords.get(0);
+  // gyx = gxy symmetry
+  d_spatial_metric_cartoon.get(2, 1, 0) = d_spatial_metric_cartoon.get(1, 0, 1);
+  // gxz
+  d_spatial_metric_cartoon.get(2, 0, 2) =
+      (spatial_metric.get(0, 0) - spatial_metric.get(2, 2)) /
+      inertial_coords.get(0);
+  // gzx = gxz symmetry
+  d_spatial_metric_cartoon.get(2, 2, 0) = d_spatial_metric_cartoon.get(1, 0, 2);
+  // gyy
+  d_spatial_metric_cartoon.get(2, 1, 1) = 0;
+  // gyz
+  d_spatial_metric_cartoon.get(2, 1, 2) =
+      spatial_metric.get(1, 0) / inertial_coords.get(0);
+  // gzy = gyz symmetry
+  d_spatial_metric_cartoon.get(2, 2, 1) = d_spatial_metric_cartoon.get(1, 1, 2);
+  // gzz
+  d_spatial_metric_cartoon.get(2, 1, 2) =
+      2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
+
+  // end cartoon gam_ij
+
   detail::sources_impl(
       source_tilde_tau, source_tilde_s, source_tilde_b, source_tilde_phi,
 
@@ -252,8 +335,9 @@ void ComputeSources::apply(
       one_over_w_squared, pressure_star, trace_spatial_christoffel_second,
 
       tilde_d, tilde_ye, tilde_tau, tilde_s, tilde_b, tilde_phi, lapse,
-      sqrt_det_spatial_metric, inv_spatial_metric, d_lapse, d_shift,
-      d_spatial_metric, spatial_velocity, lorentz_factor, magnetic_field,
+      sqrt_det_spatial_metric, inv_spatial_metric, d_lapse, d_shift_cartoon,
+      d_spatial_metric_cartoon, spatial_velocity, lorentz_factor,
+      magnetic_field,
 
       rest_mass_density, electron_fraction, pressure, specific_internal_energy,
       extrinsic_curvature, constraint_damping_parameter);
