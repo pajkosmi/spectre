@@ -327,7 +327,7 @@ struct ComputeTimeDerivImpl<
           get<deriv_spatial_metric>(temp_tags).get(1, 0, 1);
       // gxz
       get<deriv_spatial_metric>(temp_tags).get(1, 0, 2) =
-          -spatial_metric.get(0, 1) / inertial_coords.get(0);
+          -spatial_metric.get(1, 2) / inertial_coords.get(0);
       // gzx = gxz symmetry
       get<deriv_spatial_metric>(temp_tags).get(1, 2, 0) =
           get<deriv_spatial_metric>(temp_tags).get(1, 0, 2);
@@ -336,7 +336,7 @@ struct ComputeTimeDerivImpl<
           2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
       // gyz
       get<deriv_spatial_metric>(temp_tags).get(1, 1, 2) =
-          -spatial_metric.get(0, 2) / inertial_coords.get(0);
+          spatial_metric.get(0, 2) / inertial_coords.get(0);
       // gzy = gyz symmetry
       get<deriv_spatial_metric>(temp_tags).get(1, 2, 1) =
           get<deriv_spatial_metric>(temp_tags).get(1, 1, 2);
@@ -350,27 +350,27 @@ struct ComputeTimeDerivImpl<
           -2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
       // gxy
       get<deriv_spatial_metric>(temp_tags).get(2, 0, 1) =
-          -spatial_metric.get(2, 0) / inertial_coords.get(0);
+          -spatial_metric.get(1, 2) / inertial_coords.get(0);
       // gyx = gxy symmetry
       get<deriv_spatial_metric>(temp_tags).get(2, 1, 0) =
-          get<deriv_spatial_metric>(temp_tags).get(1, 0, 1);
+          get<deriv_spatial_metric>(temp_tags).get(2, 0, 1);
       // gxz
       get<deriv_spatial_metric>(temp_tags).get(2, 0, 2) =
           (spatial_metric.get(0, 0) - spatial_metric.get(2, 2)) /
           inertial_coords.get(0);
       // gzx = gxz symmetry
       get<deriv_spatial_metric>(temp_tags).get(2, 2, 0) =
-          get<deriv_spatial_metric>(temp_tags).get(1, 0, 2);
+          get<deriv_spatial_metric>(temp_tags).get(2, 0, 2);
       // gyy                                  !just zero
       get<deriv_spatial_metric>(temp_tags).get(2, 1, 1) =
           get<deriv_spatial_metric>(temp_tags).get(1, 1, 1) -
           get<deriv_spatial_metric>(temp_tags).get(1, 1, 1);
       // gyz
       get<deriv_spatial_metric>(temp_tags).get(2, 1, 2) =
-          spatial_metric.get(1, 0) / inertial_coords.get(0);
+          spatial_metric.get(0, 1) / inertial_coords.get(0);
       // gzy = gyz symmetry
       get<deriv_spatial_metric>(temp_tags).get(2, 2, 1) =
-          get<deriv_spatial_metric>(temp_tags).get(1, 1, 2);
+          get<deriv_spatial_metric>(temp_tags).get(2, 1, 2);
       // gzz
       get<deriv_spatial_metric>(temp_tags).get(2, 2, 2) =
           2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);

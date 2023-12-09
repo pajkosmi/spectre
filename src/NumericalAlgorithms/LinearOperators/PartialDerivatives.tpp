@@ -94,7 +94,7 @@ void partial_derivatives_cartoon(
        component_index < number_of_independent_components; ++component_index) {
     // loop over derivative directions
     for (size_t deriv_index = 0; deriv_index < Dim; ++deriv_index) {
-      // lhs points to pdu
+      // lhs points to pdu (shifts by num grid points below)
       lhs.set_data_ref(pdu, num_grid_points);
       // clang-tidy: const cast is fine since we won't modify the data and we
       // need it to easily hook into the expression templates.
@@ -111,27 +111,13 @@ void partial_derivatives_cartoon(
               component_index * num_grid_points,
           num_grid_points);
 
-      // loop over mesh to check if x coordinate = 0
+      // loop over mesh to check if x coordinate = 0 (it should never be 0)
       for (size_t k = 0; k < subcell_extents[2]; ++k) {
         for (size_t j = 0; j < subcell_extents[1]; ++j) {
           for (size_t i = 0; i < subcell_extents[0]; ++i) {
             Index<3> index(i, j, k);
             const size_t volume_index = collapsed_index(index, subcell_extents);
             // access current coordinate
-            // if (inertial_coords.get(0)[volume_index] == 0.0) {
-            //   // scale lhs (logical_du) by inverse jacobian--giving pdu
-            //   // 3 * df/dx (numerical derivative)
-            //   dfdx = 3.0 * inverse_jacobian.get(0, 0)[volume_index] *
-            //          logical_du[volume_index];
-            // } else {
-            //   // df/dx (numerical) + 2 * f / x (analytic)
-            //   dfdx = inverse_jacobian.get(0, 0)[volume_index] *
-            //              logical_du[volume_index] +
-            //          2.0 *
-            //              volume_vars[component_index * num_grid_points +
-            //                          volume_index] /
-            //              abs(inertial_coords.get(0)[volume_index]);
-            // }
             if (deriv_index == 0.0) {
               // scale lhs (logical_du) by inverse jacobian--giving pdu
               // df/dx (numerical derivative)

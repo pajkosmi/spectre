@@ -77,9 +77,10 @@ void add_cartesian_flux_divergence(
         ++index[dimension];
         const size_t boundary_correction_upper_index =
             collapsed_index(index, subcell_face_extents);
-        // if (inertial_coords.get(0)[volume_index] == 0.0) {
-        if (abs(inertial_coords.get(0)[volume_index] -
-                0.5 / one_over_delta / inv_jacobian[volume_index]) < 1.0e-14) {
+        if (inertial_coords.get(0)[volume_index] == 0.0) {
+          // if (abs(inertial_coords.get(0)[volume_index] -
+          //         0.5 / one_over_delta / inv_jacobian[volume_index])
+          //         < 1.0e-14) {
           dfdx = 3.0 * one_over_delta * inv_jacobian[volume_index] *
                  (boundary_correction[boundary_correction_upper_index] -
                   boundary_correction[boundary_correction_lower_index]);
@@ -97,6 +98,16 @@ void add_cartesian_flux_divergence(
           //       boundary_correction[boundary_correction_lower_index];
           // }
 
+          // std::cout << "boundary_correction " << boundary_correction << "\n";
+          // std::cout << "boundary_correction_upper_index " <<
+          // boundary_correction_upper_index << "
+          // boundary_correction_lower_index " <<
+          // boundary_correction_lower_index << "\n"; std::cout <<
+          // "inertial_coords " << inertial_coords.get(0) << "\n"; std::cout <<
+          // "volume index " << volume_index << "\n"; std::cout <<
+          // "inertial_coords left face " << inertial_coords.get(0) -
+          //       0.5 / one_over_delta / inv_jacobian[volume_index] << "\n";
+
           dfdx =
               2.0 *
                   (0.5 *
@@ -108,6 +119,29 @@ void add_cartesian_flux_divergence(
                   (boundary_correction[boundary_correction_upper_index] -
                    fac * boundary_correction[boundary_correction_lower_index]);
 
+          // product rule
+          double inertial_coord_lower_face =
+              inertial_coords.get(0)[volume_index] -
+              0.5 / one_over_delta / inv_jacobian[volume_index];
+
+          double inertial_coord_upper_face =
+              inertial_coords.get(0)[volume_index] +
+              0.5 / one_over_delta / inv_jacobian[volume_index];
+
+          double lower_face_weight = inertial_coord_lower_face *
+                                     inertial_coord_lower_face /
+                                     (inertial_coords.get(0)[volume_index] *
+                                      inertial_coords.get(0)[volume_index]);
+          double upper_face_weight = inertial_coord_upper_face *
+                                     inertial_coord_upper_face /
+                                     (inertial_coords.get(0)[volume_index] *
+                                      inertial_coords.get(0)[volume_index]);
+
+          dfdx = one_over_delta * inv_jacobian[volume_index] *
+                 (upper_face_weight *
+                      boundary_correction[boundary_correction_upper_index] -
+                  lower_face_weight *
+                      boundary_correction[boundary_correction_lower_index]);
         }
         (*dt_var)[volume_index] += dfdx;
         // (*dt_var)[volume_index] +=

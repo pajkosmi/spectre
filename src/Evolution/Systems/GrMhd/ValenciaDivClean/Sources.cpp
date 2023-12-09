@@ -144,10 +144,6 @@ void sources_impl(
         source_tilde_s->get(i) += 0.5 * get(lapse) *
                                   d_spatial_metric.get(i, m, n) *
                                   densitized_stress->get(m, n);
-        // std::cout << "d_spatial_metric.get(i, m, n) "
-        //           << d_spatial_metric.get(0, m, n) << " "
-        //           << d_spatial_metric.get(1, m, n) << " "
-        //           << d_spatial_metric.get(2, m, n) << "\n";
       }
     }
   }
@@ -249,25 +245,37 @@ void ComputeSources::apply(
   // begin cartoon
   // shift
   tnsr::iJ<DataVector, 3, Frame::Inertial> d_shift_cartoon;
+  // x derivatives (0) will be overwritten
+  d_shift_cartoon.get(0, 0) = d_shift.get(0, 0);
+  d_shift_cartoon.get(0, 1) = d_shift.get(0, 1);
+  d_shift_cartoon.get(0, 2) = d_shift.get(0, 2);
+
   // y derivatives (1)
   // beta^x
   d_shift_cartoon.get(1, 0) = -shift.get(1) / inertial_coords.get(0);
   // beta^y
   d_shift_cartoon.get(1, 1) = shift.get(0) / inertial_coords.get(0);
   // beta^z
-  d_shift_cartoon.get(1, 2) = 0.0;
+  d_shift_cartoon.get(1, 2) = 0.0 * shift.get(0);
 
   // z derivatives (2)
   // beta^x
   d_shift_cartoon.get(2, 0) = -shift.get(2) / inertial_coords.get(0);
   // beta^y
-  d_shift_cartoon.get(2, 1) = 0.0;
+  d_shift_cartoon.get(2, 1) = 0.0 * shift.get(0);
   // beta^z
-  d_shift_cartoon.get(2, 1) = shift.get(0) / inertial_coords.get(0);
+  d_shift_cartoon.get(2, 2) = shift.get(0) / inertial_coords.get(0);
 
   // spatial metric
   tnsr::ijj<DataVector, 3, Frame::Inertial> d_spatial_metric_cartoon;
   // auto& d_spatial_metric_cartoon = d_spatial_metric;
+
+  // x (0) derivatives will be overwritten
+  for (size_t m = 0; m < 3; m++) {
+    for (size_t n = 0; n < 3; n++) {
+      d_spatial_metric_cartoon.get(0, m, n) = d_spatial_metric.get(0, m, n);
+    }
+  }
 
   // y (1) derivatives
   // gxx
@@ -281,7 +289,7 @@ void ComputeSources::apply(
   d_spatial_metric_cartoon.get(1, 1, 0) = d_spatial_metric_cartoon.get(1, 0, 1);
   // gxz
   d_spatial_metric_cartoon.get(1, 0, 2) =
-      -spatial_metric.get(0, 1) / inertial_coords.get(0);
+      -spatial_metric.get(1, 2) / inertial_coords.get(0);
   // gzx = gxz symmetry
   d_spatial_metric_cartoon.get(1, 2, 0) = d_spatial_metric_cartoon.get(1, 0, 2);
   // gyy
@@ -289,11 +297,11 @@ void ComputeSources::apply(
       2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
   // gyz
   d_spatial_metric_cartoon.get(1, 1, 2) =
-      -spatial_metric.get(0, 2) / inertial_coords.get(0);
+      spatial_metric.get(0, 2) / inertial_coords.get(0);
   // gzy = gyz symmetry
   d_spatial_metric_cartoon.get(1, 2, 1) = d_spatial_metric_cartoon.get(1, 1, 2);
-  // gzz
-  d_spatial_metric_cartoon.get(1, 2, 2) = 0.0;
+  // gzz                                  !just zero
+  d_spatial_metric_cartoon.get(1, 2, 2) = 0.0 * d_spatial_metric.get(1, 2, 2);
 
   // z (2) derivatives
   // gxx
@@ -301,27 +309,32 @@ void ComputeSources::apply(
       -2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
   // gxy
   d_spatial_metric_cartoon.get(2, 0, 1) =
-      -spatial_metric.get(2, 0) / inertial_coords.get(0);
+      -spatial_metric.get(1, 2) / inertial_coords.get(0);
   // gyx = gxy symmetry
-  d_spatial_metric_cartoon.get(2, 1, 0) = d_spatial_metric_cartoon.get(1, 0, 1);
+  d_spatial_metric_cartoon.get(2, 1, 0) = d_spatial_metric_cartoon.get(2, 0, 1);
   // gxz
   d_spatial_metric_cartoon.get(2, 0, 2) =
       (spatial_metric.get(0, 0) - spatial_metric.get(2, 2)) /
       inertial_coords.get(0);
   // gzx = gxz symmetry
-  d_spatial_metric_cartoon.get(2, 2, 0) = d_spatial_metric_cartoon.get(1, 0, 2);
-  // gyy
-  d_spatial_metric_cartoon.get(2, 1, 1) = 0;
+  d_spatial_metric_cartoon.get(2, 2, 0) = d_spatial_metric_cartoon.get(2, 0, 2);
+  // gyy                                  !just zero
+  d_spatial_metric_cartoon.get(2, 1, 1) = 0.0 * spatial_metric.get(1, 1);
   // gyz
   d_spatial_metric_cartoon.get(2, 1, 2) =
-      spatial_metric.get(1, 0) / inertial_coords.get(0);
+      spatial_metric.get(0, 1) / inertial_coords.get(0);
   // gzy = gyz symmetry
-  d_spatial_metric_cartoon.get(2, 2, 1) = d_spatial_metric_cartoon.get(1, 1, 2);
+  d_spatial_metric_cartoon.get(2, 2, 1) = d_spatial_metric_cartoon.get(2, 1, 2);
   // gzz
-  d_spatial_metric_cartoon.get(2, 1, 2) =
+  d_spatial_metric_cartoon.get(2, 2, 2) =
       2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
 
-  // end cartoon gam_ij
+  // TODO:
+  //  Make sure differences in metric derivative
+  //    [x] different compared to before
+  //  [] using correct covariant vs contravariant components
+  //  [x] move out to time derivatives to apply to extrinsic curvature
+  //  end cartoon gam_ij
 
   detail::sources_impl(
       source_tilde_tau, source_tilde_s, source_tilde_b, source_tilde_phi,
@@ -341,5 +354,9 @@ void ComputeSources::apply(
 
       rest_mass_density, electron_fraction, pressure, specific_internal_energy,
       extrinsic_curvature, constraint_damping_parameter);
+
+  // Update Sx source term += Pressure / radial_coordinate
+  source_tilde_s->get(0) +=
+      get(lapse) * 2 * get(pressure) / inertial_coords.get(0);
 }
 }  // namespace grmhd::ValenciaDivClean
