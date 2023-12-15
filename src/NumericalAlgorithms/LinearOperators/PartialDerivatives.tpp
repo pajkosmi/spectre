@@ -5,6 +5,7 @@
 
 #include "NumericalAlgorithms/LinearOperators/PartialDerivatives.hpp"
 
+#include "DataStructures/DataBox/DataBox.hpp"
 #include "DataStructures/DataBox/PrefixHelpers.hpp"
 #include "DataStructures/DataBox/Prefixes.hpp"
 #include "DataStructures/DataVector.hpp"
@@ -12,17 +13,28 @@
 #include "DataStructures/Tensor/Tensor.hpp"
 #include "DataStructures/Transpose.hpp"
 #include "DataStructures/Variables.hpp"
+#include "Evolution/Systems/GrMhd/GhValenciaDivClean/Tags.hpp"
 #include "NumericalAlgorithms/Spectral/Mesh.hpp"
 #include "NumericalAlgorithms/Spectral/Spectral.hpp"
 #include "Utilities/Algorithm.hpp"
 #include "Utilities/Blas.hpp"
 #include "Utilities/ContainerHelpers.hpp"
+#include "Utilities/ErrorHandling/Error.hpp"
 #include "Utilities/Gsl.hpp"
 #include "Utilities/MakeArray.hpp"
 #include "Utilities/MemoryHelpers.hpp"
 #include "Utilities/StdArrayHelpers.hpp"
 
 #include <iostream>
+
+// namespace cartoon_namespace {
+// template <typename ResultTags, size_t Dim, typename DerivativeFrame>
+// void cartoon_tensor_derivatives() {
+//   std::cout << "test function call \n";
+// }
+
+// }  // namespace cartoon_namespace
+
 namespace partial_derivatives_detail {
 template <size_t Dim, typename VariableTags, typename DerivativeTags>
 struct LogicalImpl;
@@ -55,6 +67,229 @@ struct LogicalImpl;
 //
 // - We factor out the `logical_deriv_index == 0` case so that we do not need to
 //   zero the memory in `du` before the computation.
+
+// spacetime_metric component index = 0 tensor index = (0,0)
+// spacetime_metric component index = 1 tensor index = (1,0)
+// spacetime_metric component index = 2 tensor index = (2,0)
+// spacetime_metric component index = 3 tensor index = (3,0)
+// spacetime_metric component index = 4 tensor index = (1,1)
+// spacetime_metric component index = 5 tensor index = (2,1)
+// spacetime_metric component index = 6 tensor index = (3,1)
+// spacetime_metric component index = 7 tensor index = (2,2)
+// spacetime_metric component index = 8 tensor index = (3,2)
+// spacetime_metric component index = 9 tensor index = (3,3)
+
+template <typename ResultTags, size_t Dim, typename DerivativeFrame>
+void lie_drag_covariant_rank_2_tensor(
+    double dfdx, const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coords,
+    const gsl::span<const double>& volume_vars, size_t volume_index,
+    const size_t component_index, const size_t num_grid_points,
+    const size_t deriv_index) {
+  // becomes 10 if component_index >= 10, b/c of floor division
+  int shift_index_by_10 = 10 * (component_index / 10);
+
+  if (UNLIKELY(shift_index_by_10 > 10)) {
+    ERROR("shift_index_by_10 factor is too high (" << shift_index_by_10
+                                                   << "). Should be <= 10.");
+  }
+
+  size_t component_index_shift = component_index - shift_index_by_10;
+
+  auto index_shift = [&num_grid_points, &volume_index](size_t shifted_index) {
+    return shifted_index * num_grid_points + volume_index;
+  };
+
+  auto var = [&volume_vars, &num_grid_points, &volume_index, &index_shift,
+              &shift_index_by_10](size_t shifted_index) {
+    return index_shift(shifted_index + shift_index_by_10);
+  };
+
+  if (deriv_index == 1) {
+    // y deriv
+    if (component_index_shift < 4) {
+      // time components are 0
+      dfdx = 0.0;
+    } else if (component_index == 4) {
+      // d_y g_xx = -2 g_12 = g(5)
+      dfdx = -2.0 * var(5);
+    } else if (component_index == 5) {
+      // d_y g_xy = g_11 - g_22 = g(4) - g(7)
+      dfdx = var(4) - var(7);
+    } else if (component_index == 6) {
+      // d_y g_xz = - g_23 = -g(8)
+      dfdx = var(8);
+    } else if (component_index == 7) {
+      // d_y g_yy = 2 * g_12 = g(5)
+      dfdx = var(5);
+    } else if (component_index == 8) {
+      // d_y g_yz = g_13 = g(6)
+      dfdx = var(6);
+    } else if (component_index == 9) {
+      // d_y g_zz = 0
+      dfdx = 0;
+    } else {
+      std::cout << "NOT 0-9 component_index = " << component_index << "\n";
+    }
+  } else {
+    // z deriv
+    // y deriv
+    if (component_index < 4) {
+      // time components are 0
+      dfdx = 0.0;
+    } else if (component_index == 4) {
+      // d_z g_xx = -2 g_13 = -2 * g(6)
+      dfdx = -2.0 * var(6);
+    } else if (component_index == 5) {
+      // d_z g_xy =  -g_23 = -g(8)
+      dfdx = -var(8);
+    } else if (component_index == 6) {
+      // d_z g_xy = g_11 - g_33 = g(4) - g(9)
+      dfdx = var(4) - var(9);
+    } else if (component_index == 7) {
+      // d_z g_yy = 0
+      dfdx = 0.0;
+    } else if (component_index == 8) {
+      // d_z g_yz = g_12 = g(5)
+      dfdx = var(5);
+    } else if (component_index == 9) {
+      // d_z g_zz = 2 * g_13 = 2 * g(6)
+      dfdx = 2.0 * var(6);
+    } else {
+      std::cout << "NOT 0-9 component_index = " << component_index << "\n";
+    }
+  }
+  // scale by -1/x
+  dfdx *= -1.0 / abs(inertial_coords.get(0)[volume_index]);
+}
+
+// Phi component index = 0 tensor index = (0,0,0)
+// Phi component index = 1 tensor index = (1,0,0)
+// Phi component index = 2 tensor index = (2,0,0)
+// Phi component index = 3 tensor index = (0,1,0)
+// Phi component index = 4 tensor index = (1,1,0)
+// Phi component index = 5 tensor index = (2,1,0)
+// Phi component index = 6 tensor index = (0,2,0)
+// Phi component index = 7 tensor index = (1,2,0)
+// Phi component index = 8 tensor index = (2,2,0)
+// Phi component index = 9 tensor index = (0,3,0)
+// Phi component index = 10 tensor index = (1,3,0)
+// Phi component index = 11 tensor index = (2,3,0)
+// Phi component index = 12 tensor index = (0,1,1)
+// Phi component index = 13 tensor index = (1,1,1)
+// Phi component index = 14 tensor index = (2,1,1)
+// Phi component index = 15 tensor index = (0,2,1)
+// Phi component index = 16 tensor index = (1,2,1)
+// Phi component index = 17 tensor index = (2,2,1)
+// Phi component index = 18 tensor index = (0,3,1)
+// Phi component index = 19 tensor index = (1,3,1)
+// Phi component index = 20 tensor index = (2,3,1)
+// Phi component index = 21 tensor index = (0,2,2)
+// Phi component index = 22 tensor index = (1,2,2)
+// Phi component index = 23 tensor index = (2,2,2)
+// Phi component index = 24 tensor index = (0,3,2)
+// Phi component index = 25 tensor index = (1,3,2)
+// Phi component index = 26 tensor index = (2,3,2)
+// Phi component index = 27 tensor index = (0,3,3)
+// Phi component index = 28 tensor index = (1,3,3)
+// Phi component index = 29 tensor index = (2,3,3)
+template <typename ResultTags, size_t Dim, typename DerivativeFrame>
+void lie_drag_covariant_rank_3_tensor(
+    double dfdx, const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coords,
+    const gsl::span<const double>& volume_vars, size_t volume_index,
+    const size_t component_index, const size_t num_grid_points,
+    const size_t deriv_index) {
+  auto index_shift = [&num_grid_points, &volume_index](size_t shifted_index) {
+    return shifted_index * num_grid_points + volume_index;
+  };
+
+  size_t shift_index_by_10 = 0;
+
+  auto var = [&volume_vars, &num_grid_points, &volume_index, &index_shift,
+              &shift_index_by_10](size_t shifted_index) {
+    return index_shift(shifted_index + shift_index_by_10);
+  };
+
+  if (deriv_index == 1) {
+    // y deriv
+    if (component_index % 3 == 0) {
+      // All Phi_xab components. Eqn (33)
+      // dfdx =
+    } else if ((component_index - 1) % 3 == 0) {
+      // All Phi_yab components. Eqn (38)
+      // dfdx =
+
+    } else if ((component_index - 2) % 3 == 0) {
+      // All Phi_zab components. Eqn (43)
+      // dfdx =
+    }
+  } else {
+    // z deriv
+    if (component_index % 3 == 0) {
+      // All Phi_xab components. Eqn (49)
+      // dfdx =
+    } else if ((component_index - 1) % 3 == 0) {
+      // All Phi_yab components. Eqn (54)
+      // dfdx =
+
+    } else if ((component_index - 2) % 3 == 0) {
+      // All Phi_zab components. Eqn (59)
+      // dfdx =
+    }
+    // else if (Phi_iab) use covariant rank **3** transformation
+    //  if (i == x)
+    //    Eqn. (49)
+    //  else if (i == y)
+    //    Eqn. (54)
+    //  else //i == z
+    //    Eqn. (59)
+  }
+
+  // scale by 1/x
+  dfdx *= -1.0 / abs(inertial_coords.get(0)[volume_index]);
+}
+
+// need template parameters or else duplicate definitions
+//
+template <typename ResultTags, size_t Dim, typename DerivativeFrame>
+void cartoon_tensor_derivatives(
+    double dfdx, const size_t deriv_index, const size_t volume_index,
+    const InverseJacobian<DataVector, Dim, Frame::ElementLogical,
+                          DerivativeFrame>& inverse_jacobian,
+    const DataVector logical_du,
+    const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coords,
+    const gsl::span<const double>& volume_vars, const size_t component_index,
+    const size_t num_grid_points) {
+  if (deriv_index == 0) {
+    // x derivatives
+    // scale lhs (logical_du) by inverse jacobian--giving pdu
+    // df/dx (numerical derivative)
+    dfdx = inverse_jacobian.get(0, 0)[volume_index] * logical_du[volume_index];
+  } else {
+    // y derivatives
+
+    // Mike, I think this should change to overleaf definition for Lie
+    // dragging a covariant rank 2 tensor (g_ab and Pi_ab) or a
+    // covariant rank 3 tensor (Phi_iab)
+
+    if (component_index < 20) {
+      lie_drag_covariant_rank_2_tensor<ResultTags, Dim, DerivativeFrame>(
+          dfdx, inertial_coords, volume_vars, volume_index, component_index,
+          num_grid_points, deriv_index);
+      // g_ab & Pi_ab
+    } else {
+      // Phi_iab
+      lie_drag_covariant_rank_3_tensor<ResultTags, Dim, DerivativeFrame>(
+          dfdx, inertial_coords, volume_vars, volume_index, component_index,
+          num_grid_points, deriv_index);
+    }
+
+    // df/dx (numerical) + 2 * f / x (analytic)
+
+    dfdx = -1.0 / abs(inertial_coords.get(0)[volume_index]) *
+           (volume_vars[component_index * num_grid_points + volume_index]);
+  }
+}
+
 template <typename ResultTags, size_t Dim, typename DerivativeFrame>
 void partial_derivatives_cartoon(
     const gsl::not_null<Variables<ResultTags>*> du,
@@ -73,29 +308,20 @@ void partial_derivatives_cartoon(
   DataVector logical_du{};
 
   double dfdx = 0.0;
-
-  // Set with inverse jacobians along each direction
-  // Set all to deriv_index = 0?
-  std::array<std::array<size_t, Dim>, Dim> indices{};
-  for (size_t deriv_index = 0; deriv_index < Dim; ++deriv_index) {
-    for (size_t d = 0; d < Dim; ++d) {
-      //   gsl::at(gsl::at(indices, d), deriv_index) =
-      //       InverseJacobian<DataVector, Dim, Frame::ElementLogical,
-      //                       DerivativeFrame>::get_storage_index(d,
-      //                       deriv_index);
-      gsl::at(gsl::at(indices, d), deriv_index) =
-          InverseJacobian<DataVector, Dim, Frame::ElementLogical,
-                          DerivativeFrame>::get_storage_index(d, 0.0);
-    }
-  }
+  double finite_diff_dfdx = 0.0;
+  double two_f_over_x = 0.0;
 
   // Loop over different variables stored in u
   for (size_t component_index = 0;
        component_index < number_of_independent_components; ++component_index) {
     // loop over derivative directions
+    // std::cout << "tensor index " <<
+    // volume_vars.get_tensor_index(component_index) << "\n";
+
     for (size_t deriv_index = 0; deriv_index < Dim; ++deriv_index) {
       // lhs points to pdu (shifts by num grid points below)
       lhs.set_data_ref(pdu, num_grid_points);
+
       // clang-tidy: const cast is fine since we won't modify the data and we
       // need it to easily hook into the expression templates.
 
@@ -118,18 +344,30 @@ void partial_derivatives_cartoon(
             Index<3> index(i, j, k);
             const size_t volume_index = collapsed_index(index, subcell_extents);
             // access current coordinate
-            if (deriv_index == 0.0) {
-              // scale lhs (logical_du) by inverse jacobian--giving pdu
-              // df/dx (numerical derivative)
-              dfdx = inverse_jacobian.get(0, 0)[volume_index] *
-                     logical_du[volume_index];
-            } else {
-              // df/dx (numerical) + 2 * f / x (analytic)
-              dfdx = volume_vars[component_index * num_grid_points +
-                                 volume_index] /
-                     abs(inertial_coords.get(0)[volume_index]);
-            }
-            lhs[volume_index] += dfdx;
+            // Need to initialize lhs and overwrite previous NaN.  We've
+            // removed the previous logical_partial derivative loop and just
+            // add all three terms together.
+
+            // (double dfdx, const InverseJacobian<DataVector, Dim,
+            // Frame::ElementLogical, DerivativeFrame>& inverse_jacobian,
+            // size_t volume_index, DataVector logical_du, size_t deriv_index)
+
+            // if cases to overwrite metric derivatives
+            cartoon_tensor_derivatives<ResultTags, Dim, DerivativeFrame>(
+                dfdx, deriv_index, volume_index, inverse_jacobian, logical_du,
+                inertial_coords, volume_vars, component_index, num_grid_points);
+
+            lhs[volume_index] = dfdx;
+
+            // finite_diff_dfdx = inverse_jacobian.get(0, 0)[volume_index] *
+            //                   logical_du[volume_index];
+            // two_f_over_x =
+            //     2.0 *
+            //     volume_vars[component_index * num_grid_points +
+            //     volume_index] / abs(inertial_coords.get(0)[volume_index]);
+
+            // // we're assigning a value, rather than adding to a NaN (+=)
+            // lhs[volume_index] = finite_diff_dfdx + two_f_over_x;
           }
         }
       }
@@ -165,7 +403,7 @@ void partial_derivatives_impl(
   // loop over different components (variables) of u
   for (size_t component_index = 0;
        component_index < number_of_independent_components; ++component_index) {
-    // loop over direction if derivatives
+    // loop over direction of derivatives
     for (size_t deriv_index = 0; deriv_index < Dim; ++deriv_index) {
       // pdu now points to first "num_grid_points"
       lhs.set_data_ref(pdu, num_grid_points);
