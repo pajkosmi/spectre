@@ -244,7 +244,7 @@ void lie_drag_covariant_rank_3_tensor(
       dfdx = -var(0);
     } else if (component_index_shift == 2) {
       // dy Phi_ztt = 0 [Eqn(43)]
-      dfdx = 0;
+      dfdx = 0.0;
     } else if (component_index_shift == 3) {
       // dy Phi_xxt = Phi_y01 = p(4)
       dfdx = var(4);
@@ -253,10 +253,10 @@ void lie_drag_covariant_rank_3_tensor(
       dfdx = -var(3);
     } else if (component_index_shift == 5) {
       // dy Phi_zxt = 0
-      dfdx = var(8);
+      dfdx = 0;
     } else if (component_index_shift == 6) {
-      // dy Phi_xyt = Phi_y02 = p(8)
-      dfdx = var(8);
+      // dy Phi_xyt = Phi_y02 = p(7)
+      dfdx = var(7);
     } else if (component_index_shift == 7) {
       // dy Phi_yyt = -Phi_x02 = -p(6)
       dfdx = -var(6);
@@ -271,7 +271,7 @@ void lie_drag_covariant_rank_3_tensor(
       dfdx = -var(9);
     } else if (component_index_shift == 11) {
       // dy Phi_zzt = 0
-      dfdx = 0;
+      dfdx = 0.0;
     } else if (component_index_shift == 12) {
       // dy Phi_xxx = Phi_y11 + 2 * Phi_x21 = p(13) + 2 * p(15)
       dfdx = var(13) + 2.0 * var(15);
@@ -351,82 +351,95 @@ void lie_drag_covariant_rank_3_tensor(
       // dz Phi_ytt = 0 [Eqn (38)]
       dfdx = 0.0;
     } else if (component_index_shift == 2) {
-      // dz Phi_ztt = 0 [Eqn(43)]
-      dfdx = 0;
+      // dz Phi_ztt = -Phi_xtt = -p(0) [Eqn(43)]
+      dfdx = -var(0);
     } else if (component_index_shift == 3) {
-      // dz Phi_xxt = Phi_y01 = p(4)
-      dfdx = var(4);
+      // dz Phi_xxt = Phi_z01 = p(5)
+      dfdx = var(5);
     } else if (component_index_shift == 4) {
-      // dz Phi_yxt = -Phi_y01 = -p(4)
-      dfdx = -var(4);
+      // dz Phi_yxt = 0
+      dfdx = 0.0;
     } else if (component_index_shift == 5) {
-      // dz Phi_zxt = 0
-      dfdx = var(8);
+      // dz Phi_zxt = -Phi_x01 = -p(3)
+      dfdx = -var(3);
     } else if (component_index_shift == 6) {
-      // dz Phi_xyt = Phi_y02 = p(8)
+      // dz Phi_xyt = Phi_z02 = p(8)
       dfdx = var(8);
     } else if (component_index_shift == 7) {
-      // dz Phi_yyt = -Phi_y02 = -p(8)
-      dfdx = -var(8);
+      // dz Phi_yyt = 0
+      dfdx = 0.0;
     } else if (component_index_shift == 8) {
-      // dz Phi_zyt = 0
-      dfdx = 0;
+      // dz Phi_zyt = -Phi_x02 = -p(6)
+      dfdx = -var(6);
     } else if (component_index_shift == 9) {
-      // dz Phi_xzt = Phi_y03 = p(10)
-      dfdx = var(10);
+      // dz Phi_xzt = Phi_z03 = p(11)
+      dfdx = var(11);
     } else if (component_index_shift == 10) {
-      // dz Phi_yzt = -Phi_y03 = -p(10)
-      dfdx = -var(10);
+      // dz Phi_yzt = 0
+      dfdx = 0.0;
     } else if (component_index_shift == 11) {
-      // dz Phi_zzt = 0
-      dfdx = 0;
+      // dz Phi_zzt = -Phi_x03 = -p(9)
+      dfdx = -var(9);
     } else if (component_index_shift == 12) {
-      // dz Phi_xxx = Phi_y11 + 2 * Phi_x21 = p(13) + 2 * p(15)
-      dfdx = var(13) + 2.0 * var(15);
+      // dz Phi_xxx = Phi_z11 + 2 * Phi_x31 = p(14) + 2 * p(18)
+      dfdx = var(14) + 2.0 * var(18);
     } else if (component_index_shift == 13) {
-      // dz Phi_yxx = -Phi_y11 + 2 * Phi_y21 = -p(13) + 2 * p(16)
-      dfdx = -var(13) + 2.0 * var(16);
+      // dz Phi_yxx = 2 * Phi_y31 = 2 * p(19)
+      dfdx = 2.0 * var(19);
     } else if (component_index_shift == 14) {
-      // dz Phi_zxx = 2 * Phi_z21 = 2 * p(17)
-      dfdx = 2.0 * var(17);
+      // dz Phi_zxx = -Phi_x11 + 2 * Phi_z31 = -p(12) + 2 * p(20)
+      dfdx = -var(12) + 2.0 * var(20);
     } else if (component_index_shift == 15) {
-      // dz Phi_xyx = Phi_y12 + Phi_x22 - Phi_x11 = p(16) + p(21) - p(12)
-      dfdx = var(16) + var(21) - var(12);
+      // dz Phi_xyx = Phi_z12 + Phi_x32 = p(17) + p(24)
+      dfdx = var(17) + var(24);
     } else if (component_index_shift == 16) {
-      // dz Phi_yyx =
+      // dz Phi_yyx = Phi_y32 = p(25)
+      dfdx = var(25);
     } else if (component_index_shift == 17) {
-      // dz Phi_zyx =
+      // dz Phi_zyx = -Phi_x12 + Phi_z32 = -p(15) + p(26)
+      dfdx = -var(15) + var(26);
     } else if (component_index_shift == 18) {
-      // dz Phi_xzx =
+      // dz Phi_xzx = Phi_z13 + Phi_x33 - Phi_x11 = p(20) + p(27) - p(12)
+      dfdx = var(20) + var(27) - var(12);
     } else if (component_index_shift == 19) {
-      // dz Phi_yzx =
+      // dz Phi_yzx = Phi_y33 - Phi_y11 = p(28) - p(13)
+      dfdx = var(28) - var(13);
     } else if (component_index_shift == 20) {
-      // dz Phi_zzx =
+      // dz Phi_zzx = -x13 + z33 - z11 = -p(10) + p(29) - p(14)
+      dfdx = -var(10) + var(29) - var(14);
     } else if (component_index_shift == 21) {
-      // dz Phi_xyy =
+      // dz Phi_xyy = z22 = p(23)
+      dfdx = var(23);
     } else if (component_index_shift == 22) {
-      // dz Phi_yyy =
+      // dz Phi_yyy = 0
+      dfdx = 0;
     } else if (component_index_shift == 23) {
-      // dz Phi_zyy =
+      // dz Phi_zyy = -x22 = -p(21)
+      dfdx = -var(21);
     } else if (component_index_shift == 24) {
-      // dz Phi_yyy =
+      // dz Phi_yyy = 0
+      dfdx = 0;
     } else if (component_index_shift == 25) {
-      // dz Phi_yzy =
+      // dz Phi_yzy = -y21 = -p(16)
+      dfdx = -var(16);
     } else if (component_index_shift == 26) {
-      // dz Phi_zzy =
+      // dz Phi_zzy = -x23 - z21 = -p(24) - p(17)
+      dfdx = -var(24) - var(17);
     } else if (component_index_shift == 27) {
-      // dz Phi_xzz =
+      // dz Phi_xzz = z33 - 2 * x13 = p(29) - 2.0 * var(18)
+      dfdx = var(29) - 2.0 * var(18);
     } else if (component_index_shift == 28) {
-      // dz Phi_yzz =
+      // dz Phi_yzz = -2 * y13 = -2 * p(19)
+      dfdx = -2.0 * var(19);
     } else if (component_index_shift == 29) {
-      // dz Phi_zzz =
+      // dz Phi_zzz = -x33 - 2.0 * z13 = -p(27) - 2.0 * p(20)
+      dfdx = -var(27) - 2.0 * var(20);
     } else {
       // One of the above should be selected
       ERROR("D/DZ: NOT 0-29 COMPONENT INDEX. COMPONENT = "
             << component_index_shift << ".");
     }
   }
-
   // scale by -1/x
   dfdx *= -1.0 / abs(inertial_coords.get(0)[volume_index]);
 }
