@@ -237,11 +237,11 @@ void lie_drag_covariant_rank_3_tensor(
     //   // dfdx =
     // }
     if (component_index_shift == 0) {
-      // dy Phi_ttt = Phi_y00 = p(1) [Eqn (33)]
+      // dy Phi_xtt = Phi_y00 = p(1) [Eqn (33)]
       dfdx = var(1);
     } else if (component_index_shift == 1) {
-      // dy Phi_xtt = -Phi_y00 = -p(1) [Eqn (38)]
-      dfdx = -var(1);
+      // dy Phi_ytt = -Phi_x00 = -p(0) [Eqn (38)]
+      dfdx = -var(0);
     } else if (component_index_shift == 2) {
       // dy Phi_ztt = 0 [Eqn(43)]
       dfdx = 0;
@@ -249,8 +249,8 @@ void lie_drag_covariant_rank_3_tensor(
       // dy Phi_xxt = Phi_y01 = p(4)
       dfdx = var(4);
     } else if (component_index_shift == 4) {
-      // dy Phi_yxt = -Phi_y01 = -p(4)
-      dfdx = -var(4);
+      // dy Phi_yxt = -Phi_x01 = -p(3)
+      dfdx = -var(3);
     } else if (component_index_shift == 5) {
       // dy Phi_zxt = 0
       dfdx = var(8);
@@ -258,8 +258,8 @@ void lie_drag_covariant_rank_3_tensor(
       // dy Phi_xyt = Phi_y02 = p(8)
       dfdx = var(8);
     } else if (component_index_shift == 7) {
-      // dy Phi_yyt = -Phi_y02 = -p(8)
-      dfdx = -var(8);
+      // dy Phi_yyt = -Phi_x02 = -p(6)
+      dfdx = -var(6);
     } else if (component_index_shift == 8) {
       // dy Phi_zyt = 0
       dfdx = 0;
@@ -267,8 +267,8 @@ void lie_drag_covariant_rank_3_tensor(
       // dy Phi_xzt = Phi_y03 = p(10)
       dfdx = var(10);
     } else if (component_index_shift == 10) {
-      // dy Phi_yzt = -Phi_y03 = -p(10)
-      dfdx = -var(10);
+      // dy Phi_yzt = -Phi_x03 = -p(9)
+      dfdx = -var(9);
     } else if (component_index_shift == 11) {
       // dy Phi_zzt = 0
       dfdx = 0;
@@ -276,8 +276,8 @@ void lie_drag_covariant_rank_3_tensor(
       // dy Phi_xxx = Phi_y11 + 2 * Phi_x21 = p(13) + 2 * p(15)
       dfdx = var(13) + 2.0 * var(15);
     } else if (component_index_shift == 13) {
-      // dy Phi_yxx = -Phi_y11 + 2 * Phi_y21 = -p(13) + 2 * p(16)
-      dfdx = -var(13) + 2.0 * var(16);
+      // dy Phi_yxx = -Phi_x11 + 2 * Phi_y21 = -p(12) + 2 * p(16)
+      dfdx = -var(12) + 2.0 * var(16);
     } else if (component_index_shift == 14) {
       // dy Phi_zxx = 2 * Phi_z21 = 2 * p(17)
       dfdx = 2.0 * var(17);
@@ -285,8 +285,8 @@ void lie_drag_covariant_rank_3_tensor(
       // dy Phi_xyx = Phi_y12 + Phi_x22 - Phi_x11 = p(16) + p(21) - p(12)
       dfdx = var(16) + var(21) - var(12);
     } else if (component_index_shift == 16) {
-      // dy Phi_yyx = -Phi_y12 + Phi_y22 - Phi_y11 = p(16) + p(22) - p(13)
-      dfdx = var(16) + var(22) - var(13);
+      // dy Phi_yyx = -Phi_x12 + Phi_y22 - Phi_y11 = p(15) + p(22) - p(13)
+      dfdx = var(15) + var(22) - var(13);
     } else if (component_index_shift == 17) {
       // dy Phi_zyx = Phi_z22 - Phi_z11 = p(23) - p(14)
       dfdx = var(23) - var(14);
@@ -294,17 +294,17 @@ void lie_drag_covariant_rank_3_tensor(
       // dy Phi_xzx = Phi_y13 + Phi_x23 = p(19) + p(24)
       dfdx = var(19) + var(24);
     } else if (component_index_shift == 19) {
-      // dy Phi_yzx = -Phi_y13 + Phi_y23 = -p(19) + p(25)
-      dfdx = -var(19) + var(25);
+      // dy Phi_yzx = -Phi_x13 + Phi_y23 = -p(18) + p(25)
+      dfdx = -var(18) + var(25);
     } else if (component_index_shift == 20) {
       // dy Phi_zzx = Phi_z23 = p(26)
       dfdx = var(26);
     } else if (component_index_shift == 21) {
-      // dy Phi_xyy = Phi_y22 - 2Phi_x12 = p(23) - 2 p(15)
-      dfdx = var(23) - 2.0 * var(15);
+      // dy Phi_xyy = Phi_y22 - 2Phi_x12 = p(22) - 2 p(15)
+      dfdx = var(22) - 2.0 * var(15);
     } else if (component_index_shift == 22) {
-      // dy Phi_yyy = -Phi_y22 - 2Phi_y12 = -p(23) - 2 p(16)
-      dfdx = -var(23) - 2.0 * var(16);
+      // dy Phi_yyy = -Phi_x22 - 2Phi_y12 = -p(21) - 2 p(16)
+      dfdx = -var(21) - 2.0 * var(16);
     } else if (component_index_shift == 23) {
       // dy Phi_zyy = -2Phi_z12 = -2 p(17)
       dfdx = -2.0 * var(17);
@@ -312,8 +312,8 @@ void lie_drag_covariant_rank_3_tensor(
       // dy Phi_xzy = Phi_y23 - Phi_x13 = p(25) - p(18)
       dfdx = var(25) - var(18);
     } else if (component_index_shift == 25) {
-      // dy Phi_yzy = -Phi_y23 - Phi_y13 = p(26) - p(19)
-      dfdx = var(26) - var(19);
+      // dy Phi_yzy = -Phi_x23 - Phi_y13 = -p(24) - p(19)
+      dfdx = -var(24) - var(19);
     } else if (component_index_shift == 26) {
       // dy Phi_zzy = -Phi_z13 = -p(20)
       dfdx = -var(20);
@@ -321,8 +321,8 @@ void lie_drag_covariant_rank_3_tensor(
       // dy Phi_xzz = Phi_y33 = p(28)
       dfdx = var(28);
     } else if (component_index_shift == 28) {
-      // dy Phi_yzz = -Phi_y33 = -p(28)
-      dfdx = -var(28);
+      // dy Phi_yzz = -Phi_x33 = -p(27)
+      dfdx = -var(27);
     } else if (component_index_shift == 29) {
       // dy Phi_zzz = 0
       dfdx = 0.0;
@@ -345,11 +345,11 @@ void lie_drag_covariant_rank_3_tensor(
     //   // dfdx =
     // }
     if (component_index_shift == 0) {
-      // dz Phi_ttt = Phi_y00 = p(1) [Eqn (33)]
-      dfdx = var(1);
+      // dz Phi_xtt = Phi_z00 = p(2) [Eqn (49)]
+      dfdx = var(2);
     } else if (component_index_shift == 1) {
-      // dz Phi_xtt = -Phi_y00 = -p(1) [Eqn (38)]
-      dfdx = -var(1);
+      // dz Phi_ytt = 0 [Eqn (38)]
+      dfdx = 0.0;
     } else if (component_index_shift == 2) {
       // dz Phi_ztt = 0 [Eqn(43)]
       dfdx = 0;
@@ -420,10 +420,9 @@ void lie_drag_covariant_rank_3_tensor(
       // dz Phi_yzz =
     } else if (component_index_shift == 29) {
       // dz Phi_zzz =
-    } else if (component_index_shift == 30) {
     } else {
       // One of the above should be selected
-      ERROR("D/DZ: NOT 0-30 COMPONENT INDEX. COMPONENT = "
+      ERROR("D/DZ: NOT 0-29 COMPONENT INDEX. COMPONENT = "
             << component_index_shift << ".");
     }
   }
