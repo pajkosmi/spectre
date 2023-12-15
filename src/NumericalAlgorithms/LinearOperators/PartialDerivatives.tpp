@@ -109,53 +109,55 @@ void lie_drag_covariant_rank_2_tensor(
     if (component_index_shift < 4) {
       // time components are 0
       dfdx = 0.0;
-    } else if (component_index == 4) {
+    } else if (component_index_shift == 4) {
       // d_y g_xx = -2 g_12 = g(5)
       dfdx = -2.0 * var(5);
-    } else if (component_index == 5) {
+    } else if (component_index_shift == 5) {
       // d_y g_xy = g_11 - g_22 = g(4) - g(7)
       dfdx = var(4) - var(7);
-    } else if (component_index == 6) {
+    } else if (component_index_shift == 6) {
       // d_y g_xz = - g_23 = -g(8)
       dfdx = var(8);
-    } else if (component_index == 7) {
+    } else if (component_index_shift == 7) {
       // d_y g_yy = 2 * g_12 = g(5)
       dfdx = var(5);
-    } else if (component_index == 8) {
+    } else if (component_index_shift == 8) {
       // d_y g_yz = g_13 = g(6)
       dfdx = var(6);
-    } else if (component_index == 9) {
+    } else if (component_index_shift == 9) {
       // d_y g_zz = 0
       dfdx = 0;
     } else {
-      std::cout << "NOT 0-9 component_index = " << component_index << "\n";
+      ERROR("NOT 0-9 COMPONENT INDEX. COMPONENT = " << component_index_shift
+                                                    << ".");
     }
   } else {
     // z deriv
     // y deriv
-    if (component_index < 4) {
+    if (component_index_shift < 4) {
       // time components are 0
       dfdx = 0.0;
-    } else if (component_index == 4) {
+    } else if (component_index_shift == 4) {
       // d_z g_xx = -2 g_13 = -2 * g(6)
       dfdx = -2.0 * var(6);
-    } else if (component_index == 5) {
+    } else if (component_index_shift == 5) {
       // d_z g_xy =  -g_23 = -g(8)
       dfdx = -var(8);
-    } else if (component_index == 6) {
+    } else if (component_index_shift == 6) {
       // d_z g_xy = g_11 - g_33 = g(4) - g(9)
       dfdx = var(4) - var(9);
-    } else if (component_index == 7) {
+    } else if (component_index_shift == 7) {
       // d_z g_yy = 0
       dfdx = 0.0;
-    } else if (component_index == 8) {
+    } else if (component_index_shift == 8) {
       // d_z g_yz = g_12 = g(5)
       dfdx = var(5);
-    } else if (component_index == 9) {
+    } else if (component_index_shift == 9) {
       // d_z g_zz = 2 * g_13 = 2 * g(6)
       dfdx = 2.0 * var(6);
     } else {
-      std::cout << "NOT 0-9 component_index = " << component_index << "\n";
+      ERROR("NOT 0-9 COMPONENT INDEX. COMPONENT = " << component_index_shift
+                                                    << ".");
     }
   }
   // scale by -1/x
@@ -202,49 +204,231 @@ void lie_drag_covariant_rank_3_tensor(
     return shifted_index * num_grid_points + volume_index;
   };
 
-  size_t shift_index_by_10 = 0;
+  int shift_index_by_20 = 20;
 
   auto var = [&volume_vars, &num_grid_points, &volume_index, &index_shift,
-              &shift_index_by_10](size_t shifted_index) {
-    return index_shift(shifted_index + shift_index_by_10);
+              &shift_index_by_20](size_t shifted_index) {
+    return index_shift(shifted_index + shift_index_by_20);
   };
+
+  size_t component_index_shift = component_index - shift_index_by_20;
+
+  if (UNLIKELY(component_index_shift > 50)) {
+    ERROR("component_index_shift factor is too high ("
+          << component_index_shift << "). Should be <= 50.");
+  }
+
+  if (UNLIKELY(component_index_shift < 0)) {
+    ERROR("component_index_shift factor is too low (" << component_index_shift
+                                                      << "). Should be > 0.");
+  }
 
   if (deriv_index == 1) {
     // y deriv
-    if (component_index % 3 == 0) {
-      // All Phi_xab components. Eqn (33)
-      // dfdx =
-    } else if ((component_index - 1) % 3 == 0) {
-      // All Phi_yab components. Eqn (38)
-      // dfdx =
+    // if (component_index % 3 == 0) {
+    //   // All Phi_xab components. Eqn (33)
+    //   // dfdx =
+    // } else if ((component_index - 1) % 3 == 0) {
+    //   // All Phi_yab components. Eqn (38)
+    //   // dfdx =
 
-    } else if ((component_index - 2) % 3 == 0) {
-      // All Phi_zab components. Eqn (43)
-      // dfdx =
+    // } else if ((component_index - 2) % 3 == 0) {
+    //   // All Phi_zab components. Eqn (43)
+    //   // dfdx =
+    // }
+    if (component_index_shift == 0) {
+      // dy Phi_ttt = Phi_y00 = p(1) [Eqn (33)]
+      dfdx = var(1);
+    } else if (component_index_shift == 1) {
+      // dy Phi_xtt = -Phi_y00 = -p(1) [Eqn (38)]
+      dfdx = -var(1);
+    } else if (component_index_shift == 2) {
+      // dy Phi_ztt = 0 [Eqn(43)]
+      dfdx = 0;
+    } else if (component_index_shift == 3) {
+      // dy Phi_xxt = Phi_y01 = p(4)
+      dfdx = var(4);
+    } else if (component_index_shift == 4) {
+      // dy Phi_yxt = -Phi_y01 = -p(4)
+      dfdx = -var(4);
+    } else if (component_index_shift == 5) {
+      // dy Phi_zxt = 0
+      dfdx = var(8);
+    } else if (component_index_shift == 6) {
+      // dy Phi_xyt = Phi_y02 = p(8)
+      dfdx = var(8);
+    } else if (component_index_shift == 7) {
+      // dy Phi_yyt = -Phi_y02 = -p(8)
+      dfdx = -var(8);
+    } else if (component_index_shift == 8) {
+      // dy Phi_zyt = 0
+      dfdx = 0;
+    } else if (component_index_shift == 9) {
+      // dy Phi_xzt = Phi_y03 = p(10)
+      dfdx = var(10);
+    } else if (component_index_shift == 10) {
+      // dy Phi_yzt = -Phi_y03 = -p(10)
+      dfdx = -var(10);
+    } else if (component_index_shift == 11) {
+      // dy Phi_zzt = 0
+      dfdx = 0;
+    } else if (component_index_shift == 12) {
+      // dy Phi_xxx = Phi_y11 + 2 * Phi_x21 = p(13) + 2 * p(15)
+      dfdx = var(13) + 2.0 * var(15);
+    } else if (component_index_shift == 13) {
+      // dy Phi_yxx = -Phi_y11 + 2 * Phi_y21 = -p(13) + 2 * p(16)
+      dfdx = -var(13) + 2.0 * var(16);
+    } else if (component_index_shift == 14) {
+      // dy Phi_zxx = 2 * Phi_z21 = 2 * p(17)
+      dfdx = 2.0 * var(17);
+    } else if (component_index_shift == 15) {
+      // dy Phi_xyx = Phi_y12 + Phi_x22 - Phi_x11 = p(16) + p(21) - p(12)
+      dfdx = var(16) + var(21) - var(12);
+    } else if (component_index_shift == 16) {
+      // dy Phi_yyx = -Phi_y12 + Phi_y22 - Phi_y11 = p(16) + p(22) - p(13)
+      dfdx = var(16) + var(22) - var(13);
+    } else if (component_index_shift == 17) {
+      // dy Phi_zyx = Phi_z22 - Phi_z11 = p(23) - p(14)
+      dfdx = var(23) - var(14);
+    } else if (component_index_shift == 18) {
+      // dy Phi_xzx = Phi_y13 + Phi_x23 = p(19) + p(24)
+      dfdx = var(19) + var(24);
+    } else if (component_index_shift == 19) {
+      // dy Phi_yzx = -Phi_y13 + Phi_y23 = -p(19) + p(25)
+      dfdx = -var(19) + var(25);
+    } else if (component_index_shift == 20) {
+      // dy Phi_zzx = Phi_z23 = p(26)
+      dfdx = var(26);
+    } else if (component_index_shift == 21) {
+      // dy Phi_xyy = Phi_y22 - 2Phi_x12 = p(23) - 2 p(15)
+      dfdx = var(23) - 2.0 * var(15);
+    } else if (component_index_shift == 22) {
+      // dy Phi_yyy = -Phi_y22 - 2Phi_y12 = -p(23) - 2 p(16)
+      dfdx = -var(23) - 2.0 * var(16);
+    } else if (component_index_shift == 23) {
+      // dy Phi_zyy = -2Phi_z12 = -2 p(17)
+      dfdx = -2.0 * var(17);
+    } else if (component_index_shift == 24) {
+      // dy Phi_xzy = Phi_y23 - Phi_x13 = p(25) - p(18)
+      dfdx = var(25) - var(18);
+    } else if (component_index_shift == 25) {
+      // dy Phi_yzy = -Phi_y23 - Phi_y13 = p(26) - p(19)
+      dfdx = var(26) - var(19);
+    } else if (component_index_shift == 26) {
+      // dy Phi_zzy = -Phi_z13 = -p(20)
+      dfdx = -var(20);
+    } else if (component_index_shift == 27) {
+      // dy Phi_xzz = Phi_y33 = p(28)
+      dfdx = var(28);
+    } else if (component_index_shift == 28) {
+      // dy Phi_yzz = -Phi_y33 = -p(28)
+      dfdx = -var(28);
+    } else if (component_index_shift == 29) {
+      // dy Phi_zzz = 0
+      dfdx = 0.0;
+    } else {
+      // One of the above should be selected
+      ERROR("D/DY: NOT 0-29 COMPONENT INDEX. COMPONENT = "
+            << component_index_shift << ".");
     }
   } else {
     // z deriv
-    if (component_index % 3 == 0) {
-      // All Phi_xab components. Eqn (49)
-      // dfdx =
-    } else if ((component_index - 1) % 3 == 0) {
-      // All Phi_yab components. Eqn (54)
-      // dfdx =
+    // if (component_index % 3 == 0) {
+    //   // All Phi_xab components. Eqn (49)
+    //   // dfdx =
+    // } else if ((component_index - 1) % 3 == 0) {
+    //   // All Phi_yab components. Eqn (54)
+    //   // dfdx =
 
-    } else if ((component_index - 2) % 3 == 0) {
-      // All Phi_zab components. Eqn (59)
-      // dfdx =
+    // } else if ((component_index - 2) % 3 == 0) {
+    //   // All Phi_zab components. Eqn (59)
+    //   // dfdx =
+    // }
+    if (component_index_shift == 0) {
+      // dz Phi_ttt = Phi_y00 = p(1) [Eqn (33)]
+      dfdx = var(1);
+    } else if (component_index_shift == 1) {
+      // dz Phi_xtt = -Phi_y00 = -p(1) [Eqn (38)]
+      dfdx = -var(1);
+    } else if (component_index_shift == 2) {
+      // dz Phi_ztt = 0 [Eqn(43)]
+      dfdx = 0;
+    } else if (component_index_shift == 3) {
+      // dz Phi_xxt = Phi_y01 = p(4)
+      dfdx = var(4);
+    } else if (component_index_shift == 4) {
+      // dz Phi_yxt = -Phi_y01 = -p(4)
+      dfdx = -var(4);
+    } else if (component_index_shift == 5) {
+      // dz Phi_zxt = 0
+      dfdx = var(8);
+    } else if (component_index_shift == 6) {
+      // dz Phi_xyt = Phi_y02 = p(8)
+      dfdx = var(8);
+    } else if (component_index_shift == 7) {
+      // dz Phi_yyt = -Phi_y02 = -p(8)
+      dfdx = -var(8);
+    } else if (component_index_shift == 8) {
+      // dz Phi_zyt = 0
+      dfdx = 0;
+    } else if (component_index_shift == 9) {
+      // dz Phi_xzt = Phi_y03 = p(10)
+      dfdx = var(10);
+    } else if (component_index_shift == 10) {
+      // dz Phi_yzt = -Phi_y03 = -p(10)
+      dfdx = -var(10);
+    } else if (component_index_shift == 11) {
+      // dz Phi_zzt = 0
+      dfdx = 0;
+    } else if (component_index_shift == 12) {
+      // dz Phi_xxx = Phi_y11 + 2 * Phi_x21 = p(13) + 2 * p(15)
+      dfdx = var(13) + 2.0 * var(15);
+    } else if (component_index_shift == 13) {
+      // dz Phi_yxx = -Phi_y11 + 2 * Phi_y21 = -p(13) + 2 * p(16)
+      dfdx = -var(13) + 2.0 * var(16);
+    } else if (component_index_shift == 14) {
+      // dz Phi_zxx = 2 * Phi_z21 = 2 * p(17)
+      dfdx = 2.0 * var(17);
+    } else if (component_index_shift == 15) {
+      // dz Phi_xyx = Phi_y12 + Phi_x22 - Phi_x11 = p(16) + p(21) - p(12)
+      dfdx = var(16) + var(21) - var(12);
+    } else if (component_index_shift == 16) {
+      // dz Phi_yyx =
+    } else if (component_index_shift == 17) {
+      // dz Phi_zyx =
+    } else if (component_index_shift == 18) {
+      // dz Phi_xzx =
+    } else if (component_index_shift == 19) {
+      // dz Phi_yzx =
+    } else if (component_index_shift == 20) {
+      // dz Phi_zzx =
+    } else if (component_index_shift == 21) {
+      // dz Phi_xyy =
+    } else if (component_index_shift == 22) {
+      // dz Phi_yyy =
+    } else if (component_index_shift == 23) {
+      // dz Phi_zyy =
+    } else if (component_index_shift == 24) {
+      // dz Phi_yyy =
+    } else if (component_index_shift == 25) {
+      // dz Phi_yzy =
+    } else if (component_index_shift == 26) {
+      // dz Phi_zzy =
+    } else if (component_index_shift == 27) {
+      // dz Phi_xzz =
+    } else if (component_index_shift == 28) {
+      // dz Phi_yzz =
+    } else if (component_index_shift == 29) {
+      // dz Phi_zzz =
+    } else if (component_index_shift == 30) {
+    } else {
+      // One of the above should be selected
+      ERROR("D/DZ: NOT 0-30 COMPONENT INDEX. COMPONENT = "
+            << component_index_shift << ".");
     }
-    // else if (Phi_iab) use covariant rank **3** transformation
-    //  if (i == x)
-    //    Eqn. (49)
-    //  else if (i == y)
-    //    Eqn. (54)
-    //  else //i == z
-    //    Eqn. (59)
   }
 
-  // scale by 1/x
+  // scale by -1/x
   dfdx *= -1.0 / abs(inertial_coords.get(0)[volume_index]);
 }
 
