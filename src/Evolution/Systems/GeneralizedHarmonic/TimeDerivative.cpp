@@ -429,7 +429,6 @@ void TimeDerivative<Dim>::apply(
           //           << " " << nu << " " << d_phi.get(m, n, mu, nu) << "\n";
         }
       }
-      std::cout << "-- \n";
 
       dt_pi->get(mu, nu) *= get(*lapse);
 
