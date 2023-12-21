@@ -63,6 +63,8 @@
 #include "Utilities/Gsl.hpp"
 #include "Utilities/TMPL.hpp"
 
+#include <iostream>
+
 /// \cond
 namespace Tags {
 struct Time;
@@ -617,7 +619,7 @@ struct ComputeTimeDerivImpl<
             get<GrmhdDtTags>(boundary_correction_in_axis);
         // This loops over dimensions
         // for (size_t i = 0; i < dt_var.size(); ++i) {
-        for (size_t i = 0; i < 1; ++i) {
+          for (size_t i = 0; i < 1; ++i) {
           evolution::dg::subcell::add_cartesian_flux_divergence(
               make_not_null(&dt_var[i]), inverse_delta,
               get(cell_centered_det_inv_jacobian), var_correction[i],
@@ -626,12 +628,15 @@ struct ComputeTimeDerivImpl<
         // update 408 to 424
       }());
     }
+    // begin zeroing
+    // zeros out time derivative terms of spacetime metric
     EXPAND_PACK_LEFT_TO_RIGHT([&dt_vars_ptr]() {
       for (size_t i = 0; i < get<::Tags::dt<GhDtTags>>(*dt_vars_ptr).size();
            ++i) {
-        get<::Tags::dt<GhDtTags>>(*dt_vars_ptr)[i] = 0.0;
+        // get<::Tags::dt<GhDtTags>>(*dt_vars_ptr)[i] = 0.0;
       }
     }());
+    // end zeroing
   }
 };
 }  // namespace detail
