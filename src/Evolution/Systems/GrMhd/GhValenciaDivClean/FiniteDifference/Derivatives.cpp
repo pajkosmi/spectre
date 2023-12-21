@@ -23,6 +23,7 @@
 #include "Utilities/Gsl.hpp"
 #include "Utilities/TMPL.hpp"
 
+#include <iostream>
 namespace grmhd::GhValenciaDivClean::fd {
 void spacetime_derivatives(
     const gsl::not_null<Variables<db::wrap_tags_in<
@@ -82,6 +83,31 @@ void spacetime_derivatives(
         gsl::make_span(get<first_gh_tag>(view)[0].data(),
                        number_of_gh_components * neighbor_number_of_points)});
   }
+
+  //   const auto& spacetime_metric =
+  //       get<gr::Tags::SpacetimeMetric<DataVector,
+  //       3>>(volume_evolved_variables);
+  //   for (size_t i = 0; i < 10; i++) {
+  //     auto indices = spacetime_metric.get_tensor_index(i);
+  //     std::cout << "spacetime_metric component index = " << i
+  //               << " tensor index = " << indices << "\n";
+  //   }
+  //   std::cout << "-- \n";
+  //   const auto& pi = get<gh::Tags::Pi<DataVector,
+  //   3>>(volume_evolved_variables); for (size_t i = 0; i < 10; i++) {
+  //     auto indices = pi.get_tensor_index(i);
+  //     std::cout << "Pi component index = " << i << " tensor index = " <<
+  //     indices
+  //               << "\n";
+  //   }
+  //   std::cout << "-- \n";
+  //   const auto& phi = get<gh::Tags::Phi<DataVector,
+  //   3>>(volume_evolved_variables); for (size_t i = 0; i < 30; i++) {
+  //     auto indices = phi.get_tensor_index(i);
+  //     std::cout << "Phi component index = " << i << " tensor index = " <<
+  //     indices
+  //               << "\n";
+  //   }
 
   const auto volume_gh_vars =
       gsl::make_span(get<first_gh_tag>(volume_evolved_variables)[0].data(),
