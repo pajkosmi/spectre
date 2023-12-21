@@ -356,7 +356,7 @@ void ComputeSources::apply(
       extrinsic_curvature, constraint_damping_parameter);
 
   // Update Sx source term += Pressure / radial_coordinate
-  source_tilde_s->get(0) +=
-      get(lapse) * 2 * get(pressure) / inertial_coords.get(0);
+  source_tilde_s->get(0) += 2.0 * get(lapse) * get(sqrt_det_spatial_metric) *
+                            get(pressure) / inertial_coords.get(0);
 }
 }  // namespace grmhd::ValenciaDivClean
