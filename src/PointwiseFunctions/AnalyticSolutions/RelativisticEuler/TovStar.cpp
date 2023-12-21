@@ -674,6 +674,7 @@ void TovVariables<DataType, Region>::operator()(
          exp(2.0 * metric_angular_potential) *
              (dr_metric_angular_potential - 1.0 / radius)) /
         cube(radius)};
+    //MIKE: check this derivative
     for (size_t k = 0; k < 3; ++k) {
       for (size_t i = 0; i < 3; ++i) {
         for (size_t j = i; j < 3; ++j) {
