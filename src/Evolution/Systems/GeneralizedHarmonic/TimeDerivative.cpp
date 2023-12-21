@@ -26,6 +26,8 @@
 #include "Utilities/GenerateInstantiations.hpp"
 #include "Utilities/Gsl.hpp"
 
+#include <iostream>
+
 namespace gh {
 template <size_t Dim>
 void TimeDerivative<Dim>::apply(
@@ -69,7 +71,8 @@ void TimeDerivative<Dim>::apply(
     const tnsr::iaa<DataVector, Dim>& d_pi,
     const tnsr::ijaa<DataVector, Dim>& d_phi,
     const tnsr::aa<DataVector, Dim>& spacetime_metric,
-    const tnsr::aa<DataVector, Dim>& pi, const tnsr::iaa<DataVector, Dim>& phi,
+    const tnsr::aa<DataVector, Dim>& pi,
+    const tnsr::iaa<DataVector, Dim>& phi_test,
     const Scalar<DataVector>& gamma0, const Scalar<DataVector>& gamma1,
     const Scalar<DataVector>& gamma2,
     const gauges::GaugeCondition& gauge_condition, const Mesh<Dim>& mesh,
@@ -91,6 +94,56 @@ void TimeDerivative<Dim>::apply(
                       spacetime_metric.get(i + 1, j + 1), 0, number_of_points);
     }
   }
+
+  // hack phi
+  auto phi = phi_test;
+
+  // y (1) derivatives
+  // gxx
+  phi.get(1, 0, 0) = -2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
+  // gxy
+  phi.get(1, 0, 1) = (spatial_metric.get(0, 0) - spatial_metric.get(1, 1)) /
+                     inertial_coords.get(0);
+  // gyx = gxy symmetry
+  phi.get(1, 1, 0) = phi.get(1, 0, 1);
+  // gxz
+  phi.get(1, 0, 2) = -spatial_metric.get(1, 2) / inertial_coords.get(0);
+  // gzx = gxz symmetry
+  phi.get(1, 2, 0) = phi.get(1, 0, 2);
+  // gyy
+  phi.get(1, 1, 1) = 2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
+  // gyz
+  phi.get(1, 1, 2) = spatial_metric.get(0, 2) / inertial_coords.get(0);
+  // gzy = gyz symmetry
+  phi.get(1, 2, 1) = phi.get(1, 1, 2);
+  // gzz                                  !just zero
+  phi.get(1, 2, 2) = 0.0 * phi.get(1, 2, 2);
+
+  // z (2) derivatives
+  // gxx
+  phi.get(2, 0, 0) = -2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
+  // gxy
+  phi.get(2, 0, 1) = -spatial_metric.get(1, 2) / inertial_coords.get(0);
+  // gyx = gxy symmetry
+  phi.get(2, 1, 0) = phi.get(2, 0, 1);
+  // gxz
+  phi.get(2, 0, 2) = (spatial_metric.get(0, 0) - spatial_metric.get(2, 2)) /
+                     inertial_coords.get(0);
+  // gzx = gxz symmetry
+  phi.get(2, 2, 0) = phi.get(2, 0, 2);
+  // gyy                                  !just zero
+  phi.get(2, 1, 1) = phi.get(1, 1, 1) - phi.get(1, 1, 1);
+  // gyz
+  phi.get(2, 1, 2) = spatial_metric.get(0, 1) / inertial_coords.get(0);
+  // gzy = gyz symmetry
+  phi.get(2, 2, 1) = phi.get(2, 1, 2);
+  // gzz
+  phi.get(2, 2, 2) = 2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
+
+  // end hack phi
+
+  // Mike: somehow hack pi?  How to account for time derivative
+
   determinant_and_inverse(det_spatial_metric, inverse_spatial_metric,
                           spatial_metric);
   gr::shift(shift, spacetime_metric, *inverse_spatial_metric);
@@ -109,6 +162,8 @@ void TimeDerivative<Dim>::apply(
     }
   }
 
+  // assign spatial metric derivative based on phi
+  // Mike: derivative should have nonzero terms for d_y g_12 and d_z g_13
   const std::optional da_spacetime_metric{tnsr::abb<DataVector, Dim>{}};
   for (size_t a = 0; a < Dim + 1; ++a) {
     for (size_t b = a; b < Dim + 1; ++b) {
@@ -122,6 +177,7 @@ void TimeDerivative<Dim>::apply(
     }
   }
 
+  // Christoffel calculations
   gr::christoffel_first_kind(christoffel_first_kind,
                              da_spacetime_metric.value());
   trace_last_indices(trace_christoffel, *christoffel_first_kind,
@@ -131,6 +187,7 @@ void TimeDerivative<Dim>::apply(
   get(*gamma1gamma2) = get(gamma1) * get(gamma2);
   const DataVector& gamma12 = get(*gamma1gamma2);
 
+  // raise Phi
   for (size_t m = 0; m < Dim; ++m) {
     for (size_t mu = 0; mu < Dim + 1; ++mu) {
       for (size_t nu = mu; nu < Dim + 1; ++nu) {
@@ -157,6 +214,7 @@ void TimeDerivative<Dim>::apply(
     }
   }
 
+  // raise Pi
   for (size_t nu = 0; nu < Dim + 1; ++nu) {
     for (size_t alpha = 0; alpha < Dim + 1; ++alpha) {
       pi_2_up->get(nu, alpha) =
@@ -168,6 +226,7 @@ void TimeDerivative<Dim>::apply(
     }
   }
 
+  // Raise Christoffel
   for (size_t mu = 0; mu < Dim + 1; ++mu) {
     for (size_t nu = 0; nu < Dim + 1; ++nu) {
       for (size_t alpha = 0; alpha < Dim + 1; ++alpha) {
@@ -365,8 +424,12 @@ void TimeDerivative<Dim>::apply(
         for (size_t n = 0; n < Dim; ++n) {
           dt_pi->get(mu, nu) -=
               inverse_spatial_metric->get(m, n) * d_phi.get(m, n, mu, nu);
+          // std::cout << "d_phi = d_m d_n g_mu_nu " << m << " " << n << " " <<
+          // mu
+          //           << " " << nu << " " << d_phi.get(m, n, mu, nu) << "\n";
         }
       }
+      std::cout << "-- \n";
 
       dt_pi->get(mu, nu) *= get(*lapse);
 
