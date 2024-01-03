@@ -272,6 +272,30 @@ void DirichletFreeOutflow::fd_ghost(
   // ensuring derivative of spacetime metric at origin is 0
   get<SpacetimeMetric>(outermost_prim_vars) =
       get_boundary_val(interior_spacetime_metric);
+
+// Mike figure out instability
+// - nonzero shift evolution
+// - instabilities in metric
+// phi_xxx (dx g_xx doesn't seem right with kink)
+
+  // Pretorius on axis regularity conditions (A4)
+  // yt = 0
+  get<SpacetimeMetric>(outermost_prim_vars).get(0, 2) =
+      0.0 * get_boundary_val(interior_spacetime_metric).get(0, 2);
+
+  // zt = 0
+  get<SpacetimeMetric>(outermost_prim_vars).get(0, 3) =
+      0.0 * get_boundary_val(interior_spacetime_metric).get(0, 3);
+
+  // xy = 0
+  get<SpacetimeMetric>(outermost_prim_vars).get(1, 2) =
+      0.0 * get_boundary_val(interior_spacetime_metric).get(1, 2);
+
+  // xz = 0
+  get<SpacetimeMetric>(outermost_prim_vars).get(1, 3) =
+      0.0 * get_boundary_val(interior_spacetime_metric).get(1, 3);
+
+
   // ensuring derivative of Pi at origin is 0.  Mike: should this happen?
   get<Pi>(outermost_prim_vars) = get_boundary_val(interior_pi);
 
