@@ -15,6 +15,8 @@
 #include "Utilities/GenerateInstantiations.hpp"
 #include "Utilities/MakeWithValue.hpp"
 
+#include <iostream>
+
 namespace RelativisticEuler::Solutions {
 
 TovStar::TovStar(CkMigrateMessage* msg) : InitialData(msg) {}
@@ -417,11 +419,16 @@ void TovVariables<DataType, Region>::operator()(
           get(cache->get_var(*this, hydro::Tags::Pressure<DataType>{}));
       // Compute dm/dr from the TOV equations, e.g. Eq. (1.77) in
       // BaumgarteShapiro.
+      // get(*dr_metric_radial_potential) =
+      //     (4. * M_PI * radius *
+      //          (specific_enthalpy * rest_mass_density - pressure) -
+      //      mass_over_radius / radius) /
+      //     (1. - 2. * mass_over_radius);
       get(*dr_metric_radial_potential) =
-          (4. * M_PI * radius *
-               (specific_enthalpy * rest_mass_density - pressure) -
-           mass_over_radius / radius) /
-          (1. - 2. * mass_over_radius);
+      (4. * M_PI * radius *
+          (specific_enthalpy * rest_mass_density - pressure) -
+      mass_over_radius / radius / radius) /
+      (1. - 2. * mass_over_radius);
     }
   }
 }
@@ -674,7 +681,6 @@ void TovVariables<DataType, Region>::operator()(
          exp(2.0 * metric_angular_potential) *
              (dr_metric_angular_potential - 1.0 / radius)) /
         cube(radius)};
-    //MIKE: check this derivative
     for (size_t k = 0; k < 3; ++k) {
       for (size_t i = 0; i < 3; ++i) {
         for (size_t j = i; j < 3; ++j) {

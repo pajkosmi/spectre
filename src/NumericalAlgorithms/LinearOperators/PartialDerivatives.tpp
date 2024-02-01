@@ -108,8 +108,17 @@ void lie_drag_covariant_rank_2_tensor(
 
   if (deriv_index == 1) {
     // y deriv
-    if (component_index_shift < 4) {
-      // time components are 0
+    if (component_index_shift == 0) {
+      // dy_gtt = 0
+      dfdx = 0.0;
+    } else if (component_index_shift == 1) {
+      // d_y g_tx = -g_02 = -g(2)
+      dfdx = -var(2);
+    } else if (component_index_shift == 2) {
+      // d_y g_ty = g_01 = g(1)
+      dfdx = var(1);
+    } else if (component_index_shift == 3) {
+      // dy g_tz = 0
       dfdx = 0.0;
     } else if (component_index_shift == 4) {
       // d_y g_xx = -2 g_12 = g(5)
@@ -135,10 +144,18 @@ void lie_drag_covariant_rank_2_tensor(
     }
   } else {
     // z deriv
-    // y deriv
-    if (component_index_shift < 4) {
-      // time components are 0
+    if (component_index_shift == 0) {
+      // dz g_tt = 0
       dfdx = 0.0;
+    } else if (component_index_shift == 1) {
+      // d_z g_tx = -g_03 = -g(3)
+      dfdx = -var(3);
+    } else if (component_index_shift == 2) {
+      // d_z g_ty = 0
+      dfdx = 0.0;
+    } else if (component_index_shift == 3) {
+      // dz g_tz = g01 = g(1)
+      dfdx = var(1);
     } else if (component_index_shift == 4) {
       // d_z g_xx = -2 g_13 = -2 * g(6)
       dfdx = -2.0 * var(6);
@@ -162,8 +179,8 @@ void lie_drag_covariant_rank_2_tensor(
                                                     << ".");
     }
   }
-  // scale by 1/x
-  // dfdx *= 1.0 / abs(inertial_coords.get(0)[volume_index]);
+  // scale by -1
+  dfdx *= -1.0;  /// abs(inertial_coords.get(0)[volume_index]);
 }
 
 // Phi component index = 0 tensor index = (0,0,0)
@@ -250,23 +267,23 @@ void lie_drag_covariant_rank_3_tensor(
       // dy Phi_ztt = 0 [Eqn(43)]
       dfdx = 0.0;
     } else if (component_index_shift == 3) {
-      // dy Phi_xxt = Phi_y01 = p(4)
-      dfdx = var(4);
+      // dy Phi_xxt = Phi_y01 + Phi_x02 = p(4) + p(6)
+      dfdx = var(4) + var(6);
     } else if (component_index_shift == 4) {
-      // dy Phi_yxt = -Phi_x01 = -p(3)
-      dfdx = -var(3);
+      // dy Phi_yxt = -Phi_x01 + Phi_y02 = -p(3) + p(7)
+      dfdx = -var(3) + var(7);
     } else if (component_index_shift == 5) {
-      // dy Phi_zxt = 0
-      dfdx = 0;
+      // dy Phi_zxt = Phi_z02 = p(8)
+      dfdx = var(8);
     } else if (component_index_shift == 6) {
-      // dy Phi_xyt = Phi_y02 = p(7)
-      dfdx = var(7);
+      // dy Phi_xyt = Phi_y02 - Phi_x01 = p(7) - p(3)
+      dfdx = var(7) - var(3);
     } else if (component_index_shift == 7) {
-      // dy Phi_yyt = -Phi_x02 = -p(6)
-      dfdx = -var(6);
+      // dy Phi_yyt = -Phi_x02 - Phi_y01 = -p(6) - p(4)
+      dfdx = -var(6) - var(4);
     } else if (component_index_shift == 8) {
-      // dy Phi_zyt = 0
-      dfdx = 0;
+      // dy Phi_zyt = -Phi_z01 = -p(5)
+      dfdx = -var(5);
     } else if (component_index_shift == 9) {
       // dy Phi_xzt = Phi_y03 = p(10)
       dfdx = var(10);
@@ -358,14 +375,14 @@ void lie_drag_covariant_rank_3_tensor(
       // dz Phi_ztt = -Phi_x00 = -p(0) [Eqn(43)]
       dfdx = -var(0);
     } else if (component_index_shift == 3) {
-      // dz Phi_xxt = Phi_z01 = p(5)
-      dfdx = var(5);
+      // dz Phi_xxt = Phi_z01 + Phi_x03 = p(5) + p(9)
+      dfdx = var(5) + var(9);
     } else if (component_index_shift == 4) {
-      // dz Phi_yxt = 0
-      dfdx = 0.0;
+      // dz Phi_yxt = Phi_y03 = p(10)
+      dfdx = var(10);
     } else if (component_index_shift == 5) {
-      // dz Phi_zxt = -Phi_x01 = -p(3)
-      dfdx = -var(3);
+      // dz Phi_zxt = -Phi_x01 + Phi_z03 = -p(3) + p(11)
+      dfdx = -var(3) + var(11);
     } else if (component_index_shift == 6) {
       // dz Phi_xyt = Phi_z02 = p(8)
       dfdx = var(8);
@@ -376,14 +393,14 @@ void lie_drag_covariant_rank_3_tensor(
       // dz Phi_zyt = -Phi_x02 = -p(6)
       dfdx = -var(6);
     } else if (component_index_shift == 9) {
-      // dz Phi_xzt = Phi_z03 = p(11)
-      dfdx = var(11);
+      // dz Phi_xzt = Phi_z03 - Phi_x01 = p(11) - p(3)
+      dfdx = var(11) - var(3);
     } else if (component_index_shift == 10) {
-      // dz Phi_yzt = 0
-      dfdx = 0.0;
+      // dz Phi_yzt = -Phi_y01 = -p(4)
+      dfdx = -var(4);
     } else if (component_index_shift == 11) {
-      // dz Phi_zzt = -Phi_x03 = -p(9)
-      dfdx = -var(9);
+      // dz Phi_zzt = -Phi_x03 - Phi_z01 = -p(9) - p(5)
+      dfdx = -var(9) - var(5);
     } else if (component_index_shift == 12) {
       // dz Phi_xxx = Phi_z11 + 2 * Phi_x31 = p(14) + 2 * p(18)
       dfdx = var(14) + 2.0 * var(18);
@@ -484,7 +501,7 @@ void cartoon_tensor_derivatives(
     }
 
     // scale by -1 / x
-    dfdx *= -1.0 / abs(inertial_coords.get(0)[volume_index]);
+    dfdx *= -1.0 / inertial_coords.get(0)[volume_index];
     // dfdx = -1.0 / abs(inertial_coords.get(0)[volume_index]) *
     //        (volume_vars[component_index * num_grid_points + volume_index]);
   }
@@ -556,6 +573,14 @@ void partial_derivatives_cartoon(
 
             lhs[volume_index] = dfdx;
 
+            // if (component_index == 11) {
+            //   std::cout << "CI " << component_index << " VI " << volume_index
+            //             << " volume_vars "
+            //             << volume_vars[component_index * num_grid_points +
+            //                            volume_index]
+            //             << " coord " << inertial_coords.get(0)[volume_index]
+            //             << "\n";
+            // }
             // finite_diff_dfdx = inverse_jacobian.get(0, 0)[volume_index] *
             //                   logical_du[volume_index];
             // two_f_over_x =

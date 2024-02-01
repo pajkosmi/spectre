@@ -83,6 +83,7 @@ void update_one_variables(const gsl::not_null<db::DataBox<DbTags>*> box) {
         [](const gsl::not_null<typename VariablesTag::type*> vars,
            const typename history_tag::type& history,
            const ::TimeDelta& time_step, const TimeStepper& time_stepper) {
+          //MIKE: print history for time derivative
           time_stepper.update_u(vars, history, time_step);
         },
         box, db::get<history_tag>(*box), db::get<Tags::TimeStep>(*box),

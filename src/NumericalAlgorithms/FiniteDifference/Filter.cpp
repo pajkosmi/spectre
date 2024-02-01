@@ -396,117 +396,119 @@ void filter_impl(
       ghost_cell_vars.at(Direction<Dim>::lower_xi()),
       ghost_cell_vars.at(Direction<Dim>::upper_xi()), volume_extents,
       number_of_variables, args...);
-  return;
 
-  if constexpr (Dim > 1) {
-    ASSERT(ghost_cell_vars.contains(Direction<Dim>::lower_eta()),
-           "Couldn't find lower ghost data in lower-eta");
-    ASSERT(ghost_cell_vars.contains(Direction<Dim>::upper_eta()),
-           "Couldn't find upper ghost data in upper-eta");
+  // comment out for Cartoon
+  // if constexpr (Dim > 1) {
+  //   ASSERT(ghost_cell_vars.contains(Direction<Dim>::lower_eta()),
+  //          "Couldn't find lower ghost data in lower-eta");
+  //   ASSERT(ghost_cell_vars.contains(Direction<Dim>::upper_eta()),
+  //          "Couldn't find upper ghost data in upper-eta");
 
-    // We transpose from (x,y,z,vars) ordering to (y,z,vars,x) ordering
-    // Might not be the most efficient (unclear), but easiest.
-    // We use a single large buffer for both the y and z derivatives
-    // to reduce the number of memory allocations and improve data locality.
-    const auto& lower_ghost = ghost_cell_vars.at(Direction<Dim>::lower_eta());
-    const auto& upper_ghost = ghost_cell_vars.at(Direction<Dim>::upper_eta());
-    const size_t filter_size = filtered_data->size();
-    DataVector buffer{};
-    if (in_buffer != nullptr) {
-      ASSERT((in_buffer->size() >= volume_vars.size() + lower_ghost.size() +
-                                       upper_ghost.size() + 3 * filter_size),
-             "The buffer must have size greater than or equal to "
-                 << (volume_vars.size() + lower_ghost.size() +
-                     upper_ghost.size() + 3 * filter_size)
-                 << " but has size " << in_buffer->size());
-      buffer.set_data_ref(in_buffer->data(), in_buffer->size());
-    } else {
-      buffer = DataVector{volume_vars.size() + lower_ghost.size() +
-                          upper_ghost.size() + 3 * filter_size};
-    }
-    raw_transpose(make_not_null(buffer.data()), volume_vars.data(),
-                  volume_extents[0], volume_vars.size() / volume_extents[0]);
-    raw_transpose(make_not_null(&buffer[volume_vars.size()]),
-                  lower_ghost.data(), volume_extents[0],
-                  lower_ghost.size() / volume_extents[0]);
-    raw_transpose(
-        make_not_null(&buffer[volume_vars.size() + lower_ghost.size()]),
-        upper_ghost.data(), volume_extents[0],
-        upper_ghost.size() / volume_extents[0]);
+  //   // We transpose from (x,y,z,vars) ordering to (y,z,vars,x) ordering
+  //   // Might not be the most efficient (unclear), but easiest.
+  //   // We use a single large buffer for both the y and z derivatives
+  //   // to reduce the number of memory allocations and improve data locality.
+  //   const auto& lower_ghost =
+  //   ghost_cell_vars.at(Direction<Dim>::lower_eta()); const auto& upper_ghost
+  //   = ghost_cell_vars.at(Direction<Dim>::upper_eta()); const size_t
+  //   filter_size = filtered_data->size(); DataVector buffer{}; if (in_buffer
+  //   != nullptr) {
+  //     ASSERT((in_buffer->size() >= volume_vars.size() + lower_ghost.size() +
+  //                                      upper_ghost.size() + 3 * filter_size),
+  //            "The buffer must have size greater than or equal to "
+  //                << (volume_vars.size() + lower_ghost.size() +
+  //                    upper_ghost.size() + 3 * filter_size)
+  //                << " but has size " << in_buffer->size());
+  //     buffer.set_data_ref(in_buffer->data(), in_buffer->size());
+  //   } else {
+  //     buffer = DataVector{volume_vars.size() + lower_ghost.size() +
+  //                         upper_ghost.size() + 3 * filter_size};
+  //   }
+  //   raw_transpose(make_not_null(buffer.data()), volume_vars.data(),
+  //                 volume_extents[0], volume_vars.size() / volume_extents[0]);
+  //   raw_transpose(make_not_null(&buffer[volume_vars.size()]),
+  //                 lower_ghost.data(), volume_extents[0],
+  //                 lower_ghost.size() / volume_extents[0]);
+  //   raw_transpose(
+  //       make_not_null(&buffer[volume_vars.size() + lower_ghost.size()]),
+  //       upper_ghost.data(), volume_extents[0],
+  //       upper_ghost.size() / volume_extents[0]);
 
-    // Note: assumes isotropic extents
-    const size_t filter_offset_in_buffer =
-        volume_vars.size() + lower_ghost.size() + upper_ghost.size();
-    gsl::span<double> filter_view =
-        gsl::make_span(&buffer[filter_offset_in_buffer], filter_size);
+  //   // Note: assumes isotropic extents
+  //   const size_t filter_offset_in_buffer =
+  //       volume_vars.size() + lower_ghost.size() + upper_ghost.size();
+  //   gsl::span<double> filter_view =
+  //       gsl::make_span(&buffer[filter_offset_in_buffer], filter_size);
 
-    filter_fastest_dim<FilterComputer>(
-        make_not_null(&filter_view),
-        gsl::make_span(buffer.data(), volume_vars.size()),
-        gsl::make_span(&buffer[volume_vars.size()], lower_ghost.size()),
-        gsl::make_span(&buffer[volume_vars.size() + lower_ghost.size()],
-                       upper_ghost.size()),
-        volume_extents, number_of_variables, args...);
-    // Transpose result back and add to filtered_data
-    gsl::span<double> filter_data_in_xyz_order =
-        gsl::make_span(&buffer[filter_offset_in_buffer + volume_vars.size()],
-                       volume_vars.size());
-    raw_transpose(make_not_null(filter_data_in_xyz_order.data()),
-                  filter_view.data(), filter_view.size() / volume_extents[0],
-                  volume_extents[0]);
-    {
-      DataVector t0{filter_data_in_xyz_order.data(),
-                    filter_data_in_xyz_order.size()};
-      DataVector t1{filtered_data->data(), filtered_data->size()};
-      t1 += t0;
-    }
+  //   filter_fastest_dim<FilterComputer>(
+  //       make_not_null(&filter_view),
+  //       gsl::make_span(buffer.data(), volume_vars.size()),
+  //       gsl::make_span(&buffer[volume_vars.size()], lower_ghost.size()),
+  //       gsl::make_span(&buffer[volume_vars.size() + lower_ghost.size()],
+  //                      upper_ghost.size()),
+  //       volume_extents, number_of_variables, args...);
+  //   // Transpose result back and add to filtered_data
+  //   gsl::span<double> filter_data_in_xyz_order =
+  //       gsl::make_span(&buffer[filter_offset_in_buffer + volume_vars.size()],
+  //                      volume_vars.size());
+  //   raw_transpose(make_not_null(filter_data_in_xyz_order.data()),
+  //                 filter_view.data(), filter_view.size() / volume_extents[0],
+  //                 volume_extents[0]);
+  //   {
+  //     DataVector t0{filter_data_in_xyz_order.data(),
+  //                   filter_data_in_xyz_order.size()};
+  //     DataVector t1{filtered_data->data(), filtered_data->size()};
+  //     t1 += t0;
+  //   }
 
-    if constexpr (Dim > 2) {
-      ASSERT(ghost_cell_vars.contains(Direction<Dim>::lower_zeta()),
-             "Couldn't find lower ghost data in lower-zeta");
-      ASSERT(ghost_cell_vars.contains(Direction<Dim>::upper_zeta()),
-             "Couldn't find upper ghost data in upper-zeta");
+  //   if constexpr (Dim > 2) {
+  //     ASSERT(ghost_cell_vars.contains(Direction<Dim>::lower_zeta()),
+  //            "Couldn't find lower ghost data in lower-zeta");
+  //     ASSERT(ghost_cell_vars.contains(Direction<Dim>::upper_zeta()),
+  //            "Couldn't find upper ghost data in upper-zeta");
 
-      const size_t chunk_size = volume_extents[0] * volume_extents[1];
-      const size_t number_of_volume_chunks = volume_vars.size() / chunk_size;
-      const size_t number_of_neighbor_chunks =
-          ghost_cell_vars.at(Direction<Dim>::lower_zeta()).size() / chunk_size;
+  //     const size_t chunk_size = volume_extents[0] * volume_extents[1];
+  //     const size_t number_of_volume_chunks = volume_vars.size() / chunk_size;
+  //     const size_t number_of_neighbor_chunks =
+  //         ghost_cell_vars.at(Direction<Dim>::lower_zeta()).size() /
+  //         chunk_size;
 
-      raw_transpose(make_not_null(buffer.data()), volume_vars.data(),
-                    chunk_size, number_of_volume_chunks);
-      raw_transpose(make_not_null(&buffer[volume_vars.size()]),
-                    ghost_cell_vars.at(Direction<Dim>::lower_zeta()).data(),
-                    chunk_size, number_of_neighbor_chunks);
-      raw_transpose(
-          make_not_null(&buffer[volume_vars.size() + lower_ghost.size()]),
-          ghost_cell_vars.at(Direction<Dim>::upper_zeta()).data(), chunk_size,
-          number_of_neighbor_chunks);
+  //     raw_transpose(make_not_null(buffer.data()), volume_vars.data(),
+  //                   chunk_size, number_of_volume_chunks);
+  //     raw_transpose(make_not_null(&buffer[volume_vars.size()]),
+  //                   ghost_cell_vars.at(Direction<Dim>::lower_zeta()).data(),
+  //                   chunk_size, number_of_neighbor_chunks);
+  //     raw_transpose(
+  //         make_not_null(&buffer[volume_vars.size() + lower_ghost.size()]),
+  //         ghost_cell_vars.at(Direction<Dim>::upper_zeta()).data(),
+  //         chunk_size, number_of_neighbor_chunks);
 
-      filter_fastest_dim<FilterComputer>(
-          make_not_null(&filter_view),
-          gsl::make_span(buffer.data(), volume_vars.size()),
-          gsl::make_span(&buffer[volume_vars.size()], lower_ghost.size()),
-          gsl::make_span(&buffer[volume_vars.size() + lower_ghost.size()],
-                         upper_ghost.size()),
-          volume_extents, number_of_variables, args...);
-      // Transpose result back
-      raw_transpose(make_not_null(filter_data_in_xyz_order.data()),
-                    filter_view.data(), filter_view.size() / chunk_size,
-                    chunk_size);
-      {
-        DataVector t0{filter_data_in_xyz_order.data(),
-                      filter_data_in_xyz_order.size()};
-        DataVector t1{filtered_data->data(), filtered_data->size()};
-        t1 += t0;
-      }
-    }
-  }
+  //     filter_fastest_dim<FilterComputer>(
+  //         make_not_null(&filter_view),
+  //         gsl::make_span(buffer.data(), volume_vars.size()),
+  //         gsl::make_span(&buffer[volume_vars.size()], lower_ghost.size()),
+  //         gsl::make_span(&buffer[volume_vars.size() + lower_ghost.size()],
+  //                        upper_ghost.size()),
+  //         volume_extents, number_of_variables, args...);
+  //     // Transpose result back
+  //     raw_transpose(make_not_null(filter_data_in_xyz_order.data()),
+  //                   filter_view.data(), filter_view.size() / chunk_size,
+  //                   chunk_size);
+  //     {
+  //       DataVector t0{filter_data_in_xyz_order.data(),
+  //                     filter_data_in_xyz_order.size()};
+  //       DataVector t1{filtered_data->data(), filtered_data->size()};
+  //       t1 += t0;
+  //     }
+  //   }
+  // }
   // Add volume vars to filter
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   const DataVector view_volume_vars{const_cast<double*>(volume_vars.data()),
                                     volume_vars.size()};
   DataVector view_filtered_data{filtered_data->data(), filtered_data->size()};
   view_filtered_data += view_volume_vars;
+  return;
 }
 
 template <template <size_t Order, bool UnitStride> class FilterComputer,
