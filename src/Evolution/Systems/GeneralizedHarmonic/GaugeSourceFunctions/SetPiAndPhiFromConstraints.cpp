@@ -31,7 +31,6 @@
 #include "PointwiseFunctions/GeneralRelativity/SpatialMetric.hpp"
 #include "PointwiseFunctions/GeneralRelativity/Tags.hpp"
 #include "Utilities/GenerateInstantiations.hpp"
-
 namespace gh::gauges {
 template <size_t Dim>
 void SetPiAndPhiFromConstraints<Dim>::apply(
@@ -71,7 +70,24 @@ void SetPiAndPhiFromConstraints<Dim>::apply(
     }
   }
 
+  // calculate phi
   partial_derivative(phi, spacetime_metric, mesh, inverse_jacobian);
+
+  //y derivative
+  // Phi_
+  // Phi_y12 = 1 / x * (g_11 - g_22)
+  phi->get(1, 1, 2) = 1.0 / inertial_coords.get(0) *
+                      (spacetime_metric.get(1, 1) - spacetime_metric.get(2, 2));
+  phi->get(1, 2, 1) = phi->get(1, 1, 2);
+
+  // z derivative
+  //Phi_z13 = 1 / x * (g_11 - g_33)
+  phi->get(2, 1, 3) = 1.0 / inertial_coords.get(0) *
+                      (spacetime_metric.get(1, 1) - spacetime_metric.get(3, 3));
+  phi->get(2, 3, 1) = phi->get(2, 1, 3);
+
+  phi->get(0, 2, 2) = 0.0;
+  phi->get(0, 3, 3) = 0.0;
 
   Variables<
       tmpl::list<gr::Tags::SpatialMetric<DataVector, Dim>,
@@ -103,20 +119,27 @@ void SetPiAndPhiFromConstraints<Dim>::apply(
          spatial_christoffel_first, trace_spatial_christoffel_first, gauge_h,
          d4_gauge_h, dt_lapse, dt_shift, dt_spatial_metric] = buffer;
 
+  // spatial metric from spacetime metric
   gr::spatial_metric(make_not_null(&spatial_metric), spacetime_metric);
   determinant_and_inverse(make_not_null(&sqrt_det_spatial_metric),
                           make_not_null(&inverse_spatial_metric),
                           spatial_metric);
+  // calc sqrt det g
   get(sqrt_det_spatial_metric) = sqrt(get(sqrt_det_spatial_metric));
+  // shift from spacetime metric [x]
   gr::shift(make_not_null(&shift), spacetime_metric, inverse_spatial_metric);
+  //" " from lapse
   gr::lapse(make_not_null(&lapse), shift, spacetime_metric);
+  // inverse from lapse and shift [x]
   gr::inverse_spacetime_metric(make_not_null(&inverse_spacetime_metric), lapse,
                                shift, inverse_spatial_metric);
+  // normal from lapse and shift [x]
   gr::spacetime_normal_vector(make_not_null(&spacetime_unit_normal_vector),
                               lapse, shift);
-
+  // spatial derivative of lapse from lapse, normal vector, and phi [x]
   spatial_deriv_of_lapse(make_not_null(&d_lapse), lapse,
                          spacetime_unit_normal_vector, *phi);
+  // shift derivative from inverse  [x]
   spatial_deriv_of_shift(make_not_null(&d_shift), lapse,
                          inverse_spacetime_metric, spacetime_unit_normal_vector,
                          *phi);
@@ -128,11 +151,12 @@ void SetPiAndPhiFromConstraints<Dim>::apply(
         inverse_spatial_metric);
   gr::christoffel_first_kind(make_not_null(&spatial_christoffel_first),
                              d_spatial_metric);
+  // Gamma_a = Gamma_ab g^bc
   trace_last_indices(make_not_null(&trace_spatial_christoffel_first),
                      spatial_christoffel_first, inverse_spatial_metric);
 
   // Here we use `derivatives_of_spacetime_metric` to get \f$ \partial_a
-  // g_{bc}\f$ instead, and use only the derivatives of \f$ g_{bi}\f$.
+  // g_{bc}\f$ instead, and use only the derivatives of \f$ g_{bi}\f$. [x]
   tnsr::abb<DataVector, Dim, Frame::Inertial> d4_spacetime_metric{};
   gh::spacetime_derivative_of_spacetime_metric(
       make_not_null(&d4_spacetime_metric), lapse, shift, *pi, *phi);
@@ -193,6 +217,8 @@ void SetPiAndPhiFromConstraints<Dim>::apply(
 
   time_deriv_of_spatial_metric(make_not_null(&dt_spatial_metric), lapse, shift,
                                *phi, *pi);
+  // Mike: want to match gauge_h with trace_spatial_christoffel_first.  Should
+  // they be the same?
   gh::pi(pi, lapse, dt_lapse, shift, dt_shift, spatial_metric,
          dt_spatial_metric, *phi);
 }

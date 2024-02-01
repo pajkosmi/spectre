@@ -30,6 +30,8 @@
 #include "Utilities/TMPL.hpp"
 #include "Utilities/TaggedTuple.hpp"
 
+#include <iostream>
+
 namespace gh::gauges {
 AnalyticChristoffel::AnalyticChristoffel(const AnalyticChristoffel& rhs)
     : GaugeCondition{dynamic_cast<const GaugeCondition&>(rhs)},
@@ -111,6 +113,92 @@ void AnalyticChristoffel::gauge_and_spacetime_derivative(
       get<gr::Tags::InverseSpatialMetric<DataVector, SpatialDim>>(temp_vars);
   auto& inverse_spacetime_metric =
       get<gr::Tags::InverseSpacetimeMetric<DataVector, SpatialDim>>(temp_vars);
+
+  // Need copy b/c phi is const
+  auto phi2 = phi;
+
+  // need to overwrite metric during analytic christoffel calculation
+  // y derivative
+  // dy g00
+  phi2.get(1, 0, 0) = 0.0;
+
+  // dy g01
+  phi2.get(1, 0, 1) =
+      -1.0 / inertial_coords.get(0) * spacetime_metric.get(0, 2);
+  phi2.get(1, 1, 0) = phi2.get(1, 0, 1);
+
+  // dy g02
+  phi2.get(1, 0, 2) = 1.0 / inertial_coords.get(0) * spacetime_metric.get(0, 1);
+  phi2.get(1, 2, 0) = phi2.get(1, 0, 2);
+
+  // dy g03
+  phi2.get(1, 0, 3) = 0.0;
+
+  // dy g11
+  phi2.get(1, 1, 1) =
+      -2.0 / inertial_coords.get(0) * spacetime_metric.get(1, 2);
+
+  // dy g12
+  phi2.get(1, 1, 2) = 1.0 / inertial_coords.get(0) *
+                      (spacetime_metric.get(1, 1) - spacetime_metric.get(2, 2));
+  phi2.get(1, 2, 1) = phi2.get(1, 1, 2);
+
+  // dy g13
+  phi2.get(1, 1, 3) =
+      -1.0 / inertial_coords.get(0) * spacetime_metric.get(2, 3);
+  phi2.get(1, 3, 1) = phi2.get(1, 1, 3);
+
+  // dy g22
+  phi2.get(1, 2, 2) =
+      -2.0 / inertial_coords.get(0) * spacetime_metric.get(1, 2);
+
+  // dy g23
+  phi2.get(1, 2, 3) = 1.0 / inertial_coords.get(0) * spacetime_metric.get(1, 3);
+  phi2.get(1, 3, 2) = phi2.get(1, 2, 3);
+
+  // dy g33
+  phi2.get(1, 2, 3) = 0.0;
+
+  // z derivative
+  // dz g00
+  phi2.get(2, 1, 3) = 0.0;
+
+  // dz g01
+  phi2.get(2, 0, 1) =
+      -1.0 / inertial_coords.get(0) * spacetime_metric.get(0, 3);
+  phi2.get(2, 1, 0) = phi2.get(2, 0, 1);
+
+  // dz g02
+  phi2.get(2, 0, 2) = 0.0;
+
+  // dz g03
+  phi2.get(2, 0, 3) = 1.0 / inertial_coords.get(0) * spacetime_metric.get(0, 1);
+  phi2.get(2, 3, 0) = phi2.get(2, 0, 3);
+
+  // dz g11
+  phi2.get(2, 1, 1) =
+      -2.0 / inertial_coords.get(0) * spacetime_metric.get(1, 3);
+
+  // dz g12
+  phi2.get(2, 1, 2) =
+      -1.0 / inertial_coords.get(0) * spacetime_metric.get(2, 3);
+  phi2.get(2, 2, 1) = phi2.get(2, 1, 2);
+
+  // dz g13
+  phi2.get(2, 1, 3) = 1.0 / inertial_coords.get(0) *
+                      (spacetime_metric.get(1, 1) - spacetime_metric.get(3, 3));
+  phi2.get(2, 3, 1) = phi2.get(2, 1, 3);
+
+  // dz g22
+  phi2.get(2, 2, 2) = 0.0;
+
+  // dz g23
+  phi2.get(2, 2, 3) = 1.0 / inertial_coords.get(0) * spacetime_metric.get(1, 2);
+  phi2.get(2, 3, 2) = phi2.get(2, 2, 3);
+
+  // dz g33
+  phi2.get(2, 3, 3) = 2.0 / inertial_coords.get(0) * spacetime_metric.get(1, 3);
+
   {
     Scalar<DataVector> det_buffer{};
     get(det_buffer)
@@ -128,7 +216,7 @@ void AnalyticChristoffel::gauge_and_spacetime_derivative(
                               shift);
   gh::trace_christoffel(gauge_h, spacetime_normal_one_form,
                         spacetime_normal_vector, inverse_spatial_metric,
-                        inverse_spacetime_metric, pi, phi);
+                        inverse_spacetime_metric, pi, phi2);
   for (auto& component : *gauge_h) {
     component *= -1.0;
   }
