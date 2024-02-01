@@ -273,40 +273,80 @@ void DirichletFreeOutflow::fd_ghost(
   get<SpacetimeMetric>(outermost_prim_vars) =
       get_boundary_val(interior_spacetime_metric);
 
+  get<Pi>(outermost_prim_vars) = get_boundary_val(interior_pi);
+
+  get<Phi>(outermost_prim_vars) = get_boundary_val(interior_phi);
+
   // TODO: Mike figure out instability
   //  - nonzero shift evolution
   //  - instabilities in metric
-  //  phi_xxx (dx g_xx doesn't seem right with kink)
-  //  origin
   if (direction.sign() < 0.0) {
     // let velocity do what it naturally wants to at the outer domain
 
-    // Pretorius on axis regularity conditions (A4)
-    // yt = 0
-    get<SpacetimeMetric>(outermost_prim_vars).get(0, 2) =
-        0.0 * get_boundary_val(interior_spacetime_metric).get(0, 2);
+    // // Pretorius on axis regularity conditions (A4)
+    // // xt = 0
+    // get<SpacetimeMetric>(outermost_prim_vars).get(0, 1) =
+    //     0.0 * get_boundary_val(interior_spacetime_metric).get(0, 1);
 
-    // zt = 0
-    get<SpacetimeMetric>(outermost_prim_vars).get(0, 3) =
-        0.0 * get_boundary_val(interior_spacetime_metric).get(0, 3);
+    // // yt = 0
+    // get<SpacetimeMetric>(outermost_prim_vars).get(0, 2) =
+    //     0.0 * get_boundary_val(interior_spacetime_metric).get(0, 2);
 
-    // xy = 0
-    get<SpacetimeMetric>(outermost_prim_vars).get(1, 2) =
-        0.0 * get_boundary_val(interior_spacetime_metric).get(1, 2);
+    // // zt = 0
+    // get<SpacetimeMetric>(outermost_prim_vars).get(0, 3) =
+    //     0.0 * get_boundary_val(interior_spacetime_metric).get(0, 3);
 
-    // xz = 0
-    get<SpacetimeMetric>(outermost_prim_vars).get(1, 3) =
-        0.0 * get_boundary_val(interior_spacetime_metric).get(1, 3);
+    // // xy = 0
+    // get<SpacetimeMetric>(outermost_prim_vars).get(1, 2) =
+    //     0.0 * get_boundary_val(interior_spacetime_metric).get(1, 2);
 
-    // ensuring derivative of Pi at origin is 0.  Mike: should this happen?
-    get<Pi>(outermost_prim_vars) = get_boundary_val(interior_pi);
+    // // yz = 0
+    // get<SpacetimeMetric>(outermost_prim_vars).get(2, 3) =
+    //     0.0 * get_boundary_val(interior_spacetime_metric).get(1, 3);
 
-    // Phi is antisymmetric about origin
+    // // xz = 0
+    // get<SpacetimeMetric>(outermost_prim_vars).get(1, 3) =
+    //     0.0 * get_boundary_val(interior_spacetime_metric).get(1, 3);
+
+    // // g_xx = g_yy = g_zz
+    // get<SpacetimeMetric>(outermost_prim_vars).get(1, 1) =
+    //     get_boundary_val(interior_spacetime_metric).get(2, 2);
+
+    // equate diagonal components of Pi and gab, per Hilditch
+    // get<Pi>(outermost_prim_vars) = get_boundary_val(interior_pi);
+    get<SpacetimeMetric>(outermost_prim_vars).get(2, 2) =
+        get<SpacetimeMetric>(outermost_prim_vars).get(3, 3);
+    get<SpacetimeMetric>(outermost_prim_vars).get(1, 1) =
+        get<SpacetimeMetric>(outermost_prim_vars).get(2, 2);
+
+    get<Pi>(outermost_prim_vars).get(2, 2) =
+        get<Pi>(outermost_prim_vars).get(3, 3);
+    get<Pi>(outermost_prim_vars).get(1, 1) =
+        get<Pi>(outermost_prim_vars).get(2, 2);
+
+    get<Phi>(outermost_prim_vars).get(1, 0, 2) =
+        get<Phi>(outermost_prim_vars).get(2, 0, 3);
+    get<Phi>(outermost_prim_vars).get(0, 0, 1) =
+        get<Phi>(outermost_prim_vars).get(1, 0, 2);
+
+    // zero out most Phi elements
     for (size_t i = 0; i < 3; i++) {
       for (size_t a = 0; a < 4; a++) {
-        for (size_t b = 0; b < 4; b++) {
-          get<Phi>(outermost_prim_vars).get(i, a, b) =
-              -1.0 * get_boundary_val(interior_phi).get(i, a, b);
+        for (size_t b = a; b < 4; b++) {
+          if (not(i == 0 and a == 0 and b == 1) and
+              not(i == 1 and a == 0 and b == 2) and
+              not(i == 2 and a == 0 and b == 3)) {
+            get<Phi>(outermost_prim_vars).get(i, a, b) =
+                0.0 * get_boundary_val(interior_phi).get(i, a, b);
+          }
+          // zero out Pi on off diagonal elements
+          if (a != b) {
+            // Mike: Zero out Pi_00 and g_00 element?
+            get<SpacetimeMetric>(outermost_prim_vars).get(a, b) =
+                0.0 * get<SpacetimeMetric>(outermost_prim_vars).get(a, b);
+            get<Pi>(outermost_prim_vars).get(a, b) =
+                0.0 * get_boundary_val(interior_pi).get(a, b);
+          }
         }
       }
     }
@@ -323,35 +363,36 @@ void DirichletFreeOutflow::fd_ghost(
 
     // Pretorius's BCs for metric derivatives specify Phi as well
     // xtt
-    get<Phi>(outermost_prim_vars).get(0, 0, 0) =
-        get_boundary_val(interior_phi).get(0, 0, 0);
-    // xtx
-    get<Phi>(outermost_prim_vars).get(0, 0, 1) =
-        get_boundary_val(interior_phi).get(0, 0, 1);
-    // xxx
-    get<Phi>(outermost_prim_vars).get(0, 1, 1) =
-        get_boundary_val(interior_phi).get(0, 1, 1);
-    // xyy
-    get<Phi>(outermost_prim_vars).get(0, 2, 2) =
-        get_boundary_val(interior_phi).get(0, 2, 2);
-    // xyz
-    get<Phi>(outermost_prim_vars).get(0, 2, 3) =
-        get_boundary_val(interior_phi).get(0, 2, 3);
-    // xzz
-    get<Phi>(outermost_prim_vars).get(0, 3, 3) =
-        get_boundary_val(interior_phi).get(0, 3, 3);
+    // get<Phi>(outermost_prim_vars).get(0, 0, 0) =
+    //     get_boundary_val(interior_phi).get(0, 0, 0);
+    // // xtx
+    // get<Phi>(outermost_prim_vars).get(0, 0, 1) =
+    //     get_boundary_val(interior_phi).get(0, 0, 1);
+    // // xxx
+    // get<Phi>(outermost_prim_vars).get(0, 1, 1) =
+    //     get_boundary_val(interior_phi).get(0, 1, 1);
+    // // xyy
+    // get<Phi>(outermost_prim_vars).get(0, 2, 2) =
+    //     get_boundary_val(interior_phi).get(0, 2, 2);
+    // // xyz
+    // get<Phi>(outermost_prim_vars).get(0, 2, 3) =
+    //     get_boundary_val(interior_phi).get(0, 2, 3);
+    // // xzz
+    // get<Phi>(outermost_prim_vars).get(0, 3, 3) =
+    //     get_boundary_val(interior_phi).get(0, 3, 3);
 
   } else {
     // outer boundary
     // smoothe phi at outer boundary.
-    for (size_t i = 0; i < 3; i++) {
-      for (size_t a = 0; a < 4; a++) {
-        for (size_t b = 0; b < 4; b++) {
-          get<Phi>(outermost_prim_vars).get(i, a, b) =
-              get_boundary_val(interior_phi).get(i, a, b);
-        }
-      }
-    }
+    // for (size_t i = 0; i < 3; i++) {
+    //   for (size_t a = 0; a < 4; a++) {
+    //     for (size_t b = 0; b < 4; b++) {
+    //       get<Phi>(outermost_prim_vars).get(i, a, b) =
+    //           get_boundary_val(interior_phi).get(i, a, b);
+    //     }
+    //   }
+    // }
+    get<Phi>(outermost_prim_vars) = get_boundary_val(interior_phi);
     // smoothe Pi at outer boundary.
     get<Pi>(outermost_prim_vars) = get_boundary_val(interior_pi);
   }

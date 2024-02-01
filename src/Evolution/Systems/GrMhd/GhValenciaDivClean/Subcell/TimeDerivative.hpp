@@ -619,7 +619,7 @@ struct ComputeTimeDerivImpl<
             get<GrmhdDtTags>(boundary_correction_in_axis);
         // This loops over dimensions
         // for (size_t i = 0; i < dt_var.size(); ++i) {
-          for (size_t i = 0; i < 1; ++i) {
+        for (size_t i = 0; i < 1; ++i) {
           evolution::dg::subcell::add_cartesian_flux_divergence(
               make_not_null(&dt_var[i]), inverse_delta,
               get(cell_centered_det_inv_jacobian), var_correction[i],
@@ -629,11 +629,32 @@ struct ComputeTimeDerivImpl<
       }());
     }
     // begin zeroing
+    // shift x term is nonzero
     // zeros out time derivative terms of spacetime metric
-    EXPAND_PACK_LEFT_TO_RIGHT([&dt_vars_ptr]() {
-      for (size_t i = 0; i < get<::Tags::dt<GhDtTags>>(*dt_vars_ptr).size();
+    bool zero_out = false;
+    int count = 0;
+    // EXPAND_PACK_LEFT_TO_RIGHT([&dt_vars_ptr, &zero_out, &count]() {
+    //   for (size_t i = 0; i < get<::Tags::dt<GhDtTags>>(*dt_vars_ptr).size();
+    //        ++i) {
+    //     // zero out pi and phi time derivatives
+    //     // std::cout << "spacetime indices " << i << "\n";
+    //     // std::cout << "components of evo var " << i << "\n";
+    //     if (zero_out == true) {
+    //       get<::Tags::dt<GhDtTags>>(*dt_vars_ptr)[i] = 0.0;
+    //       //   std::cout << "spacetime indices " << i << "\n";
+    //     }
+    //     if (i == 9 and count < 2) {
+    //       zero_out = !zero_out;
+    //       count += 1;
+    //       //   zero_out = false;
+    //     }
+    //   }
+    // }());
+
+    EXPAND_PACK_LEFT_TO_RIGHT([&dt_vars_ptr, &zero_out]() {
+      for (size_t i = 0; i < get<::Tags::dt<GrmhdDtTags>>(*dt_vars_ptr).size();
            ++i) {
-        // get<::Tags::dt<GhDtTags>>(*dt_vars_ptr)[i] = 0.0;
+        get<::Tags::dt<GrmhdDtTags>>(*dt_vars_ptr)[i] = 0.0;
       }
     }());
     // end zeroing
@@ -667,6 +688,10 @@ struct TimeDerivative {
         prim_tags,
         hydro::Tags::LorentzFactorTimesSpatialVelocity<DataVector, 3>>>;
     using gradients_tags = typename System::gradients_tags;
+
+    const auto& evolved_vars_first = db::get<evolved_vars_tag>(*box);
+    const auto& pi_first = get<gh::Tags::Pi<DataVector, 3>>(evolved_vars_first);
+    // std::cout << "Pi (TimeDerivative) " << pi_first << "\n";
 
     const Mesh<3>& dg_mesh = db::get<domain::Tags::Mesh<3>>(*box);
     const Mesh<3>& subcell_mesh =
@@ -730,10 +755,11 @@ struct TimeDerivative {
     //   db::mutate<evolved_vars_tag>(
     //       [&filter_options, &recons, &subcell_mesh](const auto
     //       evolved_vars_ptr,
-    //                                                 const auto& ghost_data) {
+    //                                                 const auto& ghost_data){
     //         typename evolved_vars_tag::type filtered_vars =
     //         *evolved_vars_ptr;
-    //         // $(recons.ghost_zone_size() - 1) * 2 + 1$ => always use highest
+    //         // $(recons.ghost_zone_size() - 1) * 2 + 1$ => always use
+    // highest
     //         // order dissipation filter possible.
     //         grmhd::GhValenciaDivClean::fd::spacetime_kreiss_oliger_filter(
     //             make_not_null(&filtered_vars), *evolved_vars_ptr, ghost_data,
@@ -773,6 +799,9 @@ struct TimeDerivative {
     Variables<db::wrap_tags_in<::Tags::deriv, gradients_tags, tmpl::size_t<3>,
                                Frame::Inertial>>
         cell_centered_gh_derivs{num_pts};
+
+    const auto& pi = get<gh::Tags::Pi<DataVector, 3>>(evolved_vars);
+    // std::cout << "Pi (TimeDerivative) " << pi << "\n";
 
     grmhd::GhValenciaDivClean::fd::spacetime_derivatives(
         make_not_null(&cell_centered_gh_derivs), evolved_vars,
