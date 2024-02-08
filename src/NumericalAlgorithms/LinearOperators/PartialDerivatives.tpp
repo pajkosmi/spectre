@@ -426,8 +426,8 @@ void lie_drag_covariant_rank_3_tensor(
       // dz Phi_yzx = Phi_y33 - Phi_y11 = p(28) - p(13)
       dfdx = var(28) - var(13);
     } else if (component_index_shift == 20) {
-      // dz Phi_zzx = -x13 + z33 - z11 = -p(10) + p(29) - p(14)
-      dfdx = -var(10) + var(29) - var(14);
+      // dz Phi_zzx = -x13 + z33 - z11 = -p(18) + p(29) - p(14)
+      dfdx = -var(18) + var(29) - var(14);
     } else if (component_index_shift == 21) {
       // dz Phi_xyy = z22 = p(23)
       dfdx = var(23);

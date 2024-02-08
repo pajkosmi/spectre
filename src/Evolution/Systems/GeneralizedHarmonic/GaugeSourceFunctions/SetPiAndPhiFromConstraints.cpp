@@ -73,21 +73,18 @@ void SetPiAndPhiFromConstraints<Dim>::apply(
   // calculate phi
   partial_derivative(phi, spacetime_metric, mesh, inverse_jacobian);
 
-  //y derivative
-  // Phi_
-  // Phi_y12 = 1 / x * (g_11 - g_22)
+  // y derivative
+  //  Phi_y12 = 1 / x * (g_11 - g_22)
   phi->get(1, 1, 2) = 1.0 / inertial_coords.get(0) *
                       (spacetime_metric.get(1, 1) - spacetime_metric.get(2, 2));
   phi->get(1, 2, 1) = phi->get(1, 1, 2);
 
   // z derivative
-  //Phi_z13 = 1 / x * (g_11 - g_33)
+  // Phi_z13 = 1 / x * (g_11 - g_33)
   phi->get(2, 1, 3) = 1.0 / inertial_coords.get(0) *
                       (spacetime_metric.get(1, 1) - spacetime_metric.get(3, 3));
   phi->get(2, 3, 1) = phi->get(2, 1, 3);
 
-  phi->get(0, 2, 2) = 0.0;
-  phi->get(0, 3, 3) = 0.0;
 
   Variables<
       tmpl::list<gr::Tags::SpatialMetric<DataVector, Dim>,

@@ -188,13 +188,9 @@ void TimeDerivative<Dim>::apply(
       dt_spacetime_metric->get(mu, nu) = -get(*lapse) * pi.get(mu, nu);
       for (size_t m = 0; m < Dim; ++m) {
         dt_spacetime_metric->get(mu, nu) += shift->get(m) * phi.get(m, mu, nu);
-        // std::cout << " m n " << mu << " " << nu << " " << pi.get(mu, nu) <<
-        // "\n";
       }
     }
   }
-  // std::cout << "shift " << shift->get(0) << " " << shift->get(1) << " " <<
-  // shift->get(2) << "\n";
 
   // assign spatial metric derivative based on phi
   // Mike: derivative should have nonzero terms for d_y g_12 and d_z g_13
@@ -323,11 +319,6 @@ void TimeDerivative<Dim>::apply(
         } else {
           three_index_constraint->get(n, mu, nu) = 0.0;
         }
-        // std::cout << n << " " << mu << " " << nu << " " <<
-        // three_index_constraint->get(n, mu, nu) << "\n"; std::cout << n << "
-        // mu " << mu << " nu " << mu << " d_spacetime_metric.get(n, mu, nu) "
-        // << d_spacetime_metric.get(n, mu, nu) << " phi " << phi.get(n, mu, nu)
-        // << "\n";
       }
     }
   }
@@ -448,8 +439,6 @@ void TimeDerivative<Dim>::apply(
                    da_killing_vectorZ.get(b, c));
         }
       }
-      std::cout << a << " " << b << " "
-                << spacetime_deriv_gauge_function->get(2, b) << "\n";
     }
   }
 
@@ -485,6 +474,12 @@ void TimeDerivative<Dim>::apply(
     for (size_t nu = 0; nu < Dim + 1; ++nu) {
       gauge_constraint->get(nu) += gauge_function->get(nu);
     }
+  } else {
+    for (size_t a = 0; a < 4; ++a) {
+      for (size_t b = 0; b < 4; ++b) {
+        spacetime_deriv_gauge_function->get(a, b) = 0.0;
+      }
+    }
   }
 
   get(*normal_dot_gauge_constraint) =
@@ -514,19 +509,6 @@ void TimeDerivative<Dim>::apply(
       }
     }
   }
-  // std::cout << "dt_spacetime_metric->get(0, nu) " <<
-  // dt_spacetime_metric->get(0, 0) << " " << dt_spacetime_metric->get(0, 1) <<
-  // " " << dt_spacetime_metric->get(0, 2) << " "  <<
-  // dt_spacetime_metric->get(0, 3) << " \n"; std::cout <<
-  // "dt_spacetime_metric->get(1, nu) " << dt_spacetime_metric->get(1, 0) << " "
-  // << dt_spacetime_metric->get(1, 1) << " " << dt_spacetime_metric->get(1, 2)
-  // << " "  << dt_spacetime_metric->get(1, 3) << " \n"; std::cout <<
-  // "dt_spacetime_metric->get(2, nu) " << dt_spacetime_metric->get(2, 0) << " "
-  // << dt_spacetime_metric->get(2, 1) << " " << dt_spacetime_metric->get(2, 2)
-  // << " "  << dt_spacetime_metric->get(2, 3) << " \n"; std::cout <<
-  // "dt_spacetime_metric->get(3, nu) " << dt_spacetime_metric->get(3, 0) << " "
-  // << dt_spacetime_metric->get(3, 1) << " " << dt_spacetime_metric->get(3, 2)
-  // << " "  << dt_spacetime_metric->get(3, 3) << " \n";
 
   // Equation for dt_pi
 
@@ -594,9 +576,6 @@ void TimeDerivative<Dim>::apply(
         for (size_t n = 0; n < Dim; ++n) {
           dt_pi->get(mu, nu) -=
               inverse_spatial_metric->get(m, n) * d_phi.get(m, n, mu, nu);
-          // std::cout << "d_phi = d_m d_n g_mu_nu " << m << " " << n << " " <<
-          // mu
-          //           << " " << nu << " " << d_phi.get(m, n, mu, nu) << "\n";
         }
       }
 

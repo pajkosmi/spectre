@@ -149,19 +149,18 @@ void AnalyticChristoffel::gauge_and_spacetime_derivative(
   phi2.get(1, 3, 1) = phi2.get(1, 1, 3);
 
   // dy g22
-  phi2.get(1, 2, 2) =
-      -2.0 / inertial_coords.get(0) * spacetime_metric.get(1, 2);
+  phi2.get(1, 2, 2) = 2.0 / inertial_coords.get(0) * spacetime_metric.get(1, 2);
 
   // dy g23
   phi2.get(1, 2, 3) = 1.0 / inertial_coords.get(0) * spacetime_metric.get(1, 3);
   phi2.get(1, 3, 2) = phi2.get(1, 2, 3);
 
   // dy g33
-  phi2.get(1, 2, 3) = 0.0;
+  phi2.get(1, 3, 3) = 0.0;
 
   // z derivative
   // dz g00
-  phi2.get(2, 1, 3) = 0.0;
+  phi2.get(2, 0, 0) = 0.0;
 
   // dz g01
   phi2.get(2, 0, 1) =

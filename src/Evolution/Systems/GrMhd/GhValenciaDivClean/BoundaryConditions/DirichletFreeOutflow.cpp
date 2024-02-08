@@ -277,9 +277,6 @@ void DirichletFreeOutflow::fd_ghost(
 
   get<Phi>(outermost_prim_vars) = get_boundary_val(interior_phi);
 
-  // TODO: Mike figure out instability
-  //  - nonzero shift evolution
-  //  - instabilities in metric
   if (direction.sign() < 0.0) {
     // let velocity do what it naturally wants to at the outer domain
 
@@ -314,6 +311,9 @@ void DirichletFreeOutflow::fd_ghost(
 
     // equate diagonal components of Pi and gab, per Hilditch
     // get<Pi>(outermost_prim_vars) = get_boundary_val(interior_pi);
+    // get<SpacetimeMetric>(outermost_prim_vars).get(3, 3) =
+    //     get<SpacetimeMetric>(outermost_prim_vars).get(3, 3) /
+    //     get<SpacetimeMetric>(outermost_prim_vars).get(3, 3);
     get<SpacetimeMetric>(outermost_prim_vars).get(2, 2) =
         get<SpacetimeMetric>(outermost_prim_vars).get(3, 3);
     get<SpacetimeMetric>(outermost_prim_vars).get(1, 1) =
@@ -383,15 +383,7 @@ void DirichletFreeOutflow::fd_ghost(
 
   } else {
     // outer boundary
-    // smoothe phi at outer boundary.
-    // for (size_t i = 0; i < 3; i++) {
-    //   for (size_t a = 0; a < 4; a++) {
-    //     for (size_t b = 0; b < 4; b++) {
-    //       get<Phi>(outermost_prim_vars).get(i, a, b) =
-    //           get_boundary_val(interior_phi).get(i, a, b);
-    //     }
-    //   }
-    // }
+    // match initial data
     get<Phi>(outermost_prim_vars) = get_boundary_val(interior_phi);
     // smoothe Pi at outer boundary.
     get<Pi>(outermost_prim_vars) = get_boundary_val(interior_pi);
