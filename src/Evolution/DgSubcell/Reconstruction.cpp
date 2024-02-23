@@ -45,7 +45,7 @@ void reconstruct_impl(
     // precision.
     const Matrix empty{};
     auto recons_matrices = make_array<Dim>(std::cref(empty));
-    for (size_t d = 0; d < Dim; d++) {
+    for (size_t d = 0; d < 1; d++) {
       gsl::at(recons_matrices, d) = std::cref(reconstruction_matrix(
           dg_mesh.slice_through(d), Index<1>{subcell_extents[d]}));
     }
