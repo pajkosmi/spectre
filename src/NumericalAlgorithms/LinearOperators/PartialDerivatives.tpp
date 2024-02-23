@@ -121,7 +121,7 @@ void lie_drag_covariant_rank_2_tensor(
       // dy g_tz = 0
       dfdx = 0.0;
     } else if (component_index_shift == 4) {
-      // d_y g_xx = -2 g_12 = g(5)
+      // d_y g_xx = -2 g_12 = -2 g(5)
       dfdx = -2.0 * var(5);
     } else if (component_index_shift == 5) {
       // d_y g_xy = g_11 - g_22 = g(4) - g(7)

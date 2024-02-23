@@ -23,6 +23,7 @@
 #include "PointwiseFunctions/GeneralRelativity/Shift.hpp"
 #include "PointwiseFunctions/GeneralRelativity/SpacetimeNormalVector.hpp"
 #include "PointwiseFunctions/GeneralRelativity/SpatialMetric.hpp"
+#include "Utilities/ErrorHandling/Assert.hpp"
 #include "Utilities/GenerateInstantiations.hpp"
 #include "Utilities/Gsl.hpp"
 
@@ -317,8 +318,12 @@ void TimeDerivative<Dim>::apply(
           three_index_constraint->get(n, mu, nu) =
               d_spacetime_metric.get(n, mu, nu) - phi.get(n, mu, nu);
         } else {
-          three_index_constraint->get(n, mu, nu) = 0.0;
+          // zero out?
+          three_index_constraint->get(n, mu, nu) =
+              d_spacetime_metric.get(n, mu, nu) - phi.get(n, mu, nu);
         }
+        // std::cout << n << " " << mu << " " << nu << " "
+        //           << three_index_constraint->get(n, mu, nu) << "\n";
       }
     }
   }

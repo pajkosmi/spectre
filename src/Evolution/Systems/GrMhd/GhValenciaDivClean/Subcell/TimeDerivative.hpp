@@ -264,12 +264,7 @@ struct ComputeTimeDerivImpl<
           spatial_deriv_shift.get(i, j) *= get(lapse);
         }
       }
-      // cartoon overwrite shift vector
-      tnsr::iJ<DataVector, 3, Frame::Inertial> d_shift_cartoon;
-      // x derivatives (0) will be overwritten
-      spatial_deriv_shift.get(0, 0) = spatial_deriv_shift.get(0, 0);
-      spatial_deriv_shift.get(0, 1) = spatial_deriv_shift.get(0, 1);
-      spatial_deriv_shift.get(0, 2) = spatial_deriv_shift.get(0, 2);
+      // x derivatives (0)
 
       // y derivatives (1)
       // beta^x
@@ -679,7 +674,7 @@ struct ComputeTimeDerivImpl<
 
     // zero grhmd
     // EXPAND_PACK_LEFT_TO_RIGHT([&dt_vars_ptr, &zero_out]() {
-    //for (size_t i = 0; i < get<::Tags::dt<GrmhdDtTags>>(*dt_vars_ptr).size();
+    // for (size_t i = 0; i < get<::Tags::dt<GrmhdDtTags>>(*dt_vars_ptr).size();
     //        ++i) {
     //     get<::Tags::dt<GrmhdDtTags>>(*dt_vars_ptr)[i] = 0.0;
     //   }
