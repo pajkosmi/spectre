@@ -137,7 +137,7 @@ struct SetSubcellGrid {
     const Mesh<Dim>& subcell_mesh = db::get<subcell::Tags::Mesh<Dim>>(box);
     const Element<Dim>& element = db::get<::domain::Tags::Element<Dim>>(box);
 
-    for (size_t d = 0; d < Dim; ++d) {
+    for (size_t d = 0; d < 1; ++d) {
       if (subcell_options.persson_num_highest_modes() >= dg_mesh.extents(d)) {
         ERROR("Number of the highest modes to be monitored by the Persson TCI ("
               << subcell_options.persson_num_highest_modes()
