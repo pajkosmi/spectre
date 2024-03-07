@@ -7,6 +7,7 @@
 
 #include <array>
 
+#include <iostream>
 #include "DataStructures/DataVector.hpp"
 #include "DataStructures/Tensor/Tensor.hpp"
 #include "DataStructures/Variables.hpp"
@@ -18,7 +19,6 @@
 #include "Utilities/ErrorHandling/Assert.hpp"
 #include "Utilities/Gsl.hpp"
 #include "Utilities/TMPL.hpp"
-
 
 namespace fd {
 namespace detail {
@@ -124,7 +124,6 @@ void cartoon_partial_derivatives(
                               volume_vars, ghost_cell_vars, volume_mesh,
                               number_of_variables, fd_order);
 
-
   std::array<const double*, Dim> logical_partial_derivs_ptrs{};
   for (size_t i = 0; i < Dim; ++i) {
     gsl::at(logical_partial_derivs_ptrs, i) =
@@ -136,6 +135,177 @@ void cartoon_partial_derivatives(
       Variables<DerivativeTags>::number_of_independent_components,
       inverse_jacobian, inertial_coords, volume_vars, volume_mesh.extents());
 }
+
+// cartoon general call
+// template, using stuff here
+
+template <typename InputTensorDataType, typename OutputTensorDataType,
+          typename DataType, size_t SpatialDim, typename Frame>
+// TensorMetafunctions::prepend_spatial_index<InputTensorDataType, 3, UpLo::Lo,
+//                                            Frame>
+// general_cartoon_deriv(InputTensorDataType tensor) {
+  OutputTensorDataType general_cartoon_deriv(InputTensorDataType tensor) {
+  // create output tensor
+  OutputTensorDataType deriv_tensor;
+
+  using output_test_type =
+      TensorMetafunctions::prepend_spatial_index<InputTensorDataType, 3,
+                                                 UpLo::Lo, Frame>;
+
+  // output_test_type deriv_tensor;
+
+  // check output rank is 1 larger than input rank
+  ASSERT(deriv_tensor.rank() - tensor.rank() == 1,
+         "Deriv tensor rank must be exactly 1 higher than input tensor.");
+
+  // read valence
+  auto valences = tensor.index_valences();
+  auto type_index = tensor.index_types();
+
+  // Sign of addition factor
+  double sign = 1.0;
+  double coord = 1.0;
+  // loop and sum
+
+  //   for (const auto valence: valences){
+  //     sign = (valence == UpLo::Lo ? 1.0 : -1.0);
+
+  //     std::cout << "tensor " << tensor.get() << "\n";
+  //   }
+
+  //   auto tuple = std::make_tuple(1, 1, 2);
+  //   auto tuple = std::make_pair(1, 1);
+  // auto tuple = std::vector<size_t>{1, 2, 3};
+
+  // for (auto it = tensor->begin();it != tensor->end(); it++){
+  //   std::cout << "tensor " << it << "\n";
+  // }
+
+  // tensor
+  const size_t valence_size = valences.size();
+  std::array<size_t, valence_size> input_tensor_array;
+  std::array<size_t, valence_size + 1> output_tensor_index;
+
+  std::array<size_t, 3> Killing_indices;
+
+  size_t max_dummy = 3;
+
+  input_tensor_array[0] = 0;
+  input_tensor_array[1] = 0;
+  input_tensor_array[2] = 0;
+
+  // construct array containing derivatives of Killing vectors
+  tnsr::iab<DataType, SpatialDim> da_killing_vectors{};
+
+  for (size_t i = 0; i < 3; i++) {
+    for (size_t a = 0; a < 4; a++) {
+      for (size_t b = 0; b < 4; b++) {
+        if (i == 1 and a == 2 and b == 1) {
+          // y derivative
+          da_killing_vectors.get(i, a, b) =
+              0.0 * tensor.get(input_tensor_array) - 1.0;
+        } else if (i == 1 and a == 1 and b == 2) {
+          // y derivative
+          da_killing_vectors.get(i, a, b) =
+              0.0 * tensor.get(input_tensor_array) + 1.0;
+        } else if (i == 2 and a == 3 and b == 1) {
+          // z derivative
+          da_killing_vectors.get(i, a, b) =
+              0.0 * tensor.get(input_tensor_array) - 1.0;
+        } else if (i == 2 and a == 1 and b == 3) {
+          // z derivative
+          da_killing_vectors.get(i, a, b) =
+              0.0 * tensor.get(input_tensor_array) + 1.0;
+        } else {
+          da_killing_vectors.get(i, a, b) =
+              0.0 * tensor.get(input_tensor_array);
+        }
+      }
+    }
+  }
+  std::string symmetry = "Spherical";  // Axisymmetric, Spherical
+
+  size_t max_deriv_index = symmetry == "Spherical" ? 3 : 3;
+  size_t start_deriv_index = symmetry == "Spherical" ? 1 : 2;
+
+  // loop over index that depends on symmetry
+  for (size_t deriv_index = start_deriv_index; deriv_index < max_deriv_index;
+       deriv_index++) {
+    // loop over tensor indices
+    for (size_t i = 0; i < tensor.size(); i++) {
+      auto input_tensor_index = tensor.get_tensor_index(i);
+      auto output_tensor_index =
+          prepend(input_tensor_index, size_t{deriv_index});
+      // initialize derivative tensor to 0
+      deriv_tensor.get(output_tensor_index) =
+          0.0 * tensor.get(input_tensor_array);
+      // loop over different ranks
+      for (size_t rank = 0; rank < valence_size; rank++) {
+        sign = (valences[rank] == UpLo::Lo ? 1.0 : -1.0);
+        // construct input array
+        for (size_t j = 0; j < input_tensor_index.size(); j++) {
+          input_tensor_array[j] = input_tensor_index[j];
+        }
+        max_dummy = type_index[rank] == IndexType::Spacetime ? 4 : 3;
+        // loop over dimension of rank
+        for (size_t dummy = 0; dummy < max_dummy; dummy++) {
+          Killing_indices[0] = deriv_index;
+          if (valences[rank] == UpLo::Lo) {
+            // covariant index
+            Killing_indices[1] = input_tensor_array[rank];
+            Killing_indices[2] = dummy;
+          } else {
+            // contravariant
+            Killing_indices[1] = dummy;
+            Killing_indices[2] = input_tensor_array[rank];
+          }
+          // input_tensor_array[rank] = dummy;
+          deriv_tensor.get(output_tensor_index) +=
+              sign * tensor.get(input_tensor_array);
+
+          std::cout << input_tensor_array << " " << Killing_indices << " "
+                    << tensor.get(input_tensor_array) << " "
+                    << da_killing_vectors.get(Killing_indices) << " output "
+                    << output_tensor_index << " output tensor "
+                    << deriv_tensor.get(output_tensor_index) << "\n";
+        }
+      }
+      // insert array into current index
+      // auto index_test = tensor.get_tensor_index(1);
+      // output_tensor_index = prepend(index_test, size_t{7});
+      // std::cout << output_tensor_index << "";
+      // std::cout << " index " << input_tensor_index << "test array"
+      //           << input_tensor_array << "  " << output_tensor_index << "\n";
+    }
+  }
+
+  // for (const auto element : tensor) {
+  //   std::cout << " element " << element << " " << get_tensor_index(element)
+  //             << "\n";
+  // }
+
+  for (const auto element : tensor) {
+    std::cout << " element " << element << " "
+              << "\n";
+  }
+
+  const std::array<int, 0> a0{{}};
+  // insert element(existing array, index to insert in to, number to insert)
+  // arrays[0] = a0;
+  // auto a1 = insert_element(a0, 0, 7);
+
+  for (size_t i = 0; i < valences.size(); i++) {
+    auto a1 = insert_element(a0, 0, 7);
+    sign = (valences[i] == UpLo::Lo ? 1.0 : -1.0);
+
+    std::cout << "tensor "
+              << " " << 0 << " "
+              << "\n";
+  }
+
+  // return output
+  return deriv_tensor;
+};
 
 }  // namespace fd
 

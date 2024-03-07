@@ -77,4 +77,11 @@ void cartoon_partial_derivatives(
     const InverseJacobian<DataVector, Dim, Frame::ElementLogical,
                           DerivativeFrame>& inverse_jacobian,
     const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coords);
+
+// InputTensorDataType = tnsr::Aj...
+// OutputTensorDataType = tnsr::iAj...
+
+template <typename InputTensorDataType, typename OutputTensorDataType,
+          typename DataType, size_t SpatialDim, typename Frame>
+OutputTensorDataType general_cartoon_deriv(InputTensorDataType tensor);
 }  // namespace fd

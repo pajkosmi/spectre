@@ -13,6 +13,7 @@
 #include "DataStructures/Tensor/Tensor.hpp"
 #include "Evolution/Systems/GeneralizedHarmonic/AllSolutions.hpp"
 #include "Evolution/Systems/GeneralizedHarmonic/Tags.hpp"
+#include "NumericalAlgorithms/FiniteDifference/PartialDerivatives.tpp"
 #include "NumericalAlgorithms/LinearOperators/PartialDerivatives.hpp"
 #include "NumericalAlgorithms/Spectral/Mesh.hpp"
 #include "PointwiseFunctions/AnalyticData/GhGrMhd/Factory.hpp"
@@ -114,8 +115,22 @@ void AnalyticChristoffel::gauge_and_spacetime_derivative(
   auto& inverse_spacetime_metric =
       get<gr::Tags::InverseSpacetimeMetric<DataVector, SpatialDim>>(temp_vars);
 
+  //   ::fd::general_cartoon_deriv<tnsr::I<DataVector, SpatialDim,
+  //   Frame::Inertial>,
+  //                         tnsr::iJ<DataVector, SpatialDim, Frame::Inertial>,
+  //                         DataVector, SpatialDim, Frame::Inertial>(
+  //       inertial_coords);
+
   // Need copy b/c phi is const
+//   auto phi2 = phi;
   auto phi2 = phi;
+
+
+  ::fd::general_cartoon_deriv<
+      tnsr::iaa<DataVector, SpatialDim, Frame::Inertial>,
+      tnsr::ijaa<DataVector, SpatialDim, Frame::Inertial>, DataVector,
+      SpatialDim, Frame::Inertial>(phi2);
+
 
   // need to overwrite metric during analytic christoffel calculation
   // y derivative
