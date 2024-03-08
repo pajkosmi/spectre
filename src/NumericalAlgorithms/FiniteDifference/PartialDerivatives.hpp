@@ -80,8 +80,11 @@ void cartoon_partial_derivatives(
 
 // InputTensorDataType = tnsr::Aj...
 // OutputTensorDataType = tnsr::iAj...
-
-template <typename InputTensorDataType, typename OutputTensorDataType,
-          typename DataType, size_t SpatialDim, typename Frame>
-OutputTensorDataType general_cartoon_deriv(InputTensorDataType tensor);
+template <typename InputTensorDataType, typename DataType, size_t SpatialDim,
+          typename Frame>
+void general_cartoon_deriv(
+    TensorMetafunctions::prepend_spatial_index<InputTensorDataType, SpatialDim,
+                                               UpLo::Lo, Frame>& deriv_tensor,
+    const InputTensorDataType& tensor,
+    const tnsr::I<DataType, SpatialDim, Frame>& inertial_coords);
 }  // namespace fd
