@@ -15,7 +15,7 @@ FilterOptions::FilterOptions(
     : spacetime_dissipation(in_spacetime_dissipation) {
   if (spacetime_dissipation.has_value() and
       (spacetime_dissipation.value() <= 0.0 or
-       spacetime_dissipation.value() >= 1.0)) {
+       spacetime_dissipation.value() >= 10.0)) {
     PARSE_ERROR(context,
                 "Spacetime dissipation must be between 0 and 1, but got "
                     << spacetime_dissipation.value());

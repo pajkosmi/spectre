@@ -17,6 +17,7 @@
 #include "Evolution/DgSubcell/Reconstruction.hpp"
 #include "Evolution/Systems/GeneralizedHarmonic/GaugeSourceFunctions/Dispatch.hpp"
 #include "Evolution/Systems/GeneralizedHarmonic/GaugeSourceFunctions/Gauges.hpp"
+#include "NumericalAlgorithms/FiniteDifference/PartialDerivatives.tpp"
 #include "NumericalAlgorithms/LinearOperators/PartialDerivatives.hpp"
 #include "NumericalAlgorithms/Spectral/LogicalCoordinates.hpp"
 #include "NumericalAlgorithms/Spectral/Quadrature.hpp"
@@ -127,7 +128,7 @@ void SetPiAndPhiFromConstraints<Dim>::apply(
       phi->get(0, a, b) = evolution::dg::subcell::fd::project(
           dg_phi.get(0, a, b), dg_mesh, mesh.extents());
 
-      //zero out lower components
+      // zero out lower components
       phi->get(1, a, b) = 0 * phi->get(0, a, b);
       phi->get(2, a, b) = 0 * phi->get(0, a, b);
     }
@@ -141,17 +142,22 @@ void SetPiAndPhiFromConstraints<Dim>::apply(
   // calculate phi
   // partial_derivative(phi, spacetime_metric, mesh, inverse_jacobian);
 
+  // MIKE: general cartoon
   // y derivative
   //  Phi_y12 = 1 / x * (g_11 - g_22)
-  phi->get(1, 1, 2) = 1.0 / inertial_coords.get(0) *
-                      (spacetime_metric.get(1, 1) - spacetime_metric.get(2, 2));
-  phi->get(1, 2, 1) = phi->get(1, 1, 2);
+  // phi->get(1, 1, 2) = 1.0 / inertial_coords.get(0) *
+  //                     (spacetime_metric.get(1, 1) - spacetime_metric.get(2,
+  //                     2));
+  // phi->get(1, 2, 1) = phi->get(1, 1, 2);
 
-  // z derivative
-  // Phi_z13 = 1 / x * (g_11 - g_33)
-  phi->get(2, 1, 3) = 1.0 / inertial_coords.get(0) *
-                      (spacetime_metric.get(1, 1) - spacetime_metric.get(3, 3));
-  phi->get(2, 3, 1) = phi->get(2, 1, 3);
+  // // z derivative
+  // // Phi_z13 = 1 / x * (g_11 - g_33)
+  // phi->get(2, 1, 3) = 1.0 / inertial_coords.get(0) *
+  //                     (spacetime_metric.get(1, 1) - spacetime_metric.get(3,
+  //                     3));
+  // phi->get(2, 3, 1) = 99*phi->get(0, 2, 2);
+
+  ::fd::general_cartoon_deriv(*phi, spacetime_metric, inertial_coords);
 
   Variables<
       tmpl::list<gr::Tags::SpatialMetric<DataVector, Dim>,

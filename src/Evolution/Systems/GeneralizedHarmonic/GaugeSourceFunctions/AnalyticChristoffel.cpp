@@ -122,96 +122,11 @@ void AnalyticChristoffel::gauge_and_spacetime_derivative(
   //       inertial_coords);
 
   // Need copy b/c phi is const
-//   auto phi2 = phi;
+  //   auto phi2 = phi;
   auto phi2 = phi;
 
-
-  ::fd::general_cartoon_deriv<
-      tnsr::iaa<DataVector, SpatialDim, Frame::Inertial>,
-      tnsr::ijaa<DataVector, SpatialDim, Frame::Inertial>, DataVector,
-      SpatialDim, Frame::Inertial>(phi2);
-
-
   // need to overwrite metric during analytic christoffel calculation
-  // y derivative
-  // dy g00
-  phi2.get(1, 0, 0) = 0.0;
-
-  // dy g01
-  phi2.get(1, 0, 1) =
-      -1.0 / inertial_coords.get(0) * spacetime_metric.get(0, 2);
-  phi2.get(1, 1, 0) = phi2.get(1, 0, 1);
-
-  // dy g02
-  phi2.get(1, 0, 2) = 1.0 / inertial_coords.get(0) * spacetime_metric.get(0, 1);
-  phi2.get(1, 2, 0) = phi2.get(1, 0, 2);
-
-  // dy g03
-  phi2.get(1, 0, 3) = 0.0;
-
-  // dy g11
-  phi2.get(1, 1, 1) =
-      -2.0 / inertial_coords.get(0) * spacetime_metric.get(1, 2);
-
-  // dy g12
-  phi2.get(1, 1, 2) = 1.0 / inertial_coords.get(0) *
-                      (spacetime_metric.get(1, 1) - spacetime_metric.get(2, 2));
-  phi2.get(1, 2, 1) = phi2.get(1, 1, 2);
-
-  // dy g13
-  phi2.get(1, 1, 3) =
-      -1.0 / inertial_coords.get(0) * spacetime_metric.get(2, 3);
-  phi2.get(1, 3, 1) = phi2.get(1, 1, 3);
-
-  // dy g22
-  phi2.get(1, 2, 2) = 2.0 / inertial_coords.get(0) * spacetime_metric.get(1, 2);
-
-  // dy g23
-  phi2.get(1, 2, 3) = 1.0 / inertial_coords.get(0) * spacetime_metric.get(1, 3);
-  phi2.get(1, 3, 2) = phi2.get(1, 2, 3);
-
-  // dy g33
-  phi2.get(1, 3, 3) = 0.0;
-
-  // z derivative
-  // dz g00
-  phi2.get(2, 0, 0) = 0.0;
-
-  // dz g01
-  phi2.get(2, 0, 1) =
-      -1.0 / inertial_coords.get(0) * spacetime_metric.get(0, 3);
-  phi2.get(2, 1, 0) = phi2.get(2, 0, 1);
-
-  // dz g02
-  phi2.get(2, 0, 2) = 0.0;
-
-  // dz g03
-  phi2.get(2, 0, 3) = 1.0 / inertial_coords.get(0) * spacetime_metric.get(0, 1);
-  phi2.get(2, 3, 0) = phi2.get(2, 0, 3);
-
-  // dz g11
-  phi2.get(2, 1, 1) =
-      -2.0 / inertial_coords.get(0) * spacetime_metric.get(1, 3);
-
-  // dz g12
-  phi2.get(2, 1, 2) =
-      -1.0 / inertial_coords.get(0) * spacetime_metric.get(2, 3);
-  phi2.get(2, 2, 1) = phi2.get(2, 1, 2);
-
-  // dz g13
-  phi2.get(2, 1, 3) = 1.0 / inertial_coords.get(0) *
-                      (spacetime_metric.get(1, 1) - spacetime_metric.get(3, 3));
-  phi2.get(2, 3, 1) = phi2.get(2, 1, 3);
-
-  // dz g22
-  phi2.get(2, 2, 2) = 0.0;
-
-  // dz g23
-  phi2.get(2, 2, 3) = 1.0 / inertial_coords.get(0) * spacetime_metric.get(1, 2);
-  phi2.get(2, 3, 2) = phi2.get(2, 2, 3);
-
-  // dz g33
-  phi2.get(2, 3, 3) = 2.0 / inertial_coords.get(0) * spacetime_metric.get(1, 3);
+  ::fd::general_cartoon_deriv(phi2, spacetime_metric, inertial_coords);
 
   {
     Scalar<DataVector> det_buffer{};
@@ -244,6 +159,9 @@ void AnalyticChristoffel::gauge_and_spacetime_derivative(
   }
   partial_derivative(make_not_null(&di_gauge_h), *gauge_h, mesh,
                      inverse_jacobian);
+
+  ::fd::general_cartoon_deriv(di_gauge_h, *gauge_h, inertial_coords);
+
   // Set time derivative to zero. We are assuming a static solution.
   for (size_t a = 0; a < SpatialDim + 1; ++a) {
     d4_gauge_h->get(0, a) = 0.0;

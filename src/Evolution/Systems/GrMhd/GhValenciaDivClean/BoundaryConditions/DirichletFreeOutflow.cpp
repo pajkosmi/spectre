@@ -270,6 +270,8 @@ void DirichletFreeOutflow::fd_ghost(
   };
 
   // ensuring derivative of spacetime metric is 0 at origin and outer boundary
+
+// begin new changes
   get<SpacetimeMetric>(outermost_prim_vars) =
       get_boundary_val(interior_spacetime_metric);
 
@@ -285,24 +287,24 @@ void DirichletFreeOutflow::fd_ghost(
     // get<SpacetimeMetric>(outermost_prim_vars).get(0, 1) =
     //     0.0 * get_boundary_val(interior_spacetime_metric).get(0, 1);
 
-    // // yt = 0
+    // // // yt = 0
     // get<SpacetimeMetric>(outermost_prim_vars).get(0, 2) =
     //     0.0 * get_boundary_val(interior_spacetime_metric).get(0, 2);
 
-    // // zt = 0
+    // // // zt = 0
     // get<SpacetimeMetric>(outermost_prim_vars).get(0, 3) =
     //     0.0 * get_boundary_val(interior_spacetime_metric).get(0, 3);
 
-    // // xy = 0
+    // // // xy = 0
     // get<SpacetimeMetric>(outermost_prim_vars).get(1, 2) =
     //     0.0 * get_boundary_val(interior_spacetime_metric).get(1, 2);
 
-    // // yz = 0
-    // get<SpacetimeMetric>(outermost_prim_vars).get(2, 3) =
+    // // // xz = 0
+    // get<SpacetimeMetric>(outermost_prim_vars).get(1, 3) =
     //     0.0 * get_boundary_val(interior_spacetime_metric).get(1, 3);
 
-    // // xz = 0
-    // get<SpacetimeMetric>(outermost_prim_vars).get(1, 3) =
+    // // yz = 0
+    // get<SpacetimeMetric>(outermost_prim_vars).get(2, 3) =
     //     0.0 * get_boundary_val(interior_spacetime_metric).get(1, 3);
 
     // // g_xx = g_yy = g_zz
@@ -339,7 +341,7 @@ void DirichletFreeOutflow::fd_ghost(
             get<Phi>(outermost_prim_vars).get(i, a, b) =
                 0.0 * get_boundary_val(interior_phi).get(i, a, b);
           }
-          // zero out Pi on off diagonal elements
+          // zero out g/Pi off diagonal elements
           if (a != b) {
             // Mike: Zero out Pi_00 and g_00 element?
             get<SpacetimeMetric>(outermost_prim_vars).get(a, b) =
@@ -385,8 +387,10 @@ void DirichletFreeOutflow::fd_ghost(
     // outer boundary
     // match initial data
     get<Phi>(outermost_prim_vars) = get_boundary_val(interior_phi);
-    // smoothe Pi at outer boundary.
+    // smooth Pi at outer boundary.
     get<Pi>(outermost_prim_vars) = get_boundary_val(interior_pi);
+    get<SpacetimeMetric>(outermost_prim_vars) =
+        get_boundary_val(interior_spacetime_metric);
   }
 
   // Now copy `outermost_prim_vars` into each slices of `ghost_prim_vars`.
@@ -402,41 +406,42 @@ void DirichletFreeOutflow::fd_ghost(
   *spacetime_metric = get<SpacetimeMetric>(ghost_prim_vars);
   *pi = get<Pi>(ghost_prim_vars);
   *phi = get<Phi>(ghost_prim_vars);
+// end new changes
 
-  // old analytic data overwrite
-  // // Compute FD ghost data with the analytic data or solution
-  // auto boundary_values = call_with_dynamic_type<
-  //     tuples::TaggedTuple<gr::Tags::SpacetimeMetric<DataVector, 3>,
-  //                         ::gh::Tags::Pi<DataVector, 3>,
-  //                         ::gh::Tags::Phi<DataVector, 3>>,
-  //     ghmhd::GhValenciaDivClean::InitialData::
-  // analytic_solutions_and_data_list>(
-  //     analytic_prescription_.get(),
-  //     [&ghost_inertial_coords, &time](const auto* const initial_data) {
-  //       using spacetime_tags =
-  //           tmpl::list<gr::Tags::SpacetimeMetric<DataVector, 3>,
-  //                      ::gh::Tags::Pi<DataVector, 3>,
-  //                      ::gh::Tags::Phi<DataVector, 3>>;
-  //       if constexpr (is_analytic_solution_v<
-  //                         std::decay_t<decltype(*initial_data)>>) {
-  //         return initial_data->variables(ghost_inertial_coords, time,
-  //                                        spacetime_tags{});
-  //       } else if constexpr (evolution::is_numeric_initial_data_v<
-  //                                std::decay_t<decltype(*initial_data)>>) {
-  //         ERROR(
-  //             "Cannot currently use numeric initial data as an analytic "
-  //             "prescription for boundary conditions.");
-  //       } else {
-  //         (void)time;
-  //         return initial_data->variables(ghost_inertial_coords,
-  //                                        spacetime_tags{});
-  //       }
-  //     });
+// //   old analytic data overwrite
+//   // Compute FD ghost data with the analytic data or solution
+//   auto boundary_values = call_with_dynamic_type<
+//       tuples::TaggedTuple<gr::Tags::SpacetimeMetric<DataVector, 3>,
+//                           ::gh::Tags::Pi<DataVector, 3>,
+//                           ::gh::Tags::Phi<DataVector, 3>>,
+//       ghmhd::GhValenciaDivClean::InitialData::
+//   analytic_solutions_and_data_list>(
+//       analytic_prescription_.get(),
+//       [&ghost_inertial_coords, &time](const auto* const initial_data) {
+//         using spacetime_tags =
+//             tmpl::list<gr::Tags::SpacetimeMetric<DataVector, 3>,
+//                        ::gh::Tags::Pi<DataVector, 3>,
+//                        ::gh::Tags::Phi<DataVector, 3>>;
+//         if constexpr (is_analytic_solution_v<
+//                           std::decay_t<decltype(*initial_data)>>) {
+//           return initial_data->variables(ghost_inertial_coords, time,
+//                                          spacetime_tags{});
+//         } else if constexpr (evolution::is_numeric_initial_data_v<
+//                                  std::decay_t<decltype(*initial_data)>>) {
+//           ERROR(
+//               "Cannot currently use numeric initial data as an analytic "
+//               "prescription for boundary conditions.");
+//         } else {
+//           (void)time;
+//           return initial_data->variables(ghost_inertial_coords,
+//                                          spacetime_tags{});
+//         }
+//       });
 
-  // *spacetime_metric =
-  //     get<gr::Tags::SpacetimeMetric<DataVector, 3>>(boundary_values);
-  // *pi = get<::gh::Tags::Pi<DataVector, 3>>(boundary_values);
-  // *phi = get<::gh::Tags::Phi<DataVector, 3>>(boundary_values);
+//   *spacetime_metric =
+//       get<gr::Tags::SpacetimeMetric<DataVector, 3>>(boundary_values);
+//   *pi = get<::gh::Tags::Pi<DataVector, 3>>(boundary_values);
+//   *phi = get<::gh::Tags::Phi<DataVector, 3>>(boundary_values);
 
   // Note: Once we support high-order fluxes with GHMHD we will need to
   // handle this correctly.

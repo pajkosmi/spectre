@@ -529,10 +529,6 @@ void partial_derivatives_cartoon(
   DataVector lhs{};
   DataVector logical_du{};
 
-  double dfdx = 0.0;
-  double finite_diff_dfdx = 0.0;
-  double two_f_over_x = 0.0;
-
   using tag_list =
       tmpl::list<gr::Tags::SpacetimeMetric<DataVector, Dim, Frame::Inertial>,
                  gh::Tags::Pi<DataVector, 3>, gh::Tags::Phi<DataVector, 3>>;
@@ -540,29 +536,10 @@ void partial_derivatives_cartoon(
   const Variables<tag_list> metric_quantities{
       const_cast<double*>(volume_vars.data()), volume_vars.size()};
 
-  // tnsr::aa<DataVector, Dim, Frame::Inertial> spacetime_metric;
   tnsr::iaa<DataVector, Dim, Frame::Inertial> deriv_spacetime_metric;
-
-  // tnsr::aa<DataVector, Dim, Frame::Inertial> pi_evolution;
   tnsr::iaa<DataVector, Dim, Frame::Inertial> deriv_pi_evolution;
-
-  // tnsr::iaa<DataVector, Dim, Frame::Inertial> phi_evolution;
   tnsr::ijaa<DataVector, Dim, Frame::Inertial> deriv_phi_evolution;
 
-  // store quantities in tensors
-  // spacetime_metric =
-  //     get<gr::Tags::SpacetimeMetric<DataVector, Dim, Frame::Inertial>>(
-  //         metric_quantities);
-  // pi_evolution = get<gh::Tags::Pi<DataVector, 3>>(metric_quantities);
-  // phi_evolution = get<gh::Tags::Phi<DataVector, 3>>(metric_quantities);
-
-  // construct cartoon derivatives
-  // ::fd::general_cartoon_deriv(deriv_spacetime_metric, spacetime_metric,
-  //                             inertial_coords);
-  // ::fd::general_cartoon_deriv(deriv_pi_evolution, pi_evolution,
-  //                             inertial_coords);
-  // ::fd::general_cartoon_deriv(deriv_phi_evolution, phi_evolution,
-  //                             inertial_coords);
   ::fd::general_cartoon_deriv(
       deriv_spacetime_metric,
       get<gr::Tags::SpacetimeMetric<DataVector, Dim, Frame::Inertial>>(
@@ -626,68 +603,6 @@ void partial_derivatives_cartoon(
           lhs = deriv_phi_evolution.get(output_tensor_index);
         }
       }
-      //   shifted_component_index = component_index - 10...
-      //   tensor_index =
-      //   pi_evolution/phi_evolution.component_to_tensor(shifted_component)
-      //   deriv_tensor_index = prepend(deriv_index, tensor_index)
-      //   lhs = pi_evolution/phi_evolution.get(deriv_tensor_index)
-
-      // lhs = output of function
-
-      // // loop over mesh to check if x coordinate = 0 (it should never be 0)
-      // for (size_t k = 0; k < subcell_extents[2]; ++k) {
-      //   for (size_t j = 0; j < subcell_extents[1]; ++j) {
-      //     for (size_t i = 0; i < subcell_extents[0]; ++i) {
-      //       Index<3> index(i, j, k);
-      //       const size_t volume_index = collapsed_index(index,
-      //       subcell_extents);
-      //       // access current coordinate
-      //       // Need to initialize lhs and overwrite previous NaN.  We've
-      //       // removed the previous logical_partial derivative loop and just
-      //       // add all three terms together.
-
-      //       // (double dfdx, const InverseJacobian<DataVector, Dim,
-      //       // Frame::ElementLogical, DerivativeFrame>& inverse_jacobian,
-      //       // size_t volume_index, DataVector logical_du, size_t
-      //       deriv_index)
-
-      //       // if cases to overwrite metric derivatives
-      //       cartoon_tensor_derivatives<ResultTags, Dim, DerivativeFrame>(
-      //           dfdx, deriv_index, volume_index, inverse_jacobian,
-      //           logical_du, inertial_coords, volume_vars, component_index,
-      //           num_grid_points);
-
-      //       lhs[volume_index] = dfdx;
-
-      //       // if (component_index == 11) {
-      //       //   std::cout << "CI " << component_index << " VI " <<
-      //       volume_index
-      //       //             << " volume_vars "
-      //       //             << volume_vars[component_index * num_grid_points +
-      //       //                            volume_index]
-      //       //             << " coord " <<
-      //       inertial_coords.get(0)[volume_index]
-      //       //             << "\n";
-      //       // }
-      //       // finite_diff_dfdx = inverse_jacobian.get(0, 0)[volume_index] *
-      //       //                   logical_du[volume_index];
-      //       // two_f_over_x =
-      //       //     2.0 *
-      //       //     volume_vars[component_index * num_grid_points +
-      //       //     volume_index] / abs(inertial_coords.get(0)[volume_index]);
-
-      //       // // we're assigning a value, rather than adding to a NaN (+=)
-      //       // lhs[volume_index] = finite_diff_dfdx + two_f_over_x;
-      //     }
-      //   }
-      // }
-      // clang-tidy: no pointer arithmetic
-      // if (component_index > 19) {
-      //   // std::cout << "lhs " << lhs << "component " << component_index
-      //   //           << " deriv index " << deriv_index << " vars \n"; //<<
-      //   //           volume_vars
-      //   //           //<< "\n";
-      // }
       pdu += num_grid_points;  // NOLINT
     }
   }

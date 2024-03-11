@@ -13,6 +13,7 @@
 #include "DataStructures/Tensor/Tensor.hpp"
 #include "DataStructures/Variables.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/Tags.hpp"
+#include "NumericalAlgorithms/FiniteDifference/PartialDerivatives.tpp"
 #include "PointwiseFunctions/GeneralRelativity/Christoffel.hpp"
 #include "PointwiseFunctions/GeneralRelativity/Tags.hpp"
 #include "PointwiseFunctions/Hydro/Tags.hpp"
@@ -227,10 +228,28 @@ void ComputeSources::apply(
       get(pressure) + 0.5 * square(get(magnetic_field_dot_spatial_velocity)) +
       0.5 * get(magnetic_field_squared) * get(one_over_w_squared);
 
+  tnsr::iJ<DataVector, 3, Frame::Inertial> d_shift_cartoon;
+
+  ::fd::general_cartoon_deriv(d_shift_cartoon, shift, inertial_coords);
+
+  // spatial metric
+  tnsr::ijj<DataVector, 3, Frame::Inertial> d_spatial_metric_cartoon;
+  // auto& d_spatial_metric_cartoon = d_spatial_metric;
+
+  // x (0) derivatives will be overwritten
+  for (size_t m = 0; m < 3; m++) {
+    for (size_t n = 0; n < 3; n++) {
+      d_spatial_metric_cartoon.get(0, m, n) = d_spatial_metric.get(0, m, n);
+    }
+  }
+
+  ::fd::general_cartoon_deriv(d_spatial_metric_cartoon, spatial_metric,
+                              inertial_coords);
+
   auto& spatial_christoffel_first_kind =
       get<gr::Tags::SpatialChristoffelFirstKind<DataVector, 3>>(temp_tensors);
   gr::christoffel_first_kind(make_not_null(&spatial_christoffel_first_kind),
-                             d_spatial_metric);
+                             d_spatial_metric_cartoon);
   auto& spatial_christoffel_second_kind =
       get<gr::Tags::SpatialChristoffelSecondKind<DataVector, 3>>(temp_tensors);
   raise_or_lower_first_index(make_not_null(&spatial_christoffel_second_kind),
@@ -244,90 +263,97 @@ void ComputeSources::apply(
 
   // begin cartoon
   // shift
-  tnsr::iJ<DataVector, 3, Frame::Inertial> d_shift_cartoon;
+  // tnsr::iJ<DataVector, 3, Frame::Inertial> d_shift_cartoon;
   // x derivatives (0) will be overwritten
   d_shift_cartoon.get(0, 0) = d_shift.get(0, 0);
   d_shift_cartoon.get(0, 1) = d_shift.get(0, 1);
   d_shift_cartoon.get(0, 2) = d_shift.get(0, 2);
 
-  // y derivatives (1)
-  // beta^x
-  d_shift_cartoon.get(1, 0) = -shift.get(1) / inertial_coords.get(0);
-  // beta^y
-  d_shift_cartoon.get(1, 1) = shift.get(0) / inertial_coords.get(0);
-  // beta^z
-  d_shift_cartoon.get(1, 2) = 0.0 * shift.get(0);
+  // // y derivatives (1)
+  // // beta^x
+  // d_shift_cartoon.get(1, 0) = -shift.get(1) / inertial_coords.get(0);
+  // // beta^y
+  // d_shift_cartoon.get(1, 1) = shift.get(0) / inertial_coords.get(0);
+  // // beta^z
+  // d_shift_cartoon.get(1, 2) = 0.0 * shift.get(0);
 
-  // z derivatives (2)
-  // beta^x
-  d_shift_cartoon.get(2, 0) = -shift.get(2) / inertial_coords.get(0);
-  // beta^y
-  d_shift_cartoon.get(2, 1) = 0.0 * shift.get(0);
-  // beta^z
-  d_shift_cartoon.get(2, 2) = shift.get(0) / inertial_coords.get(0);
+  // // z derivatives (2)
+  // // beta^x
+  // d_shift_cartoon.get(2, 0) = -shift.get(2) / inertial_coords.get(0);
+  // // beta^y
+  // d_shift_cartoon.get(2, 1) = 0.0 * shift.get(0);
+  // // beta^z
+  // d_shift_cartoon.get(2, 2) = shift.get(0) / inertial_coords.get(0);
 
-  // spatial metric
-  tnsr::ijj<DataVector, 3, Frame::Inertial> d_spatial_metric_cartoon;
-  // auto& d_spatial_metric_cartoon = d_spatial_metric;
+  // // spatial metric
+  // tnsr::ijj<DataVector, 3, Frame::Inertial> d_spatial_metric_cartoon;
+  // // auto& d_spatial_metric_cartoon = d_spatial_metric;
 
-  // x (0) derivatives will be overwritten
-  for (size_t m = 0; m < 3; m++) {
-    for (size_t n = 0; n < 3; n++) {
-      d_spatial_metric_cartoon.get(0, m, n) = d_spatial_metric.get(0, m, n);
-    }
-  }
+  // // x (0) derivatives will be overwritten
+  // for (size_t m = 0; m < 3; m++) {
+  //   for (size_t n = 0; n < 3; n++) {
+  //     d_spatial_metric_cartoon.get(0, m, n) = d_spatial_metric.get(0, m, n);
+  //   }
+  // }
 
-  // y (1) derivatives
-  // gxx
-  d_spatial_metric_cartoon.get(1, 0, 0) =
-      -2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
-  // gxy
-  d_spatial_metric_cartoon.get(1, 0, 1) =
-      (spatial_metric.get(0, 0) - spatial_metric.get(1, 1)) /
-      inertial_coords.get(0);
-  // gyx = gxy symmetry
-  d_spatial_metric_cartoon.get(1, 1, 0) = d_spatial_metric_cartoon.get(1, 0, 1);
-  // gxz
-  d_spatial_metric_cartoon.get(1, 0, 2) =
-      -spatial_metric.get(1, 2) / inertial_coords.get(0);
-  // gzx = gxz symmetry
-  d_spatial_metric_cartoon.get(1, 2, 0) = d_spatial_metric_cartoon.get(1, 0, 2);
-  // gyy
-  d_spatial_metric_cartoon.get(1, 1, 1) =
-      2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
-  // gyz
-  d_spatial_metric_cartoon.get(1, 1, 2) =
-      spatial_metric.get(0, 2) / inertial_coords.get(0);
-  // gzy = gyz symmetry
-  d_spatial_metric_cartoon.get(1, 2, 1) = d_spatial_metric_cartoon.get(1, 1, 2);
-  // gzz                                  !just zero
-  d_spatial_metric_cartoon.get(1, 2, 2) = 0.0 * d_spatial_metric.get(1, 2, 2);
+  // // y (1) derivatives
+  // // gxx
+  // d_spatial_metric_cartoon.get(1, 0, 0) =
+  //     -2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
+  // // gxy
+  // d_spatial_metric_cartoon.get(1, 0, 1) =
+  //     (spatial_metric.get(0, 0) - spatial_metric.get(1, 1)) /
+  //     inertial_coords.get(0);
+  // // gyx = gxy symmetry
+  // d_spatial_metric_cartoon.get(1, 1, 0) = d_spatial_metric_cartoon.get(1, 0,
+  // 1);
+  // // gxz
+  // d_spatial_metric_cartoon.get(1, 0, 2) =
+  //     -spatial_metric.get(1, 2) / inertial_coords.get(0);
+  // // gzx = gxz symmetry
+  // d_spatial_metric_cartoon.get(1, 2, 0) = d_spatial_metric_cartoon.get(1, 0,
+  // 2);
+  // // gyy
+  // d_spatial_metric_cartoon.get(1, 1, 1) =
+  //     2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
+  // // gyz
+  // d_spatial_metric_cartoon.get(1, 1, 2) =
+  //     spatial_metric.get(0, 2) / inertial_coords.get(0);
+  // // gzy = gyz symmetry
+  // d_spatial_metric_cartoon.get(1, 2, 1) = d_spatial_metric_cartoon.get(1, 1,
+  // 2);
+  // // gzz                                  !just zero
+  // d_spatial_metric_cartoon.get(1, 2, 2) = 0.0 * d_spatial_metric.get(1, 2,
+  // 2);
 
-  // z (2) derivatives
-  // gxx
-  d_spatial_metric_cartoon.get(2, 0, 0) =
-      -2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
-  // gxy
-  d_spatial_metric_cartoon.get(2, 0, 1) =
-      -spatial_metric.get(1, 2) / inertial_coords.get(0);
-  // gyx = gxy symmetry
-  d_spatial_metric_cartoon.get(2, 1, 0) = d_spatial_metric_cartoon.get(2, 0, 1);
-  // gxz
-  d_spatial_metric_cartoon.get(2, 0, 2) =
-      (spatial_metric.get(0, 0) - spatial_metric.get(2, 2)) /
-      inertial_coords.get(0);
-  // gzx = gxz symmetry
-  d_spatial_metric_cartoon.get(2, 2, 0) = d_spatial_metric_cartoon.get(2, 0, 2);
-  // gyy                                  !just zero
-  d_spatial_metric_cartoon.get(2, 1, 1) = 0.0 * spatial_metric.get(1, 1);
-  // gyz
-  d_spatial_metric_cartoon.get(2, 1, 2) =
-      spatial_metric.get(0, 1) / inertial_coords.get(0);
-  // gzy = gyz symmetry
-  d_spatial_metric_cartoon.get(2, 2, 1) = d_spatial_metric_cartoon.get(2, 1, 2);
-  // gzz
-  d_spatial_metric_cartoon.get(2, 2, 2) =
-      2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
+  // // z (2) derivatives
+  // // gxx
+  // d_spatial_metric_cartoon.get(2, 0, 0) =
+  //     -2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
+  // // gxy
+  // d_spatial_metric_cartoon.get(2, 0, 1) =
+  //     -spatial_metric.get(1, 2) / inertial_coords.get(0);
+  // // gyx = gxy symmetry
+  // d_spatial_metric_cartoon.get(2, 1, 0) = d_spatial_metric_cartoon.get(2, 0,
+  // 1);
+  // // gxz
+  // d_spatial_metric_cartoon.get(2, 0, 2) =
+  //     (spatial_metric.get(0, 0) - spatial_metric.get(2, 2)) /
+  //     inertial_coords.get(0);
+  // // gzx = gxz symmetry
+  // d_spatial_metric_cartoon.get(2, 2, 0) = d_spatial_metric_cartoon.get(2, 0,
+  // 2);
+  // // gyy                                  !just zero
+  // d_spatial_metric_cartoon.get(2, 1, 1) = 0.0 * spatial_metric.get(1, 1);
+  // // gyz
+  // d_spatial_metric_cartoon.get(2, 1, 2) =
+  //     spatial_metric.get(0, 1) / inertial_coords.get(0);
+  // // gzy = gyz symmetry
+  // d_spatial_metric_cartoon.get(2, 2, 1) = d_spatial_metric_cartoon.get(2, 1,
+  // 2);
+  // // gzz
+  // d_spatial_metric_cartoon.get(2, 2, 2) =
+  //     2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
 
   // TODO:
   //  Make sure differences in metric derivative
