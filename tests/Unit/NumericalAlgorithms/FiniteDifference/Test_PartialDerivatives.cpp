@@ -211,9 +211,9 @@ void test(const gsl::not_null<std::mt19937*> generator,
                                custom_approx);
 }
 void test_cartoon() {
+  // random number tools
   std::random_device rand;
   std::mt19937 gen(rand());
-
   double lower = 0.1;
   double upper = 100;
   std::uniform_real_distribution<double> unif(lower, upper);
@@ -226,16 +226,16 @@ void test_cartoon() {
     get<1>(inertial_coords)[i] = 0.0;
     get<2>(inertial_coords)[i] = 0.0;
   }
-
   auto rad = inertial_coords.get(0);
 
-  // sample tensors (rank 1, 2, 3)
+  // zeros for reference
   tnsr::I<DataVector, 3, Frame::Inertial> zeros{inertial_coords.size() + 1,
                                                 0.0};
+  // sample tensors (rank 1)
   tnsr::I<DataVector, 3, Frame::Inertial> rank1_contra{
       inertial_coords.size() + 1, 0.0};
   tnsr::iJ<DataVector, 3, Frame::Inertial> d_rank1_contra_cartoon{
-      inertial_coords.size() + 1, 99.0};
+      inertial_coords.size() + 1, 11.0};
   const auto d_rank1_contra_reference = d_rank1_contra_cartoon;
 
   for (size_t i = 0; i <= inertial_coords.size(); i++) {
@@ -247,7 +247,7 @@ void test_cartoon() {
   ::fd::general_cartoon_deriv(d_rank1_contra_cartoon, rank1_contra,
                               inertial_coords);
 
-  // rank 2 contravariant test tensor (deriv_index, component)
+  // rank 2 contravariant derivative test tensor (deriv_index, component)
   for (size_t i = 0; i < inertial_coords.size(); i++) {
     // x deriv should remain unchanged
     CHECK(d_rank1_contra_cartoon.get(0, i) ==
@@ -274,12 +274,144 @@ void test_cartoon() {
   CHECK(d_rank1_contra_cartoon.get(2, 1) == zeros.get(0));
   // dz V^z = V^x / x
   CHECK(d_rank1_contra_cartoon.get(2, 2) == rank1_contra.get(0) / rad);
+  // end rank 1 tests
 
-  // spatial metric
-  tnsr::ij<DataVector, 3, Frame::Inertial> rank2_co;
-  tnsr::ijj<DataVector, 3, Frame::Inertial> d_rank2_co_cartoon;
+  // rank 2 tests
+  // spatial metric-like quantities
+  tnsr::aa<DataVector, 3, Frame::Inertial> rank2_co{inertial_coords.size() + 1,
+                                                    0.0};
+  tnsr::iaa<DataVector, 3, Frame::Inertial> d_rank2_co_cartoon{
+      inertial_coords.size() + 1, 22.0};
+  const auto d_rank2_co_cartoon_reference = d_rank2_co_cartoon;
 
-  // sample deriv holders
+  // random values for rank 2 tensor
+  for (size_t a = 0; a < 4; a++) {
+    for (size_t b = 0; b < 4; b++) {
+      for (size_t i = 0; i <= inertial_coords.size(); i++) {
+        rank2_co.get(a, b)[i] = unif(gen);
+      }
+    }
+  }
+
+  ::fd::general_cartoon_deriv(d_rank2_co_cartoon, rank2_co, inertial_coords);
+
+  // make sure things should be unchanged remain unchanged & should change have
+  // changed
+  for (size_t a = 0; a < 4; a++) {
+    for (size_t b = 0; b < 4; b++) {
+      // x derivatives should remain constant
+      CHECK(d_rank2_co_cartoon_reference.get(0, a, b) ==
+            d_rank2_co_cartoon.get(0, a, b));
+      // y & z derivatives should change
+      CHECK(d_rank2_co_cartoon_reference.get(1, a, b) !=
+            d_rank2_co_cartoon.get(1, a, b));
+      CHECK(d_rank2_co_cartoon_reference.get(2, a, b) !=
+            d_rank2_co_cartoon.get(2, a, b));
+    }
+  }
+
+  // y derivs
+  // dy g00 = 0
+  CHECK(d_rank2_co_cartoon.get(1, 0, 0) == zeros.get(0));
+  // dy g01 = -g02
+  CHECK(d_rank2_co_cartoon.get(1, 0, 1) == -rank2_co.get(0, 2) / rad);
+  // dy g02 = g01
+  CHECK(d_rank2_co_cartoon.get(1, 0, 2) == rank2_co.get(0, 1) / rad);
+  // dy g03 = 0
+  CHECK(d_rank2_co_cartoon.get(1, 0, 3) == zeros.get(0));
+
+  // dy g10 = -g20 (symmetry)
+  CHECK(d_rank2_co_cartoon.get(1, 1, 0) == -rank2_co.get(2, 0) / rad);
+  // dy g11 = -2g12
+  CHECK(d_rank2_co_cartoon.get(1, 1, 1) == -2.0 * rank2_co.get(1, 2) / rad);
+  // dy g12 = g11 - g22
+  for (size_t i = 0; i <= inertial_coords.size(); i++) {
+    CHECK(d_rank2_co_cartoon.get(1, 1, 2)[i] ==
+          approx((rank2_co.get(1, 1)[i] - rank2_co.get(2, 2)[i]) / rad[i]));
+  }
+  // dy g13 = -g23
+  CHECK(d_rank2_co_cartoon.get(1, 1, 3) == -rank2_co.get(2, 3) / rad);
+
+  // dy g20 = g01 (symmetric)
+  CHECK(d_rank2_co_cartoon.get(1, 2, 0) == rank2_co.get(0, 1) / rad);
+  // dy g21 = g11 - g22 (symmetric)
+  for (size_t i = 0; i <= inertial_coords.size(); i++) {
+    CHECK(d_rank2_co_cartoon.get(1, 2, 1)[i] ==
+          approx((rank2_co.get(1, 1)[i] - rank2_co.get(2, 2)[i]) / rad[i]));
+  }
+  // dy g22 = 2 g12
+  CHECK(d_rank2_co_cartoon.get(1, 2, 2) == 2.0 * rank2_co.get(1, 2) / rad);
+  // dy g23 = g13
+  CHECK(d_rank2_co_cartoon.get(1, 2, 3) == rank2_co.get(1, 3) / rad);
+
+  // dy g30 = 0
+  CHECK(d_rank2_co_cartoon.get(1, 3, 0) == zeros.get(0));
+  // dy g31 = -g23
+  CHECK(d_rank2_co_cartoon.get(1, 3, 1) == -rank2_co.get(2, 3) / rad);
+  // dy g32 = g13
+  CHECK(d_rank2_co_cartoon.get(1, 3, 2) == rank2_co.get(1, 3) / rad);
+  // dy g33 = 0
+  CHECK(d_rank2_co_cartoon.get(1, 3, 3) == zeros.get(0));
+  // end y derivs
+
+  // begin z derivs
+  // dz g00 = 0
+  CHECK(d_rank2_co_cartoon.get(2, 0, 0) == zeros.get(0));
+  // dz g01 = -g03
+  CHECK(d_rank2_co_cartoon.get(2, 0, 1) == -rank2_co.get(0, 3) / rad);
+  // dz g02 = 0
+  CHECK(d_rank2_co_cartoon.get(2, 0, 2) == zeros.get(0));
+  // dz g03 = g01
+  CHECK(d_rank2_co_cartoon.get(2, 0, 3) == rank2_co.get(0, 1) / rad);
+  // end z derivs
+
+  // dz g10 = -g03 (symmetric)
+  CHECK(d_rank2_co_cartoon.get(2, 1, 0) == -rank2_co.get(0, 3) / rad);
+  // dz g11 = -2g13
+  CHECK(d_rank2_co_cartoon.get(2, 1, 1) == -2.0 * rank2_co.get(1, 3) / rad);
+  // dz g12 = -g23
+  CHECK(d_rank2_co_cartoon.get(2, 1, 2) == -rank2_co.get(2, 3) / rad);
+  // dz g13 = g11 - g33
+  for (size_t i = 0; i <= inertial_coords.size(); i++) {
+    CHECK(d_rank2_co_cartoon.get(2, 1, 3)[i] ==
+          approx((rank2_co.get(1, 1)[i] - rank2_co.get(3, 3)[i]) / rad[i]));
+  }
+
+  // dz g20 = 0 (symmetric)
+  CHECK(d_rank2_co_cartoon.get(2, 2, 0) == zeros.get(0));
+  // dz g21 = -g23 (symmetric)
+  CHECK(d_rank2_co_cartoon.get(2, 2, 1) == -rank2_co.get(2, 3) / rad);
+  // dz g22 = 0
+  CHECK(d_rank2_co_cartoon.get(2, 2, 2) == zeros.get(0));
+  // dz g23 = g12
+  CHECK(d_rank2_co_cartoon.get(2, 2, 3) == rank2_co.get(1, 2) / rad);
+
+  // dz g20 = 0 (symmetric)
+  CHECK(d_rank2_co_cartoon.get(2, 2, 0) == zeros.get(0));
+  // dz g21 = -g23 (symmetric)
+  CHECK(d_rank2_co_cartoon.get(2, 2, 1) == -rank2_co.get(2, 3) / rad);
+  // dz g22 = 0
+  CHECK(d_rank2_co_cartoon.get(2, 2, 2) == zeros.get(0));
+  // dz g23 = g12
+  CHECK(d_rank2_co_cartoon.get(2, 2, 3) == rank2_co.get(1, 2) / rad);
+
+  // dz g30 = g01 (symmetric)
+  CHECK(d_rank2_co_cartoon.get(2, 3, 0) == rank2_co.get(0, 1) / rad);
+  // dz g31 = g11 - g33 (symmetric)
+  for (size_t i = 0; i <= inertial_coords.size(); i++) {
+    CHECK(d_rank2_co_cartoon.get(2, 3, 1)[i] ==
+          approx((rank2_co.get(1, 1)[i] - rank2_co.get(3, 3)[i]) / rad[i]));
+  }
+  // dz g32 = g12
+  CHECK(d_rank2_co_cartoon.get(2, 3, 2) == rank2_co.get(1, 2) / rad);
+  // dz g33 = 2 g13
+  CHECK(d_rank2_co_cartoon.get(2, 3, 3) == 2.0 * rank2_co.get(1, 3) / rad);
+
+  // end z derivs
+
+  // begin rank3 tests
+
+  // end rank3 tests
 
   // ::fd::general_cartoon_deriv(di_gauge_h, *gauge_h, inertial_coords);
 }
