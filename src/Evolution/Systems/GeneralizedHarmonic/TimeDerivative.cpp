@@ -16,7 +16,7 @@
 #include "Evolution/Systems/GeneralizedHarmonic/GaugeSourceFunctions/Harmonic.hpp"
 #include "Evolution/Systems/GeneralizedHarmonic/System.hpp"
 #include "Evolution/Systems/GeneralizedHarmonic/Tags.hpp"
-#include "NumericalAlgorithms/FiniteDifference/PartialDerivatives.hpp"
+#include "NumericalAlgorithms/FiniteDifference/PartialDerivatives.tpp"
 #include "PointwiseFunctions/GeneralRelativity/Christoffel.hpp"
 #include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/SpacetimeDerivativeOfSpacetimeMetric.hpp"
 #include "PointwiseFunctions/GeneralRelativity/InverseSpacetimeMetric.hpp"
@@ -102,7 +102,9 @@ void TimeDerivative<Dim>::apply(
 
   ::fd::general_cartoon_deriv(phi, spacetime_metric, inertial_coords);
 
-  // y (1) derivatives
+  // std::cout << phi << "\n";
+
+  // // y (1) derivatives
   // // gtt
   // phi.get(1, 0, 0) = 0.0 * spacetime_metric.get(0, 0);
   // // gtx
@@ -459,7 +461,7 @@ void TimeDerivative<Dim>::apply(
   // auto gauge_function_test = gauge_function;
 
   tnsr::ia<DataVector, Dim, Frame::Inertial> di_gauge_h{};
-  for (size_t i = 0; i < Dim; ++i) {
+  for (size_t i = 1; i < Dim; ++i) {
     for (size_t a = 0; a < Dim + 1; ++a) {
       di_gauge_h.get(i, a).set_data_ref(
           make_not_null(&spacetime_deriv_gauge_function->get(i + 1, a)));
@@ -468,6 +470,7 @@ void TimeDerivative<Dim>::apply(
 
   // Can't take 4D spacetime deriv
   ::fd::general_cartoon_deriv(di_gauge_h, *gauge_function, inertial_coords);
+
   // Cartoon deriv gauge function H_a
   // begin with guessing vector transformation
   // next pass is product rule of Lie derivative

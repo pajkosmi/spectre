@@ -14,7 +14,6 @@
 #include "Evolution/Systems/GeneralizedHarmonic/AllSolutions.hpp"
 #include "Evolution/Systems/GeneralizedHarmonic/Tags.hpp"
 #include "NumericalAlgorithms/FiniteDifference/PartialDerivatives.tpp"
-#include "NumericalAlgorithms/LinearOperators/PartialDerivatives.hpp"
 #include "NumericalAlgorithms/Spectral/Mesh.hpp"
 #include "PointwiseFunctions/AnalyticData/GhGrMhd/Factory.hpp"
 #include "PointwiseFunctions/AnalyticSolutions/GeneralRelativity/Factory.hpp"
@@ -114,12 +113,6 @@ void AnalyticChristoffel::gauge_and_spacetime_derivative(
       get<gr::Tags::InverseSpatialMetric<DataVector, SpatialDim>>(temp_vars);
   auto& inverse_spacetime_metric =
       get<gr::Tags::InverseSpacetimeMetric<DataVector, SpatialDim>>(temp_vars);
-
-  //   ::fd::general_cartoon_deriv<tnsr::I<DataVector, SpatialDim,
-  //   Frame::Inertial>,
-  //                         tnsr::iJ<DataVector, SpatialDim, Frame::Inertial>,
-  //                         DataVector, SpatialDim, Frame::Inertial>(
-  //       inertial_coords);
 
   // Need copy b/c phi is const
   //   auto phi2 = phi;

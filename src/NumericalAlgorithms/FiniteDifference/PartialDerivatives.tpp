@@ -160,7 +160,6 @@ void general_cartoon_deriv(
   // tensor
   const size_t valence_size = valences.size();
   auto input_tensor_array = make_array<valence_size>(0_st);
-  std::array<size_t, valence_size + 1> output_tensor_index;
 
   std::array<size_t, 3> Killing_indices;
 
@@ -210,8 +209,7 @@ void general_cartoon_deriv(
       auto output_tensor_index =
           prepend(input_tensor_index, size_t{deriv_index});
       // initialize derivative tensor cartoon terms to 0
-      deriv_tensor.get(output_tensor_index) =
-          0.0 * tensor.get(input_tensor_array);
+      deriv_tensor.get(output_tensor_index) = 0.0 * inertial_coords.get(0);
       // loop over different ranks
       for (size_t rank = 0; rank < valence_size; rank++) {
         sign = (valences[rank] == UpLo::Lo) ? 1.0 : -1.0;
@@ -226,12 +224,12 @@ void general_cartoon_deriv(
           Killing_indices[0] = deriv_index;
           if (valences[rank] == UpLo::Lo) {
             // covariant index
-            Killing_indices[1] = input_tensor_index[rank];
+            Killing_indices[1] = input_tensor_index[rank] + shift_index;
             Killing_indices[2] = dummy + shift_index;
           } else {
             // contravariant
             Killing_indices[1] = dummy + shift_index;
-            Killing_indices[2] = input_tensor_index[rank];
+            Killing_indices[2] = input_tensor_index[rank] + shift_index;
           }
 
           input_tensor_array[rank] = dummy;

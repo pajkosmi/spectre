@@ -234,7 +234,7 @@ void ComputeSources::apply(
 
   // spatial metric
   tnsr::ijj<DataVector, 3, Frame::Inertial> d_spatial_metric_cartoon;
-  // auto& d_spatial_metric_cartoon = d_spatial_metric;
+  // auto d_spatial_metric_cartoon = d_spatial_metric;
 
   // x (0) derivatives will be overwritten
   for (size_t m = 0; m < 3; m++) {
@@ -269,7 +269,7 @@ void ComputeSources::apply(
   d_shift_cartoon.get(0, 1) = d_shift.get(0, 1);
   d_shift_cartoon.get(0, 2) = d_shift.get(0, 2);
 
-  // // y derivatives (1)
+  // y derivatives (1)
   // // beta^x
   // d_shift_cartoon.get(1, 0) = -shift.get(1) / inertial_coords.get(0);
   // // beta^y
@@ -285,16 +285,16 @@ void ComputeSources::apply(
   // // beta^z
   // d_shift_cartoon.get(2, 2) = shift.get(0) / inertial_coords.get(0);
 
-  // // spatial metric
+  // spatial metric
   // tnsr::ijj<DataVector, 3, Frame::Inertial> d_spatial_metric_cartoon;
-  // // auto& d_spatial_metric_cartoon = d_spatial_metric;
+  // auto& d_spatial_metric_cartoon = d_spatial_metric;
 
-  // // x (0) derivatives will be overwritten
-  // for (size_t m = 0; m < 3; m++) {
-  //   for (size_t n = 0; n < 3; n++) {
-  //     d_spatial_metric_cartoon.get(0, m, n) = d_spatial_metric.get(0, m, n);
-  //   }
-  // }
+  // x (0) derivatives will be overwritten
+  for (size_t m = 0; m < 3; m++) {
+    for (size_t n = 0; n < 3; n++) {
+      d_spatial_metric_cartoon.get(0, m, n) = d_spatial_metric.get(0, m, n);
+    }
+  }
 
   // // y (1) derivatives
   // // gxx

@@ -594,7 +594,7 @@ void partial_derivatives_cartoon(
           }
         } else {
           // Phi calculation
-          shifted_index = component_index - 30 * (component_index / 30);
+          shifted_index = component_index - 20;
           const auto input_tensor_index =
               get<gh::Tags::Phi<DataVector, 3>>(metric_quantities)
                   .get_tensor_index(shifted_index);

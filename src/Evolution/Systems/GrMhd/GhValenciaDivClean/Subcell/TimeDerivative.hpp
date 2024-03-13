@@ -51,7 +51,7 @@
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/Sources.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/Subcell/ComputeFluxes.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/TimeDerivativeTerms.hpp"
-#include "NumericalAlgorithms/FiniteDifference/PartialDerivatives.hpp"
+#include "NumericalAlgorithms/FiniteDifference/PartialDerivatives.tpp"
 #include "NumericalAlgorithms/Spectral/Mesh.hpp"
 #include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/DerivSpatialMetric.hpp"
 #include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/ExtrinsicCurvature.hpp"
@@ -269,24 +269,24 @@ struct ComputeTimeDerivImpl<
       // y derivatives (1)
       ::fd::general_cartoon_deriv(spatial_deriv_shift, shift, inertial_coords);
 
-      //   // beta^x
-      //   spatial_deriv_shift.get(1, 0) = -shift.get(1) /
-      //   inertial_coords.get(0);
-      //   // beta^y
-      //   spatial_deriv_shift.get(1, 1) = shift.get(0) /
-      //   inertial_coords.get(0);
-      //   // beta^z
-      //   spatial_deriv_shift.get(1, 2) = 0.0 * shift.get(0);
+        // // beta^x
+        // spatial_deriv_shift.get(1, 0) = -shift.get(1) /
+        // inertial_coords.get(0);
+        // // beta^y
+        // spatial_deriv_shift.get(1, 1) = shift.get(0) /
+        // inertial_coords.get(0);
+        // // beta^z
+        // spatial_deriv_shift.get(1, 2) = 0.0 * shift.get(0);
 
-      //   // z derivatives (2)
-      //   // beta^x
-      //   spatial_deriv_shift.get(2, 0) = -shift.get(2) /
-      //   inertial_coords.get(0);
-      //   // beta^y
-      //   spatial_deriv_shift.get(2, 1) = 0.0 * shift.get(0);
-      //   // beta^z
-      //   spatial_deriv_shift.get(2, 2) = shift.get(0) /
-      //   inertial_coords.get(0);
+        // // z derivatives (2)
+        // // beta^x
+        // spatial_deriv_shift.get(2, 0) = -shift.get(2) /
+        // inertial_coords.get(0);
+        // // beta^y
+        // spatial_deriv_shift.get(2, 1) = 0.0 * shift.get(0);
+        // // beta^z
+        // spatial_deriv_shift.get(2, 2) = shift.get(0) /
+        // inertial_coords.get(0);
 
       // Compute d_i lapse
       for (size_t i = 0; i < 3; ++i) {
@@ -320,66 +320,66 @@ struct ComputeTimeDerivImpl<
       ::fd::general_cartoon_deriv(get<deriv_spatial_metric>(temp_tags),
                                   spatial_metric, inertial_coords);
 
-      //   // y (1) derivatives
-      //   // gxx
-      //   get<deriv_spatial_metric>(temp_tags).get(1, 0, 0) =
-      //       -2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
-      //   // gxy
-      //   get<deriv_spatial_metric>(temp_tags).get(1, 0, 1) =
-      //       (spatial_metric.get(0, 0) - spatial_metric.get(1, 1)) /
-      //       inertial_coords.get(0);
-      //   // gyx = gxy symmetry
-      //   get<deriv_spatial_metric>(temp_tags).get(1, 1, 0) =
-      //       get<deriv_spatial_metric>(temp_tags).get(1, 0, 1);
-      //   // gxz
-      //   get<deriv_spatial_metric>(temp_tags).get(1, 0, 2) =
-      //       -spatial_metric.get(1, 2) / inertial_coords.get(0);
-      //   // gzx = gxz symmetry
-      //   get<deriv_spatial_metric>(temp_tags).get(1, 2, 0) =
-      //       get<deriv_spatial_metric>(temp_tags).get(1, 0, 2);
-      //   // gyy
-      //   get<deriv_spatial_metric>(temp_tags).get(1, 1, 1) =
-      //       2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
-      //   // gyz
-      //   get<deriv_spatial_metric>(temp_tags).get(1, 1, 2) =
-      //       spatial_metric.get(0, 2) / inertial_coords.get(0);
-      //   // gzy = gyz symmetry
-      //   get<deriv_spatial_metric>(temp_tags).get(1, 2, 1) =
-      //       get<deriv_spatial_metric>(temp_tags).get(1, 1, 2);
-      //   // gzz                                  !just zero
-      //   get<deriv_spatial_metric>(temp_tags).get(1, 2, 2) =
-      //       0.0 * get<deriv_spatial_metric>(temp_tags).get(1, 2, 2);
+        // // y (1) derivatives
+        // // gxx
+        // get<deriv_spatial_metric>(temp_tags).get(1, 0, 0) =
+        //     -2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
+        // // gxy
+        // get<deriv_spatial_metric>(temp_tags).get(1, 0, 1) =
+        //     (spatial_metric.get(0, 0) - spatial_metric.get(1, 1)) /
+        //     inertial_coords.get(0);
+        // // gyx = gxy symmetry
+        // get<deriv_spatial_metric>(temp_tags).get(1, 1, 0) =
+        //     get<deriv_spatial_metric>(temp_tags).get(1, 0, 1);
+        // // gxz
+        // get<deriv_spatial_metric>(temp_tags).get(1, 0, 2) =
+        //     -spatial_metric.get(1, 2) / inertial_coords.get(0);
+        // // gzx = gxz symmetry
+        // get<deriv_spatial_metric>(temp_tags).get(1, 2, 0) =
+        //     get<deriv_spatial_metric>(temp_tags).get(1, 0, 2);
+        // // gyy
+        // get<deriv_spatial_metric>(temp_tags).get(1, 1, 1) =
+        //     2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
+        // // gyz
+        // get<deriv_spatial_metric>(temp_tags).get(1, 1, 2) =
+        //     spatial_metric.get(0, 2) / inertial_coords.get(0);
+        // // gzy = gyz symmetry
+        // get<deriv_spatial_metric>(temp_tags).get(1, 2, 1) =
+        //     get<deriv_spatial_metric>(temp_tags).get(1, 1, 2);
+        // // gzz                                  !just zero
+        // get<deriv_spatial_metric>(temp_tags).get(1, 2, 2) =
+        //     0.0 * get<deriv_spatial_metric>(temp_tags).get(1, 2, 2);
 
-      //   // z (2) derivatives
-      //   // gxx
-      //   get<deriv_spatial_metric>(temp_tags).get(2, 0, 0) =
-      //       -2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
-      //   // gxy
-      //   get<deriv_spatial_metric>(temp_tags).get(2, 0, 1) =
-      //       -spatial_metric.get(1, 2) / inertial_coords.get(0);
-      //   // gyx = gxy symmetry
-      //   get<deriv_spatial_metric>(temp_tags).get(2, 1, 0) =
-      //       get<deriv_spatial_metric>(temp_tags).get(2, 0, 1);
-      //   // gxz
-      //   get<deriv_spatial_metric>(temp_tags).get(2, 0, 2) =
-      //       (spatial_metric.get(0, 0) - spatial_metric.get(2, 2)) /
-      //       inertial_coords.get(0);
-      //   // gzx = gxz symmetry
-      //   get<deriv_spatial_metric>(temp_tags).get(2, 2, 0) =
-      //       get<deriv_spatial_metric>(temp_tags).get(2, 0, 2);
-      //   // gyy                                  !just zero
-      //   get<deriv_spatial_metric>(temp_tags).get(2, 1, 1) =
-      //       get<deriv_spatial_metric>(temp_tags).get(1, 1, 1) -
-      //       get<deriv_spatial_metric>(temp_tags).get(1, 1, 1);
-      //   // gyz
-      //   get<deriv_spatial_metric>(temp_tags).get(2, 1, 2) =
-      //       spatial_metric.get(0, 1) / inertial_coords.get(0);
-      //   // gzy = gyz symmetry
-      //   get<deriv_spatial_metric>(temp_tags).get(2, 2, 1) =
-      //       get<deriv_spatial_metric>(temp_tags).get(2, 1, 2);
-      //   // gzz
-      //   get<deriv_spatial_metric>(temp_tags).get(2, 2, 2) =
-      //       2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
+        // // z (2) derivatives
+        // // gxx
+        // get<deriv_spatial_metric>(temp_tags).get(2, 0, 0) =
+        //     -2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
+        // // gxy
+        // get<deriv_spatial_metric>(temp_tags).get(2, 0, 1) =
+        //     -spatial_metric.get(1, 2) / inertial_coords.get(0);
+        // // gyx = gxy symmetry
+        // get<deriv_spatial_metric>(temp_tags).get(2, 1, 0) =
+        //     get<deriv_spatial_metric>(temp_tags).get(2, 0, 1);
+        // // gxz
+        // get<deriv_spatial_metric>(temp_tags).get(2, 0, 2) =
+        //     (spatial_metric.get(0, 0) - spatial_metric.get(2, 2)) /
+        //     inertial_coords.get(0);
+        // // gzx = gxz symmetry
+        // get<deriv_spatial_metric>(temp_tags).get(2, 2, 0) =
+        //     get<deriv_spatial_metric>(temp_tags).get(2, 0, 2);
+        // // gyy                                  !just zero
+        // get<deriv_spatial_metric>(temp_tags).get(2, 1, 1) =
+        //     get<deriv_spatial_metric>(temp_tags).get(1, 1, 1) -
+        //     get<deriv_spatial_metric>(temp_tags).get(1, 1, 1);
+        // // gyz
+        // get<deriv_spatial_metric>(temp_tags).get(2, 1, 2) =
+        //     spatial_metric.get(0, 1) / inertial_coords.get(0);
+        // // gzy = gyz symmetry
+        // get<deriv_spatial_metric>(temp_tags).get(2, 2, 1) =
+        //     get<deriv_spatial_metric>(temp_tags).get(2, 1, 2);
+        // // gzz
+        // get<deriv_spatial_metric>(temp_tags).get(2, 2, 2) =
+        //     2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
 
       auto phi2 = phi;
 
