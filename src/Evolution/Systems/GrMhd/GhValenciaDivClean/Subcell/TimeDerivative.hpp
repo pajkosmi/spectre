@@ -267,6 +267,7 @@ struct ComputeTimeDerivImpl<
       // x derivatives (0)
 
       // y derivatives (1)
+      //MIKE: undo here
       ::fd::general_cartoon_deriv(spatial_deriv_shift, shift, inertial_coords);
 
         // // beta^x
@@ -316,7 +317,7 @@ struct ComputeTimeDerivImpl<
       }
       // assigned above
       // x (0) derivatives will be overwritten
-
+      // MIKE: UNDO HERE
       ::fd::general_cartoon_deriv(get<deriv_spatial_metric>(temp_tags),
                                   spatial_metric, inertial_coords);
 
