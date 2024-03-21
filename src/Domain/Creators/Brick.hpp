@@ -43,11 +43,22 @@ namespace creators {
 /// Create a 3D Domain consisting of a single Block.
 class Brick : public DomainCreator<3> {
  public:
+  //   using maps_list = tmpl::list<
+  //       domain::CoordinateMap<Frame::BlockLogical, Frame::Inertial,
+  //                             CoordinateMaps::ProductOf3Maps<
+  //                                 CoordinateMaps::Affine,
+  //                                 CoordinateMaps::Affine,
+  //                                 CoordinateMaps::Affine>>>;
   using maps_list = tmpl::list<
       domain::CoordinateMap<Frame::BlockLogical, Frame::Inertial,
                             CoordinateMaps::ProductOf3Maps<
                                 CoordinateMaps::Affine, CoordinateMaps::Affine,
-                                CoordinateMaps::Affine>>>;
+                                CoordinateMaps::Affine>>,
+      domain::CoordinateMap<
+          Frame::BlockLogical, Frame::Inertial,
+          CoordinateMaps::ProductOf3Maps<CoordinateMaps::Interval,
+                                         CoordinateMaps::Affine,
+                                         CoordinateMaps::Affine>>>;
 
   struct LowerBound {
     using type = std::array<double, 3>;
@@ -83,6 +94,17 @@ class Brick : public DomainCreator<3> {
         std::unique_ptr<domain::creators::time_dependence::TimeDependence<3>>;
     static constexpr Options::String help = {
         "The time dependence of the moving mesh domain."};
+  };
+
+  struct Spacing {
+    using type = std::string;
+    static constexpr Options::String help = {"Spacing: either linear or log."};
+  };
+
+  struct SingularityPoint {
+    using type = double;
+    static constexpr Options::String help = {
+        "Singularity point for log distribution."};
   };
 
   template <typename BoundaryConditionsBase>
@@ -125,7 +147,8 @@ class Brick : public DomainCreator<3> {
   };
 
   using common_options =
-      tmpl::list<LowerBound, UpperBound, InitialRefinement, InitialGridPoints>;
+      tmpl::list<LowerBound, UpperBound, InitialRefinement, InitialGridPoints,
+                 Spacing, SingularityPoint>;
   using options_periodic = tmpl::list<IsPeriodicIn>;
 
   template <typename Metavariables>
@@ -155,6 +178,7 @@ class Brick : public DomainCreator<3> {
   Brick(std::array<double, 3> lower_xyz, std::array<double, 3> upper_xyz,
         std::array<size_t, 3> initial_refinement_level_xyz,
         std::array<size_t, 3> initial_number_of_grid_points_in_xyz,
+        std::string spacing, double singularity_point,
         std::array<bool, 3> is_periodic_in_xyz,
         std::unique_ptr<domain::creators::time_dependence::TimeDependence<3>>
             time_dependence = nullptr);
@@ -162,6 +186,7 @@ class Brick : public DomainCreator<3> {
   Brick(std::array<double, 3> lower_xyz, std::array<double, 3> upper_xyz,
         std::array<size_t, 3> initial_refinement_level_xyz,
         std::array<size_t, 3> initial_number_of_grid_points_in_xyz,
+        std::string spacing, double singularity_point,
         std::unique_ptr<domain::BoundaryConditions::BoundaryCondition>
             boundary_condition_in_lower_x,
         std::unique_ptr<domain::BoundaryConditions::BoundaryCondition>
@@ -182,6 +207,7 @@ class Brick : public DomainCreator<3> {
   Brick(std::array<double, 3> lower_xyz, std::array<double, 3> upper_xyz,
         std::array<size_t, 3> initial_refinement_level_xyz,
         std::array<size_t, 3> initial_number_of_grid_points_in_xyz,
+        std::string spacing, double singularity_point,
         std::variant<std::unique_ptr<BoundaryConditionsBase>,
                      LowerUpperBoundaryCondition<BoundaryConditionsBase>>
             boundary_conditions_in_x,
@@ -226,6 +252,9 @@ class Brick : public DomainCreator<3> {
   typename IsPeriodicIn::type is_periodic_in_xyz_{};
   typename InitialRefinement::type initial_refinement_level_xyz_{};
   typename InitialGridPoints::type initial_number_of_grid_points_in_xyz_{};
+  typename Spacing::type spacing_{};
+  typename SingularityPoint::type singularity_point_{};
+
   std::unique_ptr<domain::creators::time_dependence::TimeDependence<3>>
       time_dependence_;
   std::unique_ptr<domain::BoundaryConditions::BoundaryCondition>
@@ -248,6 +277,7 @@ Brick::Brick(
     std::array<double, 3> lower_xyz, std::array<double, 3> upper_xyz,
     std::array<size_t, 3> initial_refinement_level_xyz,
     std::array<size_t, 3> initial_number_of_grid_points_in_xyz,
+    std::string spacing, double singularity_point,
     std::variant<std::unique_ptr<BoundaryConditionsBase>,
                  LowerUpperBoundaryCondition<BoundaryConditionsBase>>
         boundary_conditions_in_x,
@@ -261,7 +291,7 @@ Brick::Brick(
         time_dependence,
     const Options::Context& context)
     : Brick(lower_xyz, upper_xyz, initial_refinement_level_xyz,
-            initial_number_of_grid_points_in_xyz,
+            initial_number_of_grid_points_in_xyz, spacing, singularity_point,
             std::holds_alternative<std::unique_ptr<BoundaryConditionsBase>>(
                 boundary_conditions_in_x)
                 ? std::get<std::unique_ptr<BoundaryConditionsBase>>(

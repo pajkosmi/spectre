@@ -13,6 +13,7 @@
 #include "Domain/CoordinateMaps/Affine.hpp"
 #include "Domain/CoordinateMaps/CoordinateMap.hpp"
 #include "Domain/CoordinateMaps/CoordinateMap.tpp"
+#include "Domain/CoordinateMaps/Interval.hpp"
 #include "Domain/CoordinateMaps/ProductMaps.hpp"
 #include "Domain/CoordinateMaps/ProductMaps.tpp"
 #include "Domain/Creators/DomainCreator.hpp"
@@ -33,6 +34,7 @@ Brick::Brick(
     std::array<double, 3> lower_xyz, std::array<double, 3> upper_xyz,
     std::array<size_t, 3> initial_refinement_level_xyz,
     std::array<size_t, 3> initial_number_of_grid_points_in_xyz,
+    std::string spacing, double singularity_point,
     std::array<bool, 3> is_periodic_in_xyz,
     std::unique_ptr<domain::creators::time_dependence::TimeDependence<3>>
         time_dependence)
@@ -59,6 +61,7 @@ Brick::Brick(
     std::array<double, 3> lower_xyz, std::array<double, 3> upper_xyz,
     std::array<size_t, 3> initial_refinement_level_xyz,
     std::array<size_t, 3> initial_number_of_grid_points_in_xyz,
+    std::string spacing, double singularity_point,
     std::unique_ptr<domain::BoundaryConditions::BoundaryCondition>
         boundary_condition_in_lower_x,
     std::unique_ptr<domain::BoundaryConditions::BoundaryCondition>
@@ -80,6 +83,8 @@ Brick::Brick(
       initial_refinement_level_xyz_(initial_refinement_level_xyz),
       initial_number_of_grid_points_in_xyz_(
           initial_number_of_grid_points_in_xyz),
+      spacing_{spacing},
+      singularity_point_{singularity_point},
       time_dependence_(std::move(time_dependence)),
       boundary_condition_in_lower_x_(std::move(boundary_condition_in_lower_x)),
       boundary_condition_in_upper_x_(std::move(boundary_condition_in_upper_x)),
@@ -110,6 +115,9 @@ Brick::Brick(
         "None boundary condition is not supported. If you would like an "
         "outflow-type boundary condition, you must use that.");
   }
+  ASSERT((spacing_ == "Linear") or (spacing_ == "Logarithmic"),
+         "Must have Linear or Logarithmic spacing");
+
   using domain::BoundaryConditions::is_periodic;
 
   if ((is_periodic(boundary_condition_in_lower_x_) !=
@@ -139,7 +147,12 @@ Brick::Brick(
 
 Domain<3> Brick::create_domain() const {
   using Affine = CoordinateMaps::Affine;
+  using Interval = CoordinateMaps::Interval;
+
   using Affine3D = CoordinateMaps::ProductOf3Maps<Affine, Affine, Affine>;
+  using Logarithmic3D =
+      CoordinateMaps::ProductOf3Maps<Interval, Affine, Affine>;
+
   std::vector<PairOfFaces> identifications{};
   if (is_periodic_in_xyz_[0]) {
     identifications.push_back({{0, 4, 2, 6}, {1, 5, 3, 7}});
@@ -151,18 +164,44 @@ Domain<3> Brick::create_domain() const {
     identifications.push_back({{0, 1, 2, 3}, {4, 5, 6, 7}});
   }
 
-  Domain<3> domain{
-      make_vector_coordinate_map_base<Frame::BlockLogical, Frame::Inertial>(
-          Affine3D{Affine{-1., 1., lower_xyz_[0], upper_xyz_[0]},
-                   //  Affine{-1., 1., lower_xyz_[1], upper_xyz_[1]},
-                   //  Affine{-1., 1., lower_xyz_[2], upper_xyz_[2]}
-                   // Hard coded so only the x-direction term (above)
-                   // contributes to the inverse jacobian transformation
-                   Affine{-1., 1., -1.0, 1.0}, Affine{-1., 1., -1.0, 1.0}}),
-      std::vector<std::array<size_t, 8>>{{{0, 1, 2, 3, 4, 5, 6, 7}}},
-      identifications,
-      {},
-      block_names_};
+  Domain<3> domain{};
+
+  if (spacing_ == "Linear") {
+    // linear
+    domain = Domain<3>{
+        make_vector_coordinate_map_base<Frame::BlockLogical, Frame::Inertial>(
+            Affine3D{Affine{-1., 1., lower_xyz_[0], upper_xyz_[0]},
+                     //   Affine{-1., 1., lower_xyz_[1], upper_xyz_[1]},
+                     //   Affine{-1., 1., lower_xyz_[2], upper_xyz_[2]}
+                     //  Don't need below, but the dimensions in the input file
+                     //  would need to run from [-1, 1] instead Hard coded so
+                     //  only the x-direction term (above) contributes to the
+                     //  inverse jacobian transformation
+                     Affine{-1., 1., -1.0, 1.0}, Affine{-1., 1., -1.0, 1.0}}),
+        // Interval{}
+        std::vector<std::array<size_t, 8>>{{{0, 1, 2, 3, 4, 5, 6, 7}}},
+        identifications,
+        {},
+        block_names_};
+  } else {
+    // logarithmic
+    domain = Domain<3>{
+        make_vector_coordinate_map_base<Frame::BlockLogical, Frame::Inertial>(
+            Logarithmic3D{
+                Interval{-1., 1., lower_xyz_[0], upper_xyz_[0],
+                         domain::CoordinateMaps::Distribution::Logarithmic,
+                         singularity_point_},
+                // Affine{-1., 1., lower_xyz_[0], upper_xyz_[0]},
+                //   Affine{-1., 1., lower_xyz_[1], upper_xyz_[1]},
+                //   Affine{-1., 1., lower_xyz_[2], upper_xyz_[2]}
+                //  Hard coded so only the x-direction term (above)
+                //  contributes to the inverse jacobian transformation
+                Affine{-1., 1., -1.0, 1.0}, Affine{-1., 1., -1.0, 1.0}}),
+        std::vector<std::array<size_t, 8>>{{{0, 1, 2, 3, 4, 5, 6, 7}}},
+        identifications,
+        {},
+        block_names_};
+  }
 
   if (not time_dependence_->is_none()) {
     domain.inject_time_dependent_map_for_block(
