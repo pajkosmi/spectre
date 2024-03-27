@@ -74,7 +74,7 @@ void TimeDerivative<Dim>::apply(
     const tnsr::ijaa<DataVector, Dim>& d_phi,
     const tnsr::aa<DataVector, Dim>& spacetime_metric,
     const tnsr::aa<DataVector, Dim>& pi,
-    const tnsr::iaa<DataVector, Dim>& phi_test,
+    const tnsr::iaa<DataVector, Dim>& phi,
     const Scalar<DataVector>& gamma0, const Scalar<DataVector>& gamma1,
     const Scalar<DataVector>& gamma2,
     const gauges::GaugeCondition& gauge_condition, const Mesh<Dim>& mesh,
@@ -97,89 +97,6 @@ void TimeDerivative<Dim>::apply(
     }
   }
 
-  // hack phi
-  auto phi = phi_test;
-
-  ::fd::general_cartoon_deriv(phi, spacetime_metric, inertial_coords);
-
-  // std::cout << phi << "\n";
-
-  // // y (1) derivatives
-  // // gtt
-  // phi.get(1, 0, 0) = 0.0 * spacetime_metric.get(0, 0);
-  // // gtx
-  // phi.get(1, 0, 1) = -spacetime_metric.get(0, 2) / inertial_coords.get(0);
-  // // Symmetry
-  // phi.get(1, 1, 0) = phi.get(1, 0, 1);
-  // // gty
-  // phi.get(1, 0, 2) = spacetime_metric.get(0, 1) / inertial_coords.get(0);
-  // // Symmetry
-  // phi.get(1, 2, 0) = phi.get(1, 0, 2);
-  // // gtz
-  // phi.get(1, 0, 3) = 0.0 * spacetime_metric.get(0, 2);
-  // // Symmetry
-  // phi.get(1, 3, 0) = phi.get(1, 0, 3);
-  // // gxx
-  // phi.get(1, 1, 1) = -2.0 * spatial_metric.get(0, 1) /
-  // inertial_coords.get(0);
-  // // gxy
-  // phi.get(1, 1, 2) = (spatial_metric.get(0, 0) - spatial_metric.get(1, 1)) /
-  //                    inertial_coords.get(0);
-  // // gyx = gxy symmetry
-  // phi.get(1, 2, 1) = phi.get(1, 1, 2);
-  // // gxz
-  // phi.get(1, 1, 3) = -spatial_metric.get(1, 2) / inertial_coords.get(0);
-  // // gzx = gxz symmetry
-  // phi.get(1, 3, 1) = phi.get(1, 1, 3);
-  // // gyy
-  // phi.get(1, 2, 2) = 2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
-  // // gyz
-  // phi.get(1, 2, 3) = spatial_metric.get(0, 2) / inertial_coords.get(0);
-  // // gzy = gyz symmetry
-  // phi.get(1, 3, 2) = phi.get(1, 2, 3);
-  // // gzz                                  !just zero
-  // phi.get(1, 3, 3) = 0.0 * phi.get(1, 2, 2);
-
-  // // z (2) derivatives
-  // // gtt
-  // phi.get(2, 0, 0) = 0.0 * spacetime_metric.get(0, 0);
-  // // gtx
-  // phi.get(2, 0, 1) = -spacetime_metric.get(0, 3) / inertial_coords.get(0);
-  // // Symmetry
-  // phi.get(2, 1, 0) = phi.get(2, 0, 1);
-  // // gty
-  // phi.get(2, 0, 2) = 0.0 * spacetime_metric.get(0, 2);
-  // // Symmetry
-  // phi.get(2, 2, 0) = phi.get(2, 0, 2);
-  // // gtz
-  // phi.get(2, 0, 3) = spacetime_metric.get(0, 1) / inertial_coords.get(0);
-  // // Symmetry
-  // phi.get(2, 3, 0) = phi.get(2, 0, 3);
-  // // gxx
-  // phi.get(2, 1, 1) = -2.0 * spatial_metric.get(0, 2) /
-  // inertial_coords.get(0);
-  // // gxy
-  // phi.get(2, 1, 2) = -spatial_metric.get(1, 2) / inertial_coords.get(0);
-  // // gyx = gxy symmetry
-  // phi.get(2, 2, 1) = phi.get(2, 1, 2);
-  // // gxz
-  // phi.get(2, 1, 3) = (spatial_metric.get(0, 0) - spatial_metric.get(2, 2)) /
-  //                    inertial_coords.get(0);
-  // // gzx = gxz symmetry
-  // phi.get(2, 3, 1) = phi.get(2, 1, 3);
-  // // gyy                                  !just zero
-  // phi.get(2, 2, 2) = phi.get(1, 1, 1) - phi.get(1, 1, 1);
-  // // gyz
-  // phi.get(2, 2, 3) = spatial_metric.get(0, 1) / inertial_coords.get(0);
-  // // gzy = gyz symmetry
-  // phi.get(2, 3, 2) = phi.get(2, 2, 3);
-  // // gzz
-  // phi.get(2, 3, 3) = 2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
-
-  // end hack phi
-
-  // Mike: somehow hack pi?  How to account for time derivative
-
   determinant_and_inverse(det_spatial_metric, inverse_spatial_metric,
                           spatial_metric);
   gr::shift(shift, spacetime_metric, *inverse_spatial_metric);
@@ -191,7 +108,6 @@ void TimeDerivative<Dim>::apply(
   // symbols.
   for (size_t mu = 0; mu < Dim + 1; ++mu) {
     for (size_t nu = mu; nu < Dim + 1; ++nu) {
-      // Mike: hack pi to zero
       dt_spacetime_metric->get(mu, nu) = -get(*lapse) * pi.get(mu, nu);
       for (size_t m = 0; m < Dim; ++m) {
         dt_spacetime_metric->get(mu, nu) += shift->get(m) * phi.get(m, mu, nu);
@@ -319,17 +235,8 @@ void TimeDerivative<Dim>::apply(
   for (size_t n = 0; n < Dim; ++n) {
     for (size_t mu = 0; mu < Dim + 1; ++mu) {
       for (size_t nu = mu; nu < Dim + 1; ++nu) {
-        // Mike zero out: n b/c only finite difference in x
-        if (n == 0) {
-          three_index_constraint->get(n, mu, nu) =
-              d_spacetime_metric.get(n, mu, nu) - phi.get(n, mu, nu);
-        } else {
-          // zero out?
-          three_index_constraint->get(n, mu, nu) =
-              d_spacetime_metric.get(n, mu, nu) - phi.get(n, mu, nu);
-        }
-        // std::cout << n << " " << mu << " " << nu << " "
-        //           << three_index_constraint->get(n, mu, nu) << "\n";
+        three_index_constraint->get(n, mu, nu) =
+            d_spacetime_metric.get(n, mu, nu) - phi.get(n, mu, nu);
       }
     }
   }
@@ -369,133 +276,6 @@ void TimeDerivative<Dim>::apply(
       *sqrt_det_spatial_metric, *inverse_spatial_metric, *da_spacetime_metric,
       *half_pi_two_normals, *half_phi_two_normals, spacetime_metric, phi, mesh,
       time, inertial_coords, inverse_jacobian, gauge_condition);
-
-  // spacetime derivative of killing vector for Y and Z derivatives
-  // auto da_killing_vectorY = inverse_spacetime_metric;
-  // auto da_killing_vectorY = spacetime_metric;
-  // tnsr::ab<DataVector, Dim> da_killing_vectorY{};
-  // auto da_killing_vectorZ = da_killing_vectorY;
-
-  // for (size_t a = 0; a < Dim + 1; ++a) {
-  //   for (size_t b = 0; b < Dim + 1; ++b) {
-  //     if (a == 2 and b == 1) {
-  //       da_killing_vectorY.get(a, b) = 0.0 * spacetime_metric.get(a, b)
-  //       - 1.0; da_killing_vectorZ.get(a, b) = 0.0 * spacetime_metric.get(a,
-  //       b);
-  //     } else if (a == 1 and b == 2) {
-  //       da_killing_vectorY.get(a, b) = 0.0 * spacetime_metric.get(a, b)
-  //       + 1.0; da_killing_vectorZ.get(a, b) = 0.0 * spacetime_metric.get(a,
-  //       b);
-  //     } else if (a == 3 and b == 1) {
-  //       da_killing_vectorZ.get(a, b) = 0.0 * spacetime_metric.get(a, b)
-  //       - 1.0; da_killing_vectorY.get(a, b) = 0.0 * spacetime_metric.get(a,
-  //       b);
-  //     } else if (a == 1 and b == 3) {
-  //       da_killing_vectorZ.get(a, b) = 0.0 * spacetime_metric.get(a, b)
-  //       + 1.0; da_killing_vectorY.get(a, b) = 0.0 * spacetime_metric.get(a,
-  //       b);
-  //     } else {
-  //       da_killing_vectorY.get(a, b) = 0.0 * spacetime_metric.get(a, b);
-  //       da_killing_vectorZ.get(a, b) = 0.0 * spacetime_metric.get(a, b);
-  //     }
-  //   }
-  // }
-
-  // // Zero out Y & Z derivatives of gauge function
-  // for (size_t a = 0; a < Dim + 1; ++a) {
-  //   for (size_t b = 2; b < 4; ++b) {
-  //     spacetime_deriv_gauge_function->get(b, a) = 0.0;
-  //   }
-  // }
-
-  // // for (size_t dim_index = 1; dim_index < 3; ++dim_index) {
-  // for (size_t dim_index = 2; dim_index < 4; ++dim_index) {
-  //   for (size_t b = 0; b < Dim + 1; ++b) {
-  //     for (size_t a = 0; a < Dim + 1; ++a) {
-  //       for (size_t c = 0; c < Dim + 1; ++c) {
-  //         for (size_t d = 0; d < Dim + 1; ++d) {
-  //           for (size_t e = 0; e < Dim + 1; ++e) {
-  //             // Gamma' =
-  //             spacetime_deriv_gauge_function->get(dim_index, b) +=
-  //                 christoffel_first_kind->get(d, a, b) *
-  //                 inverse_spacetime_metric->get(d, e) *
-  //                 inverse_spacetime_metric->get(a, c) *
-  //                 phi.get(dim_index - 1, e, c);
-  //           }
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
-
-  // for (size_t b = 0; b < Dim + 1; ++b) {
-  //   for (size_t a = 0; a < Dim + 1; ++a) {
-  //     for (size_t c = 0; c < Dim + 1; ++c) {
-  //       for (size_t d = 0; d < Dim + 1; ++d) {
-  //         // Gamma''
-  //         spacetime_deriv_gauge_function->get(2, b) -=
-  //             1.0 / inertial_coords.get(0) *
-  //             inverse_spacetime_metric->get(d, a) *
-  //             (christoffel_first_kind->get(c, a, b) *
-  //                  da_killing_vectorY.get(d, c) +
-  //              christoffel_first_kind->get(d, c, b) *
-  //                  da_killing_vectorY.get(a, c) +
-  //              christoffel_first_kind->get(d, a, c) *
-  //                  da_killing_vectorY.get(b, c));
-
-  //         spacetime_deriv_gauge_function->get(3, b) -=
-  //             1.0 / inertial_coords.get(0) *
-  //             inverse_spacetime_metric->get(d, a) *
-  //             (christoffel_first_kind->get(c, a, b) *
-  //                  da_killing_vectorZ.get(d, c) +
-  //              christoffel_first_kind->get(d, c, b) *
-  //                  da_killing_vectorZ.get(a, c) +
-  //              christoffel_first_kind->get(d, a, c) *
-  //                  da_killing_vectorZ.get(b, c));
-  //       }
-  //     }
-  //   }
-  // }
-
-  // auto spacetime_deriv_gauge_function_test = spacetime_deriv_gauge_function;
-  // auto gauge_function_test = gauge_function;
-
-  tnsr::ia<DataVector, Dim, Frame::Inertial> di_gauge_h{};
-  for (size_t i = 1; i < Dim; ++i) {
-    for (size_t a = 0; a < Dim + 1; ++a) {
-      di_gauge_h.get(i, a).set_data_ref(
-          make_not_null(&spacetime_deriv_gauge_function->get(i + 1, a)));
-    }
-  }
-
-  // Can't take 4D spacetime deriv
-  ::fd::general_cartoon_deriv(di_gauge_h, *gauge_function, inertial_coords);
-
-  // Cartoon deriv gauge function H_a
-  // begin with guessing vector transformation
-  // next pass is product rule of Lie derivative
-
-  // // dy H_x
-  // spacetime_deriv_gauge_function->get(2, 1) =
-  //     -gauge_function->get(2) / inertial_coords.get(0);
-
-  // // dy H_y
-  // spacetime_deriv_gauge_function->get(2, 2) =
-  //     gauge_function->get(1) / inertial_coords.get(0);
-
-  // // dy H_z
-  // spacetime_deriv_gauge_function->get(2, 3) = 0.0;
-
-  // // dz H_x
-  // spacetime_deriv_gauge_function->get(3, 1) =
-  //     -gauge_function->get(3) / inertial_coords.get(0);
-
-  // // dz H_y
-  // spacetime_deriv_gauge_function->get(3, 2) = 0.0;
-
-  // // dz H_z
-  // spacetime_deriv_gauge_function->get(3, 3) =
-  //     gauge_function->get(1) / inertial_coords.get(0);
 
   if (not using_harmonic_gauge) {
     // Compute source function last so that we don't need to recompute any of

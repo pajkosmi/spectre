@@ -264,30 +264,6 @@ struct ComputeTimeDerivImpl<
           spatial_deriv_shift.get(i, j) *= get(lapse);
         }
       }
-      // x derivatives (0)
-
-      // y derivatives (1)
-      //MIKE: undo here
-      ::fd::general_cartoon_deriv(spatial_deriv_shift, shift, inertial_coords);
-
-        // // beta^x
-        // spatial_deriv_shift.get(1, 0) = -shift.get(1) /
-        // inertial_coords.get(0);
-        // // beta^y
-        // spatial_deriv_shift.get(1, 1) = shift.get(0) /
-        // inertial_coords.get(0);
-        // // beta^z
-        // spatial_deriv_shift.get(1, 2) = 0.0 * shift.get(0);
-
-        // // z derivatives (2)
-        // // beta^x
-        // spatial_deriv_shift.get(2, 0) = -shift.get(2) /
-        // inertial_coords.get(0);
-        // // beta^y
-        // spatial_deriv_shift.get(2, 1) = 0.0 * shift.get(0);
-        // // beta^z
-        // spatial_deriv_shift.get(2, 2) = shift.get(0) /
-        // inertial_coords.get(0);
 
       // Compute d_i lapse
       for (size_t i = 0; i < 3; ++i) {
@@ -303,202 +279,14 @@ struct ComputeTimeDerivImpl<
         }
       }
 
-      // //   cartoon derivatives
-      const tnsr::ii<DataVector, 3> spatial_metric{};
-
-      for (size_t i = 0; i < 3; ++i) {
-        for (size_t j = i; j < 3; ++j) {
-          make_const_view(
-              make_not_null(&spatial_metric.get(i, j)),
-              get<gr::Tags::SpacetimeMetric<DataVector, 3>>(evolved_vars)
-                  .get(i + 1, j + 1),
-              0, number_of_points);
-        }
-      }
-      // assigned above
-      // x (0) derivatives will be overwritten
-      // MIKE: UNDO HERE
-      ::fd::general_cartoon_deriv(get<deriv_spatial_metric>(temp_tags),
-                                  spatial_metric, inertial_coords);
-
-        // // y (1) derivatives
-        // // gxx
-        // get<deriv_spatial_metric>(temp_tags).get(1, 0, 0) =
-        //     -2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
-        // // gxy
-        // get<deriv_spatial_metric>(temp_tags).get(1, 0, 1) =
-        //     (spatial_metric.get(0, 0) - spatial_metric.get(1, 1)) /
-        //     inertial_coords.get(0);
-        // // gyx = gxy symmetry
-        // get<deriv_spatial_metric>(temp_tags).get(1, 1, 0) =
-        //     get<deriv_spatial_metric>(temp_tags).get(1, 0, 1);
-        // // gxz
-        // get<deriv_spatial_metric>(temp_tags).get(1, 0, 2) =
-        //     -spatial_metric.get(1, 2) / inertial_coords.get(0);
-        // // gzx = gxz symmetry
-        // get<deriv_spatial_metric>(temp_tags).get(1, 2, 0) =
-        //     get<deriv_spatial_metric>(temp_tags).get(1, 0, 2);
-        // // gyy
-        // get<deriv_spatial_metric>(temp_tags).get(1, 1, 1) =
-        //     2.0 * spatial_metric.get(0, 1) / inertial_coords.get(0);
-        // // gyz
-        // get<deriv_spatial_metric>(temp_tags).get(1, 1, 2) =
-        //     spatial_metric.get(0, 2) / inertial_coords.get(0);
-        // // gzy = gyz symmetry
-        // get<deriv_spatial_metric>(temp_tags).get(1, 2, 1) =
-        //     get<deriv_spatial_metric>(temp_tags).get(1, 1, 2);
-        // // gzz                                  !just zero
-        // get<deriv_spatial_metric>(temp_tags).get(1, 2, 2) =
-        //     0.0 * get<deriv_spatial_metric>(temp_tags).get(1, 2, 2);
-
-        // // z (2) derivatives
-        // // gxx
-        // get<deriv_spatial_metric>(temp_tags).get(2, 0, 0) =
-        //     -2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
-        // // gxy
-        // get<deriv_spatial_metric>(temp_tags).get(2, 0, 1) =
-        //     -spatial_metric.get(1, 2) / inertial_coords.get(0);
-        // // gyx = gxy symmetry
-        // get<deriv_spatial_metric>(temp_tags).get(2, 1, 0) =
-        //     get<deriv_spatial_metric>(temp_tags).get(2, 0, 1);
-        // // gxz
-        // get<deriv_spatial_metric>(temp_tags).get(2, 0, 2) =
-        //     (spatial_metric.get(0, 0) - spatial_metric.get(2, 2)) /
-        //     inertial_coords.get(0);
-        // // gzx = gxz symmetry
-        // get<deriv_spatial_metric>(temp_tags).get(2, 2, 0) =
-        //     get<deriv_spatial_metric>(temp_tags).get(2, 0, 2);
-        // // gyy                                  !just zero
-        // get<deriv_spatial_metric>(temp_tags).get(2, 1, 1) =
-        //     get<deriv_spatial_metric>(temp_tags).get(1, 1, 1) -
-        //     get<deriv_spatial_metric>(temp_tags).get(1, 1, 1);
-        // // gyz
-        // get<deriv_spatial_metric>(temp_tags).get(2, 1, 2) =
-        //     spatial_metric.get(0, 1) / inertial_coords.get(0);
-        // // gzy = gyz symmetry
-        // get<deriv_spatial_metric>(temp_tags).get(2, 2, 1) =
-        //     get<deriv_spatial_metric>(temp_tags).get(2, 1, 2);
-        // // gzz
-        // get<deriv_spatial_metric>(temp_tags).get(2, 2, 2) =
-        //     2.0 * spatial_metric.get(0, 2) / inertial_coords.get(0);
-
-      auto phi2 = phi;
-
-      for (size_t k = 0; k < 3; ++k) {
-        for (size_t i = 0; i < 3; ++i) {
-          for (size_t j = i; j < 3; ++j) {
-            phi2.get(i, 0, j) = spatial_deriv_shift.get(i, j);
-            phi2.get(k, i + 1, j + 1) =
-                get<deriv_spatial_metric>(temp_tags).get(k, i, j);
-          }
-        }
-      }
-      // reassign phi
-      //   for (size_t k = 0; k < 3; ++k) {
-      //     for (size_t i = 0; i < 3; ++i) {
-      //       for (size_t j = i; j < 3; ++j) {
-      //             phi.get(k, i + 1, j + 1) =
-      //             get<deriv_spatial_metric>(temp_tags).get(k, i, j);
-      //       }
-      //     }
-      //   }
-
-      //   // reassign phi_one_normal
-      //   for (size_t k = 0; k < 3; ++k) {
-      //     for (size_t i = 0; i < 3; ++i) {
-      //       for (size_t j = i; j < 3; ++j) {
-      //             phi.get(k, i + 1, j + 1) =
-      //             get<deriv_spatial_metric>(temp_tags).get(k, i, j);
-      //       }
-      //     }
-      //   }
-
-      // construct normal oneform n^a
-      // const auto& spacetime_normal_vector_cartoon = spacetime_normal_vector;
-      //   const auto& phi_cartoon = phi;
-      //   auto& phi_one_normal_cartoon = phi_one_normal;
-      //   auto& pi_cartoon = get<gh::Tags::Pi<DataVector, 3>>(evolved_vars);
-
-      // reassign phi with new metric derivatives
-      //   for (size_t k = 0; k < 3; ++k) {
-      //     for (size_t i = 0; i < 3; ++i) {
-      //       for (size_t j = i; j < 3; ++j) {
-      //         phi_cartoon.get(k, i + 1, j + 1) =
-      //             get<deriv_spatial_metric>(temp_tags).get(k, i, j);
-      //       }
-      //     }
-      //   }
-
-      // construct phi_one_norm using cartoon metric
-      // Phi_{iab} n^a
-
-      // dot product together
-      //   for (size_t i = 0; i < 3; ++i) {
-      //     for (size_t j = i; j < 3; ++j) {
-      //       for (size_t a = 0; a < 4; ++a) {
-      //         phi_one_normal_cartoon.get(i, j) =
-      //         get<deriv_spatial_metric>(temp_tags).get(k, i, j);
-      //             //phi_cartoon.get(i, a, j);  //*
-      //             spacetime_normal_vector.get(a);
-
-      //         // if (a == 0) {
-      //         //   phi_one_normal_cartoon.get(i, j) = phi_cartoon.get(i, a,
-      //         j) *
-      //         //   spacetime_normal_vector.get(a);
-      //         // } else {
-      //         //   phi_one_normal_cartoon.get(i, j) += phi_cartoon.get(i, a,
-      //         j) *
-      //         //   spacetime_normal_vector.get(a);
-      //         // }
-      //       }
-      //     }
-      //   }
-      // end cartoon derivatives
-
       // Compute extrinsic curvature
       const auto& pi = get<gh::Tags::Pi<DataVector, 3>>(evolved_vars);
       for (size_t i = 0; i < 3; ++i) {
         for (size_t j = i; j < 3; ++j) {
-          get<gr::Tags::ExtrinsicCurvature<DataVector, 3>>(temp_tags).get(
-              i, j) = 0.5 * (pi.get(i + 1, j + 1));
-          //   get<gr::Tags::ExtrinsicCurvature<DataVector,
-          //   3>>(temp_tags).get(i,
-          //                                            j) =
-          //       0.5 * (pi.get(i + 1, j + 1) + phi_one_normal.get(i, j + 1) +
-          //              phi_one_normal.get(j, i + 1));
-
-          //   get<gr::Tags::ExtrinsicCurvature<DataVector, 3>>(temp_tags).get(
-          //       i, j) = 0.5 * pi.get(i + 1, j + 1);
-
-          for (size_t a = 0; a < 4; ++a) {
-            get<gr::Tags::ExtrinsicCurvature<DataVector, 3>>(temp_tags).get(
-                i, j) +=
-                0.5 * (phi2.get(i, j + 1, a) * spacetime_normal_vector.get(a) +
-                       phi2.get(j, i + 1, a) * spacetime_normal_vector.get(a));
-          }
           get<gr::Tags::ExtrinsicCurvature<DataVector, 3>>(temp_tags).get(i,
                                                                           j) =
-              0.5 *
-              (-(get<deriv_spatial_metric>(temp_tags).get(0, i, j) *
-                     spacetime_normal_vector.get(1) +
-                 get<deriv_spatial_metric>(temp_tags).get(1, i, j) *
-                     spacetime_normal_vector.get(2) +
-                 get<deriv_spatial_metric>(temp_tags).get(2, i, j) *
-                     spacetime_normal_vector.get(3)) +
-               (spatial_deriv_shift.get(i, j) * spacetime_normal_vector.get(0) +
-                get<deriv_spatial_metric>(temp_tags).get(i, 0, j) *
-                    spacetime_normal_vector.get(1) +
-                get<deriv_spatial_metric>(temp_tags).get(i, 1, j) *
-                    spacetime_normal_vector.get(2) +
-                get<deriv_spatial_metric>(temp_tags).get(i, 2, j) *
-                    spacetime_normal_vector.get(3)) +
-               (spatial_deriv_shift.get(j, i) * spacetime_normal_vector.get(0) +
-                get<deriv_spatial_metric>(temp_tags).get(j, 0, i) *
-                    spacetime_normal_vector.get(1) +
-                get<deriv_spatial_metric>(temp_tags).get(j, 1, i) *
-                    spacetime_normal_vector.get(2) +
-                get<deriv_spatial_metric>(temp_tags).get(j, 2, i) *
-                    spacetime_normal_vector.get(3)));
+              0.5 * (pi.get(i + 1, j + 1) + phi_one_normal.get(i, j + 1) +
+                     phi_one_normal.get(j, i + 1));
         }
       }
     }  // End scope for computing metric terms in GRMHD source terms.
@@ -655,38 +443,6 @@ struct ComputeTimeDerivImpl<
         // update 408 to 424
       }());
     }
-    // begin zeroing
-    // shift x term is nonzero
-    // zeros out time derivative terms of spacetime metric
-    bool zero_out = false;
-    int count = 0;
-    // EXPAND_PACK_LEFT_TO_RIGHT([&dt_vars_ptr, &zero_out, &count]() {
-    //   for (size_t i = 0; i < get<::Tags::dt<GhDtTags>>(*dt_vars_ptr).size();
-    //        ++i) {
-    //     get<::Tags::dt<GhDtTags>>(*dt_vars_ptr)[i] = 0.0;
-    //     // zero out pi and phi time derivatives
-    //     // std::cout << "spacetime indices " << i << "\n";
-    //     // std::cout << "components of evo var " << i << "\n";
-    //     // if (zero_out == true) {
-    //     //   get<::Tags::dt<GhDtTags>>(*dt_vars_ptr)[i] = 0.0;
-    //     //   //   std::cout << "spacetime indices " << i << "\n";
-    //     // }
-    //     // if (i == 9 and count < 2) {
-    //     //   zero_out = !zero_out;
-    //     //   count += 1;
-    //     //   //   zero_out = false;
-    //     // }
-    //   }
-    // }());
-
-    // zero grhmd
-    // EXPAND_PACK_LEFT_TO_RIGHT([&dt_vars_ptr, &zero_out]() {
-    // for (size_t i = 0; i < get<::Tags::dt<GrmhdDtTags>>(*dt_vars_ptr).size();
-    //        ++i) {
-    //     get<::Tags::dt<GrmhdDtTags>>(*dt_vars_ptr)[i] = 0.0;
-    //   }
-    // }());
-    // end zeroing
   }
 };
 }  // namespace detail

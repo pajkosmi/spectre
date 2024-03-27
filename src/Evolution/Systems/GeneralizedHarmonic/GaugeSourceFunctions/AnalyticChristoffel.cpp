@@ -119,7 +119,7 @@ void AnalyticChristoffel::gauge_and_spacetime_derivative(
   auto phi2 = phi;
 
   // need to overwrite metric during analytic christoffel calculation
-  ::fd::general_cartoon_deriv(phi2, spacetime_metric, inertial_coords);
+  // ::fd::general_cartoon_deriv(phi2, spacetime_metric, inertial_coords);
 
   {
     Scalar<DataVector> det_buffer{};
@@ -153,6 +153,7 @@ void AnalyticChristoffel::gauge_and_spacetime_derivative(
   partial_derivative(make_not_null(&di_gauge_h), *gauge_h, mesh,
                      inverse_jacobian);
 
+  // This is needed for cartoon
   ::fd::general_cartoon_deriv(di_gauge_h, *gauge_h, inertial_coords);
 
   // Set time derivative to zero. We are assuming a static solution.
