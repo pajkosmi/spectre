@@ -224,7 +224,7 @@ void reconstruct_prims_work(
         vars_in_neighbor_count += number_of_variables;
       });
 
-  for (size_t i = 0; i < 3; ++i) {
+  for (size_t i = 0; i < 1; ++i) {
     if constexpr (tmpl::size<SpacetimeTagsToReconstruct>::value != 0) {
       spacetime_vars_for_grmhd(make_not_null(&gsl::at(*vars_on_lower_face, i)));
       spacetime_vars_for_grmhd(make_not_null(&gsl::at(*vars_on_upper_face, i)));
