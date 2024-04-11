@@ -235,8 +235,6 @@ struct ComputeTimeDerivImpl<
       // 0.5\Phi_{iab} n^a n^b
       const auto& half_phi_two_normals =
           get<gh::Tags::HalfPhiTwoNormals<3>>(temp_tags);
-      // MIKE: maybe remove const and overwrite phi internally based on cartoon
-      // derivatives?
       const auto& phi = get<gh::Tags::Phi<DataVector, 3>>(evolved_vars);
       // Phi_{iab} n^a
       const auto& phi_one_normal = get<gh::Tags::PhiOneNormal<3>>(temp_tags);
@@ -244,7 +242,6 @@ struct ComputeTimeDerivImpl<
           get<gr::Tags::SpacetimeNormalVector<DataVector, 3>>(temp_tags);
       const auto& inverse_spacetime_metric =
           get<gr::Tags::InverseSpacetimeMetric<DataVector, 3>>(temp_tags);
-
       auto& spatial_deriv_lapse = get<deriv_lapse>(temp_tags);
       auto& spatial_deriv_shift = get<deriv_shift>(temp_tags);
       // Compute d_i beta^i
@@ -476,7 +473,6 @@ struct TimeDerivative {
 
     const auto& evolved_vars_first = db::get<evolved_vars_tag>(*box);
     const auto& pi_first = get<gh::Tags::Pi<DataVector, 3>>(evolved_vars_first);
-    // std::cout << "Pi (TimeDerivative) " << pi_first << "\n";
 
     const Mesh<3>& dg_mesh = db::get<domain::Tags::Mesh<3>>(*box);
     const Mesh<3>& subcell_mesh =
@@ -584,7 +580,6 @@ struct TimeDerivative {
         cell_centered_gh_derivs{num_pts};
 
     const auto& pi = get<gh::Tags::Pi<DataVector, 3>>(evolved_vars);
-    // std::cout << "Pi (TimeDerivative) " << pi << "\n";
 
     grmhd::GhValenciaDivClean::fd::spacetime_derivatives(
         make_not_null(&cell_centered_gh_derivs), evolved_vars,

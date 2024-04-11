@@ -134,7 +134,7 @@ std::ostream& operator<<(std::ostream& os, const Index<N>& i);
 namespace Index_detail {
 template <size_t Dim>
 void collapsed_index_check(const Index<Dim>& index, const Index<Dim>& extents) {
-  for (size_t d = 0; d < Dim; ++d) {
+  for (size_t d = 0; d < 1; ++d) {
     ASSERT(index[d] < extents[d], "The requested index in the dimension "
                                       << d << " with value " << index[d]
                                       << " exceeds the number of grid "

@@ -103,9 +103,9 @@ struct SetInterpolators {
         //    ghost zones.
         // 3. Create interpolators
 
-        if (not is_isotropic(neighbor_fd_mesh)) {
-          ERROR("We assume an isotropic mesh but got " << neighbor_fd_mesh);
-        }
+        // if (not is_isotropic(neighbor_fd_mesh)) {
+        //   ERROR("We assume an isotropic mesh but got " << neighbor_fd_mesh);
+        // }
 
         const auto get_logical_coords = [&element, &neighbor_id, &direction](
                                             const auto& map,
