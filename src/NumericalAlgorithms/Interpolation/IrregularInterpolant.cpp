@@ -163,12 +163,12 @@ Matrix interpolation_matrix(
       const double eta_target = get<1>(points)[p];
       const double zeta_target = get<2>(points)[p];
       const auto xi_stencil = fd_stencil(xi_source, xi_target);
-      const auto eta_stencil = fd_stencil(eta_source, eta_target);
-      const auto zeta_stencil = fd_stencil(zeta_source, zeta_target);
+      // const auto eta_stencil = fd_stencil(eta_source, eta_target);
+      // const auto zeta_stencil = fd_stencil(zeta_source, zeta_target);
       for (size_t k = 0, s = 0; k < mesh.extents(2); ++k) {
         for (size_t j = 0; j < mesh.extents(1); ++j) {
           for (size_t i = 0; i < mesh.extents(0); ++i) {
-            result(p, s) = xi_stencil[i] * eta_stencil[j] * zeta_stencil[k];
+            result(p, s) = xi_stencil[i];// * eta_stencil[j] * zeta_stencil[k];
             ++s;
           }
         }
