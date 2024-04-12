@@ -168,7 +168,8 @@ Matrix interpolation_matrix(
       for (size_t k = 0, s = 0; k < mesh.extents(2); ++k) {
         for (size_t j = 0; j < mesh.extents(1); ++j) {
           for (size_t i = 0; i < mesh.extents(0); ++i) {
-            result(p, s) = xi_stencil[i];// * eta_stencil[j] * zeta_stencil[k];
+            result(p, s) =
+                xi_stencil[i];  // * eta_stencil[j] * zeta_stencil[k];
             ++s;
           }
         }
@@ -205,9 +206,9 @@ template <size_t Dim>
 Irregular<Dim>::Irregular() = default;
 
 template <size_t Dim>
-Irregular<Dim>::Irregular(const Mesh<Dim>& source_mesh,
-                          const tnsr::I<DataVector, Dim, Frame::ElementLogical>&
-                              target_points)
+Irregular<Dim>::Irregular(
+    const Mesh<Dim>& source_mesh,
+    const tnsr::I<DataVector, Dim, Frame::ElementLogical>& target_points)
     : interpolation_matrix_(interpolation_matrix(source_mesh, target_points)) {}
 
 template <size_t Dim>
