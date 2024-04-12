@@ -1305,7 +1305,7 @@ maps_for_rectilinear_domains(
         gsl::at(affine_maps_new, 2) = aff_ones;
 
         using Interval = domain::CoordinateMaps::Interval;
-        const double singularity_point = -1.0;
+        const double singularity_point = 0.65 * gsl::at(lower_bounds, 0);
         Interval log_map =
             Interval{-1.,
                      1.,
