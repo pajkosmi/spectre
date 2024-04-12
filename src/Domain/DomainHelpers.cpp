@@ -1219,6 +1219,31 @@ product_of_1d_maps(
                                                             maps[2]));
 }
 
+template <typename TargetFrame, typename Map1, typename Map2>
+std::unique_ptr<domain::CoordinateMapBase<Frame::BlockLogical, TargetFrame, 1>>
+product_of_different_1d_maps(std::array<Map1, 1>& map1,
+                             std::array<Map2, 1>& map2) {
+  return domain::make_coordinate_map_base<Frame::BlockLogical, TargetFrame>(
+      map1[0]);
+}
+
+template <typename TargetFrame, typename Map1, typename Map2>
+std::unique_ptr<domain::CoordinateMapBase<Frame::BlockLogical, TargetFrame, 2>>
+product_of_different_1d_maps(std::array<Map1, 2>& map1,
+                             std::array<Map2, 2>& map2) {
+  return domain::make_coordinate_map_base<Frame::BlockLogical, TargetFrame>(
+      domain::CoordinateMaps::ProductOf2Maps<Map1, Map2>(map1[0], map2[1]));
+}
+
+template <typename TargetFrame, typename Map1, typename Map2>
+std::unique_ptr<domain::CoordinateMapBase<Frame::BlockLogical, TargetFrame, 3>>
+product_of_different_1d_maps(std::array<Map1, 3>& map1,
+                             std::array<Map2, 3>& map2) {
+  return domain::make_coordinate_map_base<Frame::BlockLogical, TargetFrame>(
+      domain::CoordinateMaps::ProductOf3Maps<Map1, Map2, Map2>(map1[0], map2[1],
+                                                               map2[2]));
+}
+
 template <typename TargetFrame, size_t VolumeDim>
 std::vector<std::unique_ptr<
     domain::CoordinateMapBase<Frame::BlockLogical, TargetFrame, VolumeDim>>>
@@ -1249,17 +1274,54 @@ maps_for_rectilinear_domains(
              "The block demarcations must be strictly increasing.");
     }
     if (not use_equiangular_map) {
+      // Affine
       using Affine = domain::CoordinateMaps::Affine;
-      std::array<Affine, VolumeDim> affine_maps{};
-      for (size_t d = 0; d < VolumeDim; d++) {
-        gsl::at(affine_maps, d) = Affine{-1.0, 1.0, gsl::at(lower_bounds, d),
-                                         gsl::at(upper_bounds, d)};
-      }
-      if (not orientations_of_all_blocks.empty()) {
-        maps.push_back(product_of_1d_maps<TargetFrame>(
-            affine_maps, orientations_of_all_blocks[block_orientation_index]));
+      if (block_index[0] == 0) {
+        // regular affine if 1st (innermost) block
+        std::array<Affine, VolumeDim> affine_maps{};
+        for (size_t d = 0; d < VolumeDim; d++) {
+          gsl::at(affine_maps, d) = Affine{-1.0, 1.0, gsl::at(lower_bounds, d),
+                                           gsl::at(upper_bounds, d)};
+        }
+        if (not orientations_of_all_blocks.empty()) {
+          maps.push_back(product_of_1d_maps<TargetFrame>(
+              affine_maps,
+              orientations_of_all_blocks[block_orientation_index]));
+        } else {
+          maps.push_back(product_of_1d_maps<TargetFrame>(affine_maps));
+        }
       } else {
-        maps.push_back(product_of_1d_maps<TargetFrame>(affine_maps));
+        // Log spacing if 2nd outer block
+        using Affine3D =
+            domain::CoordinateMaps::ProductOf3Maps<Affine, Affine, Affine>;
+
+        Affine aff_diff =
+            Affine{-1., 1., gsl::at(lower_bounds, 0), gsl::at(upper_bounds, 0)};
+        Affine aff_ones = Affine{-1., 1., -1.0, 1.0};
+
+        std::array<Affine, VolumeDim> affine_maps_new{};
+        gsl::at(affine_maps_new, 0) = aff_diff;
+        gsl::at(affine_maps_new, 1) = aff_ones;
+        gsl::at(affine_maps_new, 2) = aff_ones;
+
+        using Interval = domain::CoordinateMaps::Interval;
+        const double singularity_point = -1.0;
+        Interval log_map =
+            Interval{-1.,
+                     1.,
+                     gsl::at(lower_bounds, 0),
+                     gsl::at(upper_bounds, 0),
+                     domain::CoordinateMaps::Distribution::Logarithmic,
+                     singularity_point};
+
+        std::array<Interval, VolumeDim> interval_maps_new{};
+        for (size_t d = 0; d < 3; d++) {
+          gsl::at(interval_maps_new, d) = log_map;
+        }
+
+        maps.push_back(
+            product_of_different_1d_maps<TargetFrame, Interval, Affine>(
+                interval_maps_new, affine_maps_new));
       }
     } else {
       using Equiangular = domain::CoordinateMaps::Equiangular;
