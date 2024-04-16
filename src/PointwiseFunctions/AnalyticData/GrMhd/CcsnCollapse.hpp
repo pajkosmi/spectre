@@ -9,14 +9,29 @@
 #include <string>
 
 #include "DataStructures/Tensor/TypeAliases.hpp"
+#include "IO/Connectivity.hpp"
+#include "IO/H5/AccessType.hpp"
+#include "IO/H5/CheckH5.hpp"
+#include "IO/H5/EosTable.hpp"
+#include "IO/H5/File.hpp"
+#include "IO/H5/Header.hpp"
+#include "IO/H5/Helpers.hpp"
+#include "IO/H5/OpenGroup.hpp"
+#include "IO/H5/SourceArchive.hpp"
+#include "IO/H5/Version.hpp"
+#include "IO/H5/Wrappers.hpp"
 #include "NumericalAlgorithms/LinearOperators/PartialDerivatives.hpp"
 #include "Options/String.hpp"
 #include "PointwiseFunctions/AnalyticData/AnalyticData.hpp"
 #include "PointwiseFunctions/AnalyticData/GrMhd/AnalyticData.hpp"
-#include "PointwiseFunctions/Hydro/EquationsOfState/PolytropicFluid.hpp"
+// #include "PointwiseFunctions/Hydro/EquationsOfState/PolytropicFluid.hpp"
+#include "PointwiseFunctions/Hydro/EquationsOfState/EquationOfState.hpp"
+#include "PointwiseFunctions/Hydro/EquationsOfState/Factory.hpp"
+#include "PointwiseFunctions/Hydro/EquationsOfState/Tabulated3d.hpp"
 #include "PointwiseFunctions/Hydro/Temperature.hpp"
 #include "PointwiseFunctions/Hydro/Units.hpp"
 #include "PointwiseFunctions/InitialDataUtilities/InitialData.hpp"
+#include "Utilities/Serialization/RegisterDerivedClassesWithCharm.hpp"
 #include "Utilities/TMPL.hpp"
 #include "Utilities/TaggedTuple.hpp"
 
@@ -179,7 +194,8 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   };
 
  public:
-  using equation_of_state_type = EquationsOfState::PolytropicFluid<true>;
+  using equation_of_state_type =
+      EquationsOfState::Tabulated3D<true>;  // PolytropicFluid<true>;
 
   /// The massive star progenitor data file.
   struct ProgenitorFilename {
@@ -192,12 +208,12 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   ///
   /// The remaining hydrodynamic primitive variables (e.g., pressure)
   /// will be calculated based on this \f$K\f$ for \f$P=K\rho^{\Gamma}\f$.
-  struct PolytropicConstant {
-    using type = double;
-    static constexpr Options::String help = {
-        "The polytropic constant of the fluid."};
-    static type lower_bound() { return 0.; }
-  };
+  //   struct PolytropicConstant {
+  //     using type = double;
+  //     static constexpr Options::String help = {
+  //         "The polytropic constant of the fluid."};
+  //     static type lower_bound() { return 0.; }
+  //   };
 
   /// Adiabatic index of the system at readin.
   ///
@@ -206,12 +222,12 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   /// defined, \f$\Gamma\f$ will cause a lower pressure for an equation of state
   /// of the form \f$P=K\rho^{\Gamma}\f$.  This effect triggers collapse for
   /// simplified CCSN models.
-  struct AdiabaticIndex {
-    using type = double;
-    static constexpr Options::String help = {
-        "The adiabatic index that will trigger collapse."};
-    static type lower_bound() { return 1.0; }
-  };
+  //   struct AdiabaticIndex {
+  //     using type = double;
+  //     static constexpr Options::String help = {
+  //         "The adiabatic index that will trigger collapse."};
+  //     static type lower_bound() { return 1.0; }
+  //   };
 
   /// Central angular velocity artificially assigned at readin.
   ///
@@ -260,10 +276,20 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
     static type lower_bound() { return 0.0; }
   };
 
-  using options =
-      tmpl::list<ProgenitorFilename, PolytropicConstant, AdiabaticIndex,
-                 CentralAngularVelocity, DifferentialRotationParameter,
-                 MaxDensityRatioForLinearInterpolation>;
+  struct TableFilename {
+    using type = std::string;
+    static constexpr Options::String help{"File name of the EOS table"};
+  };
+
+  struct TableSubFilename {
+    using type = std::string;
+    static constexpr Options::String help{
+        "Subfile name of the EOS table, e.g., 'dd2'."};
+  };
+
+  using options = tmpl::list<
+      ProgenitorFilename, CentralAngularVelocity, DifferentialRotationParameter,
+      MaxDensityRatioForLinearInterpolation, TableFilename, TableSubFilename>;
   static constexpr Options::String help = {
       "Core collapse supernova initial data, read in from a profile containing"
       " hydrodynamic primitives and metric variables.  The data "
@@ -276,9 +302,9 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   CcsnCollapse& operator=(CcsnCollapse&& /*rhs*/) = default;
   ~CcsnCollapse() override = default;
 
-  CcsnCollapse(std::string progenitor_filename, double polytropic_constant,
-               double adiabatic_index, double central_angular_velocity,
-               double diff_rot_parameter, double max_dens_ratio_interp);
+  CcsnCollapse(std::string progenitor_filename, double central_angular_velocity,
+               double diff_rot_parameter, double max_dens_ratio_interp,
+               std::string eos_filename, std::string eos_subfilename);
 
   auto get_clone() const
       -> std::unique_ptr<evolution::initial_data::InitialData> override;
@@ -302,7 +328,7 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   // NOLINTNEXTLINE(google-runtime-references)
   void pup(PUP::er& p) override;
 
-  const EquationsOfState::PolytropicFluid<true>& equation_of_state() const {
+  const EquationsOfState::Tabulated3D<true>& equation_of_state() const {
     return equation_of_state_;
   }
 
@@ -386,10 +412,11 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
   auto variables(gsl::not_null<IntermediateVariables<DataType>*> vars,
                  const tnsr::I<DataType, 3>& x,
                  tmpl::list<hydro::Tags::Temperature<DataType>> /*meta*/) const
-      -> tuples::TaggedTuple<hydro::Tags::Temperature<DataType>> {
-    return TemperatureInitialization::variables(
-        vars, x, tmpl::list<hydro::Tags::Temperature<DataType>>{});
-  }
+      -> tuples::TaggedTuple<hydro::Tags::Temperature<DataType>>;
+  //       {
+  //     return TemperatureInitialization::variables(
+  //         vars, x, tmpl::list<hydro::Tags::Temperature<DataType>>{});
+  //   }
 
   template <typename DataType>
   auto variables(gsl::not_null<IntermediateVariables<DataType>*> vars,
@@ -496,9 +523,7 @@ class CcsnCollapse : public virtual evolution::initial_data::InitialData,
  protected:
   std::string progenitor_filename_{};
   detail::ProgenitorProfile prog_data_{};
-  double polytropic_constant_ = std::numeric_limits<double>::signaling_NaN();
-  double polytropic_exponent_ = std::numeric_limits<double>::signaling_NaN();
-  EquationsOfState::PolytropicFluid<true> equation_of_state_{};
+  EquationsOfState::Tabulated3D<true> equation_of_state_;
   double central_angular_velocity_ =
       std::numeric_limits<double>::signaling_NaN();
   double inv_diff_rot_parameter_ = std::numeric_limits<double>::signaling_NaN();
