@@ -269,8 +269,8 @@ struct GhValenciaDivCleanDefaults {
       tmpl::append<typename system::primitive_variables_tag::tags_list,
                    typename system::gh_system::variables_tag::tags_list>;
   using ordered_list_of_primitive_recovery_schemes = tmpl::list<
-      grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl,
-      grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin,
+    //   grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl,
+    //   grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin,
       grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>;
 
   // Do not limit the divergence-cleaning field Phi or the GH fields
