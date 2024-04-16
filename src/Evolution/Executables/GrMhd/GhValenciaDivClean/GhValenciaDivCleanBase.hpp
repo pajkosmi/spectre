@@ -108,6 +108,7 @@
 #include "Evolution/VariableFixing/Actions.hpp"
 #include "Evolution/VariableFixing/FixToAtmosphere.hpp"
 #include "Evolution/VariableFixing/LimitLorentzFactor.hpp"
+#include "Evolution/VariableFixing/ParameterizedDeleptonization.hpp"
 #include "Evolution/VariableFixing/Tags.hpp"
 #include "IO/Importers/Actions/ReadVolumeData.hpp"
 #include "IO/Importers/Actions/ReceiveVolumeData.hpp"
@@ -356,6 +357,8 @@ struct GhValenciaDivCleanTemplateBase<
   static constexpr bool use_dg_subcell = UseDgSubcell;
   static constexpr bool use_control_systems = UseControlSystems;
 
+  using parameterized_deleptonization = VariableFixing::Actions::FixVariables<
+      VariableFixing::ParameterizedDeleptonization>;
   using initial_data_list =
       ghmhd::GhValenciaDivClean::InitialData::initial_data_list;
 
@@ -748,6 +751,7 @@ struct GhValenciaDivCleanTemplateBase<
           grmhd::GhValenciaDivClean::subcell::TciOnDgGrid<
               tmpl::front<ordered_list_of_primitive_recovery_schemes>>>,
       Actions::CleanHistory<system, local_time_stepping>,
+      parameterized_deleptonization,
       VariableFixing::Actions::FixVariables<
           VariableFixing::FixToAtmosphere<volume_dim>>,
       VariableFixing::Actions::FixVariables<VariableFixing::LimitLorentzFactor>,
@@ -781,6 +785,7 @@ struct GhValenciaDivCleanTemplateBase<
       Actions::MutateApply<
           grmhd::GhValenciaDivClean::subcell::ResizeAndComputePrims<
               ordered_list_of_primitive_recovery_schemes>>,
+      parameterized_deleptonization,
       VariableFixing::Actions::FixVariables<
           VariableFixing::FixToAtmosphere<volume_dim>>,
       VariableFixing::Actions::FixVariables<VariableFixing::LimitLorentzFactor>,
@@ -852,6 +857,7 @@ struct GhValenciaDivCleanTemplateBase<
           Parallel::PhaseActions<
               Parallel::Phase::Evolve,
               tmpl::list<::domain::Actions::CheckFunctionsOfTimeAreReady,
+                         parameterized_deleptonization,
                          VariableFixing::Actions::FixVariables<
                              VariableFixing::FixToAtmosphere<volume_dim>>,
                          VariableFixing::Actions::FixVariables<
