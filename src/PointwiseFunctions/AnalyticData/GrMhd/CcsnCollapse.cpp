@@ -518,9 +518,12 @@ CcsnCollapse::variables(
 template <typename DataType>
 tuples::TaggedTuple<hydro::Tags::Temperature<DataType>> CcsnCollapse::variables(
     const gsl::not_null<IntermediateVariables<DataType>*> vars,
-    const tnsr::I<DataType, 3>& /*x*/,
+    const tnsr::I<DataType, 3>& x,
     tmpl::list<hydro::Tags::Temperature<DataType>> /*meta*/) const {
-  return {Scalar<DataType>{vars->temperature.value()}};
+    auto temp = make_with_value<Scalar<DataType>>(x, 0.02);
+    return {std::move(temp)};
+  // return {Scalar<DataType>{vars->temperature.value()}};
+  // return {0.02};
 }
 
 // Specific internal energy
