@@ -8,6 +8,7 @@
 #include "DataStructures/DataBox/DataBox.hpp"
 #include "Evolution/Imex/Protocols/ImexSystem.hpp"
 #include "Evolution/Imex/SolveImplicitSector.hpp"
+// #include "Evolution/Imex/SolveImplicitSector.tpp"
 #include "Parallel/AlgorithmExecution.hpp"
 #include "Time/TimeStepId.hpp"
 #include "Utilities/CleanupRoutine.hpp"
@@ -83,6 +84,36 @@ struct DoImplicitStep {
       db::mutate_apply<
           SolveImplicitSector<typename System::variables_tag, sector>>(
           make_not_null(&box));
+    });
+    return {Parallel::AlgorithmExecution::Continue, std::nullopt};
+  }
+};
+
+// FIXME
+template <typename System>
+struct InitializeImex {
+  static_assert(tt::conforms_to_v<System, protocols::ImexSystem>);
+  using initialization_tags = tmpl::list<>;
+  using simple_tags =
+      tmpl::transform<typename System::implicit_sectors,
+                      tmpl::bind<Tags::ImplicitHistory, tmpl::_1>>;
+
+  template <typename DbTags, typename... InboxTags, typename Metavariables,
+            typename ArrayIndex, typename ActionList,
+            typename ParallelComponent>
+  static Parallel::iterable_action_return_t apply(
+      db::DataBox<DbTags>& box, tuples::TaggedTuple<InboxTags...>& /*inboxes*/,
+      Parallel::GlobalCache<Metavariables>& /*cache*/,
+      const ArrayIndex& /*array_index*/, const ActionList /*meta*/,
+      const ParallelComponent* const /*component*/) {
+    const auto order =
+        get<::Tags::HistoryEvolvedVariables<typename System::variables_tag>>(
+            box)
+            .integration_order();
+    tmpl::for_each<simple_tags>([&](auto tag) {
+      using Tag = tmpl::type_from<decltype(tag)>;
+      Initialization::mutate_assign<tmpl::list<Tag>>(make_not_null(&box),
+                                                     typename Tag::type(order));
     });
     return {Parallel::AlgorithmExecution::Continue, std::nullopt};
   }

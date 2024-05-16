@@ -11,7 +11,9 @@ template <>
 imex::Mode Options::create_from_yaml<imex::Mode>::create<void>(
     const Options::Option& options) {
   const auto mode = options.parse_as<std::string>();
-  if (mode == "Implicit") {
+  if (mode == "Explicit") {
+    return imex::Mode::Explicit;
+  } else if (mode == "Implicit") {
     return imex::Mode::Implicit;
   } else if (mode == "SemiImplicit") {
     return imex::Mode::SemiImplicit;

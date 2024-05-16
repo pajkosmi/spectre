@@ -14,6 +14,7 @@ spectre_target_sources(
   DynamicBuffer.cpp
   DynamicMatrix.cpp
   DynamicVector.cpp
+  ExtractPoint.hpp
   FloatingPointType.cpp
   Index.cpp
   IndexIterator.cpp

@@ -30,6 +30,10 @@ using OrderVector = boost::container::static_vector<T, maximum_order>;
 /// reference table (except likely in the opposite order).
 OrderVector<double> constant_adams_bashforth_coefficients(size_t order);
 
+/// Same as above for implicit time stepping
+OrderVector<double> constant_adams_bashforth_implicit_coefficients(
+    const size_t order);
+
 /// The standard Adams-Moulton coefficients for constant step size,
 /// ordered from oldest to newest time, as one would find in a
 /// reference table (except likely in the opposite order).

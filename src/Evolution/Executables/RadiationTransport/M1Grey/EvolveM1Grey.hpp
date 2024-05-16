@@ -20,6 +20,10 @@
 #include "Evolution/DiscontinuousGalerkin/Initialization/QuadratureTag.hpp"
 #include "Evolution/DiscontinuousGalerkin/Limiters/Minmod.hpp"
 #include "Evolution/DiscontinuousGalerkin/Limiters/Tags.hpp"
+#include "Evolution/Imex/Actions/DoImplicitStep.hpp"
+#include "Evolution/Imex/Actions/RecordImexTimeStepperData.hpp"
+// #include "Evolution/Imex/ImexDenseOutput.hpp"
+#include "Evolution/Imex/ImplicitDenseOutput.hpp"
 #include "Evolution/Initialization/ConservativeSystem.hpp"
 #include "Evolution/Initialization/DgDomain.hpp"
 #include "Evolution/Initialization/Evolution.hpp"
@@ -63,6 +67,8 @@
 #include "ParallelAlgorithms/EventsAndTriggers/LogicalTriggers.hpp"
 #include "ParallelAlgorithms/EventsAndTriggers/Trigger.hpp"
 #include "PointwiseFunctions/AnalyticData/AnalyticData.hpp"
+#include "PointwiseFunctions/AnalyticData/RadiationTransport/M1Grey/HomogeneousSphere.hpp"
+#include "PointwiseFunctions/AnalyticData/RadiationTransport/M1Grey/SphericalGaussian.hpp"
 #include "PointwiseFunctions/AnalyticData/Tags.hpp"
 #include "PointwiseFunctions/AnalyticSolutions/AnalyticSolution.hpp"
 #include "PointwiseFunctions/AnalyticSolutions/RadiationTransport/M1Grey/ConstantM1.hpp"
@@ -100,6 +106,206 @@ class CProxy_GlobalCache;
 }  // namespace Parallel
 /// \endcond
 
+#include "NumericalAlgorithms/RootFinding/QuadraticEquation.hpp"
+struct FIXME_Flatten {
+  using return_tags =
+      tmpl::list<RadiationTransport::M1Grey::Tags::TildeE<
+                     Frame::Inertial, neutrinos::ElectronNeutrinos<1>>,
+                 RadiationTransport::M1Grey::Tags::TildeS<
+                     Frame::Inertial, neutrinos::ElectronNeutrinos<1>>>;
+  using argument_tags = tmpl::list<
+      gr::Tags::InverseSpatialMetric<DataVector, 3>,
+      domain::Tags::DetInvJacobian<Frame::ElementLogical, Frame::Inertial>,
+      domain::Tags::Mesh<3>, Tags::Time, domain::Tags::Element<3>>;
+  static void apply(const gsl::not_null<Scalar<DataVector>*> tilde_e,
+                    const gsl::not_null<tnsr::i<DataVector, 3>*> tilde_s,
+                    const tnsr::II<DataVector, 3>& inverse_spatial_metric,
+                    const Scalar<DataVector>& det_jacobian, const Mesh<3>& mesh,
+
+                    const double time, const Element<3>& element) {
+    // FIXME allocations
+    const auto energy_excess =
+        tenex::evaluate(square((*tilde_e)()) -
+                        (*tilde_s)(ti::i)*inverse_spatial_metric(ti::I, ti::J) *
+                            (*tilde_s)(ti::j));
+    if (/*min(get(*tilde_e)) >= 0.0 and */ min(get(energy_excess)) >= 0.0) {
+      return;
+    }
+#if 1  // Scale all
+    const auto element_volume = definite_integral(get(det_jacobian), mesh);
+    const auto average_e =
+        definite_integral(get(det_jacobian) * get(*tilde_e), mesh) /
+        element_volume;
+    double average_energy_excess = square(average_e);
+    tnsr::i<double, 3> average_s;
+    for (size_t i = 0; i < 3; ++i) {
+      average_s.get(i) =
+          definite_integral(get(det_jacobian) * tilde_s->get(i), mesh) /
+          element_volume;
+      average_energy_excess -= square(average_s.get(i));  // FIXME metric
+    }
+    if (average_energy_excess < 0.0) {
+      ERROR("Average values are nonphysical.\n"
+            << *tilde_e << "\n"
+            << *tilde_s << "\n"
+            << average_e << "\n"
+            << average_s << "\nt = " << time);
+    }
+    double flatten_factor = 1.0;
+    // if (min(get(*tilde_e)) < 0.0) {
+    //   flatten_factor = average_e / (average_e - min(get(*tilde_e)));
+    // }
+    // FIXME try rewriting with 0 = no change
+    for (size_t i = 0; i < get(*tilde_e).size(); ++i) {
+      if (get(*tilde_e)[i] < 0.0 or get(energy_excess)[i] < 0.0) {
+        // FIXME guarantee single positive?
+        const auto point_flatten_factor = real_roots(
+            square(get(*tilde_e)[i] - average_e) -
+                square(get<0>(*tilde_s)[i] - get<0>(average_s)) -
+                square(get<1>(*tilde_s)[i] - get<1>(average_s)) -
+                square(get<2>(*tilde_s)[i] - get<2>(average_s)),
+            2.0 *
+                ((get(*tilde_e)[i] - average_e) * average_e -
+                 (get<0>(*tilde_s)[i] - get<0>(average_s)) * get<0>(average_s) -
+                 (get<1>(*tilde_s)[i] - get<1>(average_s)) * get<1>(average_s) -
+                 (get<2>(*tilde_s)[i] - get<2>(average_s)) * get<2>(average_s)),
+            average_energy_excess);
+        ASSERT(point_flatten_factor.has_value(),
+               get(*tilde_e)[i]
+                   << " " << get<0>(*tilde_s)[i] << " " << get<1>(*tilde_s)[i]
+                   << " " << get<2>(*tilde_s)[i] << " " << average_e << " "
+                   << get<0>(average_s) << " " << get<1>(average_s) << " "
+                   << get<2>(average_s));
+        if (point_flatten_factor.has_value()) {
+          if ((*point_flatten_factor)[0] > 0.0 and
+              (*point_flatten_factor)[0] < flatten_factor) {
+            flatten_factor = (*point_flatten_factor)[0];
+          } else if ((*point_flatten_factor)[1] < flatten_factor) {
+            flatten_factor = (*point_flatten_factor)[1];
+          }
+        }
+      }
+    }
+    ASSERT(flatten_factor >= 0.0 and flatten_factor <= 1.0,
+           "Not a valid adjustment: " << flatten_factor << "\n"
+                                      << *tilde_e << "\n"
+                                      << *tilde_s);
+    for (size_t i = 0; i < get(*tilde_e).size(); ++i) {
+      get(*tilde_e)[i] =
+          average_e + (get(*tilde_e)[i] - average_e) * flatten_factor;
+      for (size_t j = 0; j < 3; ++j) {
+        tilde_s->get(j)[i] =
+            average_s.get(j) +
+            (tilde_s->get(j)[i] - average_s.get(j)) * flatten_factor;
+      }
+    }
+#endif  // scale all
+#if 0   // scale s
+    const auto element_volume = definite_integral(get(det_jacobian), mesh);
+    tnsr::i<double, 3> average_s;
+    double average_s_norm = 0.0;
+    for (size_t i = 0; i < 3; ++i) {
+      average_s.get(i) =
+          definite_integral(get(det_jacobian) * tilde_s->get(i), mesh) /
+          element_volume;
+      average_s_norm += square(average_s.get(i)); //FIXME metric
+    }
+    // 0 >= (s0^2 - e^2) + x 2 s0.(s - s0) + x^2 (s - s0)^2
+    double flatten_factor = 1.0;
+    //FIXME try rewriting with 0 = no change
+    for (size_t i = 0; i < get(*tilde_e).size(); ++i) {
+      if (get(energy_excess)[i] < 0.0) {
+        const auto point_flatten_factor = real_roots(
+            square(get<0>(*tilde_s)[i] - get<0>(average_s)) +
+            square(get<1>(*tilde_s)[i] - get<1>(average_s)) +
+            square(get<2>(*tilde_s)[i] - get<2>(average_s)),
+            2.0 *
+            ((get<0>(*tilde_s)[i] - get<0>(average_s)) * get<0>(average_s) +
+             (get<1>(*tilde_s)[i] - get<1>(average_s)) * get<1>(average_s) +
+             (get<2>(*tilde_s)[i] - get<2>(average_s)) * get<2>(average_s)),
+            average_s_norm - square(get(*tilde_e)[i]));
+        if (not point_flatten_factor.has_value()) {
+          ERROR(get(*tilde_e)[i] << " "
+                << get<0>(*tilde_s)[i] << " "
+                << get<1>(*tilde_s)[i] << " "
+                << get<2>(*tilde_s)[i] << " "
+                << get<0>(average_s) << " "
+                << get<1>(average_s) << " "
+                << get<2>(average_s));
+        }
+
+        if ((*point_flatten_factor)[1] < 0.0 or
+            (*point_flatten_factor)[1] > 1.0) {
+          ERROR("Can't flatten: "
+                << (*point_flatten_factor)[1] << " " << i << "\n"
+                << get(*tilde_e)[i] << " "
+                << get<0>(*tilde_s)[i] << " "
+                << get<1>(*tilde_s)[i] << " "
+                << get<2>(*tilde_s)[i] << " "
+                << get<0>(average_s) << " "
+                << get<1>(average_s) << " "
+                << get<2>(average_s));
+          if ((*point_flatten_factor)[1] < flatten_factor) {
+            flatten_factor = (*point_flatten_factor)[1];
+          }
+        }
+      }
+    }
+
+    for (size_t j = 0; j < 3; ++j) {
+      tilde_s->get(j) =
+          average_s.get(j) +
+          (tilde_s->get(j) - average_s.get(j)) * flatten_factor;
+    }
+
+    if (min(square(get(*tilde_e)) - square(get<0>(*tilde_s))
+            - square(get<1>(*tilde_s))
+            - square(get<2>(*tilde_s))) < 1.0) {
+      ERROR("Flattening failed: "
+            << flatten_factor << " "
+            << get(*tilde_e) << " "
+            << get<0>(*tilde_s) << " "
+            << get<1>(*tilde_s) << " "
+            << get<2>(*tilde_s) << " "
+            << get<0>(average_s) << " "
+            << get<1>(average_s) << " "
+            << get<2>(average_s));
+    }
+#endif  // scale s
+    // if (flatten_factor < 0.9 and std::abs(time - 4.0) < 1e-5) {
+    //   Parallel::printf("%f\t%f\t%s\n", time, flatten_factor, element.id());
+    // }
+  }
+};
+
+struct FIXME_Atmosphere {
+  using return_tags =
+      tmpl::list<RadiationTransport::M1Grey::Tags::TildeE<
+                     Frame::Inertial, neutrinos::ElectronNeutrinos<1>>,
+                 RadiationTransport::M1Grey::Tags::TildeS<
+                     Frame::Inertial, neutrinos::ElectronNeutrinos<1>>>;
+  using argument_tags = tmpl::list<>;
+  static void apply(const gsl::not_null<Scalar<DataVector>*> tilde_e,
+                    const gsl::not_null<tnsr::i<DataVector, 3>*> tilde_s) {
+    // FIXME should there be factors of det(J)?
+    const double energy_cutoff = 1.0e-8;
+    const double momentum_cutoff = 1.0e-8;
+    const double energy_atmosphere = 5.0e-9;
+    for (size_t s = 0; s < get(*tilde_e).size(); ++s) {
+      if (std::abs(get(*tilde_e)[s]) < energy_cutoff and
+          // FIXME
+          square(get<0>(*tilde_s)[s]) + square(get<1>(*tilde_s)[s]) +
+                  square(get<2>(*tilde_s)[s]) <
+              square(momentum_cutoff)) {
+        get(*tilde_e)[s] = energy_atmosphere;
+        for (size_t i = 0; i < 3; ++i) {
+          tilde_s->get(i)[s] = 0.0;
+        }
+      }
+    }
+  }
+};
+
 struct EvolutionMetavars {
   static constexpr size_t volume_dim = 3;
   static constexpr dg::Formulation dg_formulation =
@@ -108,7 +314,8 @@ struct EvolutionMetavars {
   // To switch which initial data is evolved you only need to change the
   // line `using initial_data = ...;` and include the header file for the
   // solution.
-  using initial_data = RadiationTransport::M1Grey::Solutions::ConstantM1;
+  using initial_data =
+      RadiationTransport::M1Grey::AnalyticData::SphericalGaussian<2>;
   static_assert(
       is_analytic_data_v<initial_data> xor is_analytic_solution_v<initial_data>,
       "initial_data must be either an analytic_data or an analytic_solution");
@@ -183,6 +390,7 @@ struct EvolutionMetavars {
       observers::collect_reduction_data_tags<tmpl::flatten<tmpl::list<
           tmpl::at<typename factory_creation::factory_classes, Event>>>>;
 
+  static_assert(not local_time_stepping);
   using step_actions = tmpl::flatten<tmpl::list<
       Actions::MutateApply<
           evolution::dg::BackgroundGrVars<system, EvolutionMetavars, false>>,
@@ -190,24 +398,32 @@ struct EvolutionMetavars {
           volume_dim, system, AllStepChoosers, local_time_stepping>,
       tmpl::conditional_t<
           local_time_stepping,
-          tmpl::list<evolution::Actions::RunEventsAndDenseTriggers<
-                         tmpl::list<evolution::dg::ApplyBoundaryCorrections<
-                             local_time_stepping, system, volume_dim, true>>>,
+          tmpl::list<evolution::Actions::RunEventsAndDenseTriggers<tmpl::list<
+                         evolution::dg::ApplyBoundaryCorrections<
+                             local_time_stepping, system, volume_dim, true>,
+                         imex::ImplicitDenseOutput<system>>>,
                      evolution::dg::Actions::ApplyLtsBoundaryCorrections<
                          system, volume_dim, false>>,
           tmpl::list<
               evolution::dg::Actions::ApplyBoundaryCorrectionsToTimeDerivative<
                   system, volume_dim, false>,
               Actions::RecordTimeStepperData<system>,
-              evolution::Actions::RunEventsAndDenseTriggers<tmpl::list<>>,
+              imex::Actions::RecordImexTimeStepperData,
+              evolution::Actions::RunEventsAndDenseTriggers<
+                  tmpl::list<imex::ImplicitDenseOutput<system>>>,
               Actions::UpdateU<system>>>,
       Actions::CleanHistory<system, local_time_stepping>,
+      Actions::MutateApply<FIXME_Atmosphere>,
+      Actions::MutateApply<FIXME_Flatten>,
+      imex::Actions::DoImplicitStep<system>,  // FIXME at end?
       Limiters::Actions::SendData<EvolutionMetavars>,
       Limiters::Actions::Limit<EvolutionMetavars>,
+      Actions::MutateApply<FIXME_Atmosphere>,
+      Actions::MutateApply<FIXME_Flatten>,
       Actions::MutateApply<typename RadiationTransport::M1Grey::
-                               ComputeM1Closure<neutrino_species>>,
+                               ComputeM1Closure<neutrino_species>>/*,
       Actions::MutateApply<typename RadiationTransport::M1Grey::
-                               ComputeM1HydroCoupling<neutrino_species>>>>;
+                               ComputeM1HydroCoupling<neutrino_species>>*/>>;
 
   using dg_registration_list =
       tmpl::list<observers::Actions::RegisterEventsWithObservers>;
@@ -222,11 +438,12 @@ struct EvolutionMetavars {
       Initialization::Actions::ConservativeSystem<system>,
       evolution::Initialization::Actions::SetVariables<
           domain::Tags::Coordinates<volume_dim, Frame::ElementLogical>>,
+      imex::Actions::InitializeImex<system>,
       RadiationTransport::M1Grey::Actions::InitializeM1Tags<system>,
       Actions::MutateApply<typename RadiationTransport::M1Grey::
                                ComputeM1Closure<neutrino_species>>,
-      Actions::MutateApply<typename RadiationTransport::M1Grey::
-                               ComputeM1HydroCoupling<neutrino_species>>,
+      /*Actions::MutateApply<typename RadiationTransport::M1Grey::
+                               ComputeM1HydroCoupling<neutrino_species>>,*/
       Initialization::Actions::AddComputeTags<
           StepChoosers::step_chooser_compute_tags<EvolutionMetavars,
                                                   local_time_stepping>>,
