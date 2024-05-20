@@ -10,6 +10,7 @@
 #include "Evolution/Systems/RadiationTransport/M1Grey/BoundaryConditions/BoundaryCondition.hpp"
 #include "Evolution/Systems/RadiationTransport/M1Grey/BoundaryCorrections/BoundaryCorrection.hpp"
 #include "Evolution/Systems/RadiationTransport/M1Grey/Characteristics.hpp"
+#include "Evolution/Systems/RadiationTransport/M1Grey/Imex/InitialGuess.hpp"
 #include "Evolution/Systems/RadiationTransport/M1Grey/M1Closure.hpp"
 #include "Evolution/Systems/RadiationTransport/M1Grey/M1HydroCoupling.hpp"
 #include "Evolution/Systems/RadiationTransport/M1Grey/Tags.hpp"
@@ -42,7 +43,7 @@ struct System<tmpl::list<NeutrinoSpecies...>>
   // i.e. P(rho,T,Ye)... but this is not implemented yet.
   // For early tests of M1, we'll ignore coupling to the fluid
   // and provide analytical expressions for its 4-velocity / LorentzFactor
-  //static constexpr size_t thermodynamic_dim = 3;
+  // static constexpr size_t thermodynamic_dim = 3;
 
   using boundary_conditions_base =
       BoundaryConditions::BoundaryCondition<tmpl::list<NeutrinoSpecies...>>;
@@ -94,9 +95,14 @@ struct System<tmpl::list<NeutrinoSpecies...>>
   struct ImplicitSector : tt::ConformsTo<imex::protocols::ImplicitSector> {
     using tensors = tmpl::list<Tags::TildeE<Frame::Inertial, Species>,
                                Tags::TildeS<Frame::Inertial, Species>>;
+    using helper = ComputeM1Closure<tmpl::list<Species>>;
+
+    // Need initial_guess
+    using initial_guess = ::M1Grey::Imex::InitialGuess<tmpl::list<Species>>;
+
+    // Need solve_attempts
     using source = ComputeM1HydroCoupling<tmpl::list<Species>>;
     using source_jacobian = ComputeM1HydroCouplingJacobian<Species>;
-    using helper = ComputeM1Closure<tmpl::list<Species>>;
   };
 
   using implicit_sectors = tmpl::list<ImplicitSector<NeutrinoSpecies>...>;

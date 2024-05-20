@@ -5,8 +5,6 @@
 
 #include <type_traits>
 
-#include "Evolution/Imex/Protocols/ImplicitSource.hpp"
-#include "Evolution/Imex/Protocols/ImplicitSourceJacobian.hpp"
 #include "Utilities/ProtocolHelpers.hpp"
 #include "Utilities/TMPL.hpp"
 #include "Utilities/TypeTraits/IsA.hpp"
@@ -102,8 +100,6 @@ struct ImplicitSector {
     using tensors = typename ConformingType::tensors;
     using initial_guess = typename ConformingType::initial_guess;
     using solve_attempts = typename ConformingType::solve_attempts;
-    using source = typename ConformingType::source;
-    using source_jacobian = typename ConformingType::source_jacobian;
 
     static_assert(tt::is_a_v<tmpl::list, tensors>);
     static_assert(tt::is_a_v<tmpl::list, solve_attempts>);
@@ -114,10 +110,6 @@ struct ImplicitSector {
             tensors,
             tt::is_a<Tensor, tmpl::bind<tmpl::type_from, tmpl::_1>>>::value);
 
-    static_assert(tt::assert_conforms_to_v<source, ImplicitSource>);
-    static_assert(
-        tt::assert_conforms_to_v<source_jacobian, ImplicitSourceJacobian>);
-
     using source_tensors =
         tmpl::transform<tensors, tmpl::bind<::Tags::Source, tmpl::_1>>;
 
@@ -125,37 +117,6 @@ struct ImplicitSector {
         tmpl::size<tmpl::list_difference<typename initial_guess::return_tags,
                                          tensors>>::value == 0,
         "initial_guess can only modify sector variables.");
-
-    template <typename T>
-    struct get_tag {
-      using type = typename T::tag;
-    };
-
-    template <typename T>
-    struct get_dependent {
-      using type = typename T::dependent;
-    };
-    template <typename T>
-    struct get_independent {
-      using type = typename T::independent;
-    };
-
-    static_assert(
-        std::is_same_v<
-            tmpl::list_difference<
-                tmpl::transform<typename source_jacobian::return_tags,
-                                get_independent<tmpl::_1>>,
-                tensors>,
-            tmpl::list<>>,
-        "Source Jacobian independent variables must be tensors in the sector.");
-    static_assert(std::is_same_v<
-                      tmpl::list_difference<
-                          tmpl::transform<typename source_jacobian::return_tags,
-                                          get_tag<get_dependent<tmpl::_1>>>,
-                          tensors>,
-                      tmpl::list<>>,
-                  "Source Jacobian dependent variables must be sources of "
-                  "tensors in the sector.");
 
     template <typename SolveAttempt>
     struct test_solve_attempt {
