@@ -29,6 +29,7 @@ static std::vector<imex::GuessResult> apply(
                        ::Tags::TempScalar<2>, ::Tags::TempScalar<3>>>
       buffer{num_grid_pts};
 
+  // MIKE fix this with proper numbers
   (*tilde_e) = 1.0 * tilde_j;
 
   for (size_t i = 0; i < 3; ++i) {

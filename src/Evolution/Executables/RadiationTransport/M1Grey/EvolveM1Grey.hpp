@@ -21,8 +21,7 @@
 #include "Evolution/DiscontinuousGalerkin/Limiters/Minmod.hpp"
 #include "Evolution/DiscontinuousGalerkin/Limiters/Tags.hpp"
 #include "Evolution/Imex/Actions/DoImplicitStep.hpp"
-#include "Evolution/Imex/Actions/RecordImexTimeStepperData.hpp"
-// #include "Evolution/Imex/ImexDenseOutput.hpp"
+#include "Evolution/Imex/Actions/RecordTimeStepperData.hpp"
 #include "Evolution/Imex/ImplicitDenseOutput.hpp"
 #include "Evolution/Initialization/ConservativeSystem.hpp"
 #include "Evolution/Initialization/DgDomain.hpp"
@@ -124,6 +123,7 @@ struct FIXME_Flatten {
 
                     const double time, const Element<3>& element) {
     // FIXME allocations
+    const auto element_copy_suppress_warning = element;
     const auto energy_excess =
         tenex::evaluate(square((*tilde_e)()) -
                         (*tilde_s)(ti::i)*inverse_spatial_metric(ti::I, ti::J) *
@@ -408,7 +408,7 @@ struct EvolutionMetavars {
               evolution::dg::Actions::ApplyBoundaryCorrectionsToTimeDerivative<
                   system, volume_dim, false>,
               Actions::RecordTimeStepperData<system>,
-              imex::Actions::RecordImexTimeStepperData,
+              imex::Actions::RecordTimeStepperData<system>,
               evolution::Actions::RunEventsAndDenseTriggers<
                   tmpl::list<imex::ImplicitDenseOutput<system>>>,
               Actions::UpdateU<system>>>,

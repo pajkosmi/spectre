@@ -119,6 +119,9 @@ struct System<tmpl::list<NeutrinoSpecies...>>
     };
 
     using solve_attempts = tmpl::list<M1Solve>;
+
+    // Mike do I need extra call for output?
+    using source = ComputeM1HydroCoupling<tmpl::list<Species>>;
   };
 
   using implicit_sectors = tmpl::list<ImplicitSector<NeutrinoSpecies>...>;
