@@ -23,6 +23,7 @@
 #include "Evolution/Imex/Actions/DoImplicitStep.hpp"
 #include "Evolution/Imex/Actions/RecordTimeStepperData.hpp"
 #include "Evolution/Imex/ImplicitDenseOutput.hpp"
+#include "Evolution/Imex/Initialize.hpp"
 #include "Evolution/Initialization/ConservativeSystem.hpp"
 #include "Evolution/Initialization/DgDomain.hpp"
 #include "Evolution/Initialization/Evolution.hpp"
@@ -438,7 +439,8 @@ struct EvolutionMetavars {
       Initialization::Actions::ConservativeSystem<system>,
       evolution::Initialization::Actions::SetVariables<
           domain::Tags::Coordinates<volume_dim, Frame::ElementLogical>>,
-      imex::Actions::InitializeImex<system>,
+      // imex::Actions::InitializeImex<system>, // possibly outdated
+      Initialization::Actions::InitializeItems<imex::Initialize<system>>,
       RadiationTransport::M1Grey::Actions::InitializeM1Tags<system>,
       Actions::MutateApply<typename RadiationTransport::M1Grey::
                                ComputeM1Closure<neutrino_species>>,
