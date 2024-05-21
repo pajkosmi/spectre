@@ -101,8 +101,24 @@ struct System<tmpl::list<NeutrinoSpecies...>>
     using initial_guess = ::M1Grey::Imex::InitialGuess<tmpl::list<Species>>;
 
     // Need solve_attempts
-    using source = ComputeM1HydroCoupling<tmpl::list<Species>>;
-    using source_jacobian = ComputeM1HydroCouplingJacobian<Species>;
+    struct M1Solve {
+      // tags in addition to sector tensors to be made available in databox
+      // Mike: verify if more tags needed.  e.g., velocity
+      using tags_from_evolution =
+          tmpl::list<gr::Tags::Lapse<DataVector>,
+                     gr::Tags::SpatialMetric<DataVector, 3>>;
+
+      using simple_tags = tmpl::list<>;
+      using compute_tags = tmpl::list<>;
+
+      using source_prep = tmpl::list<>;
+      using jacobian_prep = tmpl::list<>;
+
+      using source = ComputeM1HydroCoupling<tmpl::list<Species>>;
+      using jacobian = ComputeM1HydroCouplingJacobian<Species>;
+    };
+
+    using solve_attempts = tmpl::list<M1Solve>;
   };
 
   using implicit_sectors = tmpl::list<ImplicitSector<NeutrinoSpecies>...>;
