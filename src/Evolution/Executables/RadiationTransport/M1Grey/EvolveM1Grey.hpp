@@ -86,6 +86,7 @@
 #include "Time/Tags/TimeStepId.hpp"
 #include "Time/TimeSequence.hpp"
 #include "Time/TimeSteppers/Factory.hpp"
+#include "Time/TimeSteppers/ImexTimeStepper.hpp"
 #include "Time/TimeSteppers/LtsTimeStepper.hpp"
 #include "Time/TimeSteppers/TimeStepper.hpp"
 #include "Time/Triggers/TimeTriggers.hpp"
@@ -326,7 +327,7 @@ struct EvolutionMetavars {
 
   using system = RadiationTransport::M1Grey::System<neutrino_species>;
   using temporal_id = Tags::TimeStepId;
-  using TimeStepperBase = TimeStepper;
+  using TimeStepperBase = ImexTimeStepper;
 
   static constexpr bool local_time_stepping =
       TimeStepperBase::local_time_stepping;
@@ -367,7 +368,7 @@ struct EvolutionMetavars {
                        dg::Events::field_observations<
                            volume_dim, observe_fields, non_tensor_compute_tags>,
                        Events::time_events<system>>>>,
-        tmpl::pair<LtsTimeStepper, TimeSteppers::lts_time_steppers>,
+        tmpl::pair<ImexTimeStepper, TimeSteppers::imex_time_steppers>,
         tmpl::pair<PhaseChange, PhaseControl::factory_creatable_classes>,
         tmpl::pair<RadiationTransport::M1Grey::BoundaryConditions::
                        BoundaryCondition<neutrino_species>,
