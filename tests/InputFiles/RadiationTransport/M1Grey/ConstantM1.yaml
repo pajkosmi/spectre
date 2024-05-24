@@ -1,7 +1,7 @@
 # Distributed under the MIT License.
 # See LICENSE.txt for details.
 
-Executable: EvolveM1GreyConstantM1
+Executable: EvolveM1Grey
 Testing:
   Check: parse;execute
   Priority: High
