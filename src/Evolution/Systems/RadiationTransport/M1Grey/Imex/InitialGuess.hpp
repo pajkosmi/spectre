@@ -44,7 +44,9 @@ struct InitialGuess<tmpl::list<NeutrinoSpecies...>> {
       const Scalar<DataVector>& tilde_j,
       const tnsr::i<DataVector, 3>& tilde_h_spatial,
       const Scalar<DataVector>& lapse,
-      const tnsr::ii<DataVector, 3, Frame::Inertial>& spatial_metric);
+      const tnsr::ii<DataVector, 3, Frame::Inertial>& spatial_metric,
+      const Variables<return_tags>& inhomogeneous_terms,
+      double implicit_weight);
 };
 
 }  // namespace Imex

@@ -22,7 +22,13 @@ static std::vector<imex::GuessResult> apply(
     const Scalar<DataVector>& tilde_j,
     const tnsr::i<DataVector, 3>& tilde_h_spatial,
     const Scalar<DataVector>& lapse,
-    const tnsr::ii<DataVector, 3, Frame::Inertial>& spatial_metric) {
+    const tnsr::ii<DataVector, 3, Frame::Inertial>& spatial_metric,
+    const Variables<tmpl::list<RadiationTransport::M1Grey::Tags::TildeE<
+                                   Frame::Inertial, NeutrinoSpecies>...,
+                               RadiationTransport::M1Grey::Tags::TildeS<
+                                   Frame::Inertial, NeutrinoSpecies>...>>&
+        inhomogeneous_terms,
+    const double implicit_weight) {
   const size_t num_grid_pts = get(lapse).size();
 
   Variables<tmpl::list<::Tags::TempScalar<0>, ::Tags::TempScalar<1>,

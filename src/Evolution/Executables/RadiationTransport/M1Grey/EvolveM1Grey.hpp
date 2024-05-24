@@ -24,6 +24,7 @@
 #include "Evolution/Imex/Actions/RecordTimeStepperData.hpp"
 #include "Evolution/Imex/ImplicitDenseOutput.hpp"
 #include "Evolution/Imex/Initialize.hpp"
+#include "Evolution/Imex/SolveImplicitSector.tpp"
 #include "Evolution/Initialization/ConservativeSystem.hpp"
 #include "Evolution/Initialization/DgDomain.hpp"
 #include "Evolution/Initialization/Evolution.hpp"
