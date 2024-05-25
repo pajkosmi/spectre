@@ -68,7 +68,9 @@ struct InitialGuess<tmpl::list<NeutrinoSpecies...>> {
       result.at(i) = imex::GuessResult::InitialGuess;
     }
 
-    return result;
+    // return result;
+    //  Note the empty return guesses the explicit result
+    return {};
   }
 };
 

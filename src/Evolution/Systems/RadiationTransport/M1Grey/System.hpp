@@ -105,7 +105,11 @@ struct System<tmpl::list<NeutrinoSpecies...>>
       // tags in addition to sector tensors to be made available in databox
       // Mike: verify if more tags needed.  e.g., velocity
       using tags_from_evolution = tmpl::list<
+          // spacetime
           gr::Tags::Lapse<DataVector>, gr::Tags::SpatialMetric<DataVector, 3>,
+          gr::Tags::SqrtDetSpatialMetric<DataVector>,
+          gr::Tags::InverseSpatialMetric<DataVector, 3>,
+          // neutrino
           Tags::GreyEmissivity<NeutrinoSpecies>...,
           Tags::GreyAbsorptionOpacity<NeutrinoSpecies>...,
           Tags::GreyScatteringOpacity<NeutrinoSpecies>...,
@@ -116,10 +120,9 @@ struct System<tmpl::list<NeutrinoSpecies...>>
           Tags::TildeHSpatial<Frame::Inertial, NeutrinoSpecies>...,
           Tags::M1HydroCouplingNormal<NeutrinoSpecies>...,
           Tags::M1HydroCouplingSpatial<Frame::Inertial, NeutrinoSpecies>...,
+          // hydro
           hydro::Tags::LorentzFactor<DataVector>,
-          hydro::Tags::SpatialVelocity<DataVector, 3>,
-          gr::Tags::SqrtDetSpatialMetric<DataVector>,
-          gr::Tags::InverseSpatialMetric<DataVector, 3>>;
+          hydro::Tags::SpatialVelocity<DataVector, 3>>;
 
       using simple_tags = tmpl::list<>;
       using compute_tags = tmpl::list<>;
