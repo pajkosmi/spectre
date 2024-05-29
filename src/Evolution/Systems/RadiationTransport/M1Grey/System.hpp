@@ -95,7 +95,7 @@ struct System<tmpl::list<NeutrinoSpecies...>>
   struct ImplicitSector : tt::ConformsTo<imex::protocols::ImplicitSector> {
     using tensors = tmpl::list<Tags::TildeE<Frame::Inertial, Species>,
                                Tags::TildeS<Frame::Inertial, Species>>;
-    using helper = ComputeM1Closure<tmpl::list<Species>>;
+    // using helper = ComputeM1Closure<tmpl::list<Species>>;
 
     // Need initial_guess
     using initial_guess = ::M1Grey::Imex::InitialGuess<tmpl::list<Species>>;
@@ -113,31 +113,31 @@ struct System<tmpl::list<NeutrinoSpecies...>>
           Tags::GreyEmissivity<NeutrinoSpecies>...,
           Tags::GreyAbsorptionOpacity<NeutrinoSpecies>...,
           Tags::GreyScatteringOpacity<NeutrinoSpecies>...,
-          Tags::ClosureFactor<NeutrinoSpecies>...,
-          Tags::TildeP<Frame::Inertial, NeutrinoSpecies>...,
-          Tags::TildeJ<NeutrinoSpecies>...,
-          Tags::TildeHNormal<NeutrinoSpecies>...,
-          Tags::TildeHSpatial<Frame::Inertial, NeutrinoSpecies>...,
-        //   Tags::M1HydroCouplingNormal<NeutrinoSpecies>...,
-        //   Tags::M1HydroCouplingSpatial<Frame::Inertial, NeutrinoSpecies>...,
+          //   Tags::ClosureFactor<NeutrinoSpecies>...,
+          //   Tags::TildeP<Frame::Inertial, NeutrinoSpecies>...,
+          //   Tags::TildeJ<NeutrinoSpecies>...,
+          //   Tags::TildeHNormal<NeutrinoSpecies>...,
+          //   Tags::TildeHSpatial<Frame::Inertial, NeutrinoSpecies>...,
           // hydro
           hydro::Tags::LorentzFactor<DataVector>,
           hydro::Tags::SpatialVelocity<DataVector, 3>>;
 
-      using simple_tags = tmpl::list<>;
+      using simple_tags = tmpl::list<::Tags::Variables<tmpl::list<
+          Tags::ClosureFactor<NeutrinoSpecies>...,
+          Tags::TildeP<Frame::Inertial, NeutrinoSpecies>...,
+          Tags::TildeJ<NeutrinoSpecies>...,
+          Tags::TildeHNormal<NeutrinoSpecies>...,
+          Tags::TildeHSpatial<Frame::Inertial, NeutrinoSpecies>...>>>;
       using compute_tags = tmpl::list<>;
 
-      using source_prep = tmpl::list<>;
-      using jacobian_prep = tmpl::list<>;
+      using source_prep = tmpl::list<ComputeM1Closure<tmpl::list<Species>>>;
+      using jacobian_prep = tmpl::list<ComputeM1Closure<tmpl::list<Species>>>;
 
       using source = ComputeM1HydroCoupling<tmpl::list<Species>>;
       using jacobian = ComputeM1HydroCouplingJacobian<Species>;
     };
 
     using solve_attempts = tmpl::list<M1Solve>;
-
-    // Mike do I need extra call for output?
-    using source = ComputeM1HydroCoupling<tmpl::list<Species>>;
   };
 
   using implicit_sectors = tmpl::list<ImplicitSector<NeutrinoSpecies>...>;
