@@ -238,7 +238,7 @@ void compute_closure_impl(
                 momentum_density.get(i)[s];
         for (size_t j = i; j < spatial_dim; j++) {
           // Optically thin part of pressure tensor
-          pressure_tensor->get(i, j) =
+          pressure_tensor->get(i, j)[s] =
               d_thin * e_pt * s_M.get(i)[s] * s_M.get(j)[s] / s_sqr_pt;
         }
       }
