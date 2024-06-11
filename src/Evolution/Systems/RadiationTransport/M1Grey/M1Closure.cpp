@@ -215,9 +215,6 @@ void compute_closure_impl(
       } else if (fabs(zeta_j_sqr_minus_h_sqr(1.)) < root_find_tolerance) {
         get(*closure_factor)[s] = 1.;
       } else {
-        ERROR(
-            "This function is broken and effectively untested.  It will be "
-            "fixed later.");
         get(*closure_factor)[s] = RootFinder::toms748(
             zeta_j_sqr_minus_h_sqr, 1.e-15, 1., root_find_tolerance, 1.0e-15);
       }
