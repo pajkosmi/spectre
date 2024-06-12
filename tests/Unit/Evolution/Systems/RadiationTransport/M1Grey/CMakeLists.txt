@@ -9,10 +9,10 @@ set(LIBRARY_SOURCES
   BoundaryCorrections/Test_Rusanov.cpp # success
   Test_Actions.cpp # success
   Test_Fluxes.cpp # success
-  Test_M1Closure.cpp # 1 failed from broken & untested function
+  Test_M1Closure.cpp #
   Test_M1HydroCoupling.cpp # success (will need to be updated for coupling)
   Test_Sources.cpp #pass when including source_n and source_i
-  Test_System.cpp # 1 failure with broken untested M1Closure fxn
+  Test_System.cpp
   Test_Tags.cpp #success
   Test_TimeDerivativeTerms.cpp # passed with fixed sources
   )

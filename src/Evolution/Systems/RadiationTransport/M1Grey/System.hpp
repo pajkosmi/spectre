@@ -98,7 +98,8 @@ struct System<tmpl::list<NeutrinoSpecies...>>
     // using helper = ComputeM1Closure<tmpl::list<Species>>;
 
     // Need initial_guess
-    using initial_guess = ::M1Grey::Imex::InitialGuess<tmpl::list<Species>>;
+    using initial_guess = imex::GuessExplicitResult;
+    //::M1Grey::Imex::InitialGuess<tmpl::list<Species>>;
 
     // Need solve_attempts
     struct M1Solve {
