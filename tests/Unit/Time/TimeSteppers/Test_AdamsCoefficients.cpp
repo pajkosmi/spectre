@@ -55,8 +55,7 @@ void check_consistency(const ac::OrderVector<Time>& control_times,
 
     CHECK(ac::coefficients(offset_control_times.begin(),
                            offset_control_times.end(), offset_start,
-                           ApproximateTime{offset}) ==
-          standard_coefficients);
+                           ApproximateTime{offset}) == standard_coefficients);
     CHECK_ITERABLE_APPROX(
         ac::variable_coefficients(offset_control_times_for_variable,
                                   offset - 1.0, offset),
@@ -109,11 +108,53 @@ void check_adams_moulton_consistency() {
   for (size_t order = 1; order <= ac::maximum_order; ++order) {
     standard_am_control_times.insert(
         standard_am_control_times.begin(),
-        Slab::with_duration_from_start(-static_cast<double>(order), 1.0)
-            .end());
+        Slab::with_duration_from_start(-static_cast<double>(order), 1.0).end());
     check_consistency(standard_am_control_times,
                       ac::constant_adams_moulton_coefficients(order));
   }
+}
+
+ac::OrderVector<double> constant_adams_bashforth_implicit_coefficients_test(
+    const size_t order) {
+  switch (order) {
+    case 1:
+      return {1.0};
+    case 2:
+      return {0.5, 0.5};
+    case 3:
+      return {2.0 / 3.0, -1.0 / 12.0, 5.0 / 12.0};
+    case 4:
+      return {19.0 / 24.0, -5.0 / 24.0, 1.0 / 24.0, 3.0 / 8.0};
+    case 5:
+      return {323.0 / 360.0, -11.0 / 30.0, 53.0 / 360.0, -19.0 / 720.0,
+              251.0 / 720.0};
+    case 6:
+      return {1427.0 / 1440.0, -133.0 / 240.0, 241.0 / 720.0,
+              -173.0 / 1440.0, 3.0 / 160.0,    95.0 / 288};
+    case 7:
+      return {2713.0 / 2520.0,   -15487.0 / 20160.0, 586.0 / 945.0,
+              -6737.0 / 20160.0, 263.0 / 2520.0,     -863.0 / 60480.0,
+              19087.0 / 60480};
+    case 8:
+      return {139849.0 / 120960.0, -4511.0 / 4480.0, 123133.0 / 120960.0,
+              -88547.0 / 120960.0, 1537.0 / 4480.0,  -11351.0 / 120960.0,
+              275.0 / 24192.0,     5257.0 / 17280};
+    default:
+      ERROR("Bad order: " << order);
+  }
+}
+
+void check_adams_bashforth_implicit_coeffs() {
+  // check 1 - 8 order
+  for (size_t order = 1; order <= ac::maximum_order; ++order) {
+    std::cout << " order " << order << "\n";
+    const auto coeffs =
+        ac::constant_adams_bashforth_implicit_coefficients(order);
+    CHECK(coeffs == constant_adams_bashforth_implicit_coefficients_test(order));
+  }
+
+  CHECK_THROWS_WITH(ac::constant_adams_bashforth_implicit_coefficients(9),
+                    Catch::Matchers::ContainsSubstring("Bad order: "));
 }
 
 void test_rational_computation() {
@@ -167,6 +208,7 @@ SPECTRE_TEST_CASE("Unit.Time.TimeSteppers.AdamsCoefficients", "[Unit][Time]") {
   // The actual values are tested by the time stepper tests.
   check_adams_bashforth_consistency();
   check_adams_moulton_consistency();
+  check_adams_bashforth_implicit_coeffs();
 
   test_rational_computation();
   test_unaligned_step();
