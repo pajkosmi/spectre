@@ -35,6 +35,9 @@ OrderVector<double> constant_adams_bashforth_coefficients(size_t order);
 /// reference table (except likely in the opposite order).
 OrderVector<double> constant_adams_moulton_coefficients(size_t order);
 
+OrderVector<double> constant_adams_bashforth_implicit_coefficients(
+    size_t order);
+
 /// \brief Generate coefficients for an Adams step.
 ///
 /// The coefficients are for a step using derivatives at \p
