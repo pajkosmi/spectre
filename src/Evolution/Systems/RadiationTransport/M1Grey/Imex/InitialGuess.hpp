@@ -49,25 +49,14 @@ struct InitialGuess<tmpl::list<NeutrinoSpecies...>> {
       const tnsr::ii<DataVector, 3, Frame::Inertial>& spatial_metric,
       const Variables<return_tags>& inhomogeneous_terms,
       double implicit_weight) {
-    const size_t num_grid_pts = get(lapse).size();
+    // const size_t num_grid_pts = get(lapse).size();
 
-    Variables<tmpl::list<::Tags::TempScalar<0>, ::Tags::TempScalar<1>,
-                         ::Tags::TempScalar<2>, ::Tags::TempScalar<3>>>
-        buffer{num_grid_pts};
+    // std::vector<imex::GuessResult> result{num_grid_pts,
+    //                                       imex::GuessResult::ExactSolution};
 
-    // MIKE fix this with proper numbers
-    (*tilde_e) = tilde_j;
-
-    for (size_t i = 0; i < 3; ++i) {
-      (*tilde_s).get(i) = 1.0 * tilde_h_spatial.get(i);
-    }
-
-    std::vector<imex::GuessResult> result{num_grid_pts,
-                                          imex::GuessResult::ExactSolution};
-
-    for (size_t i = 0; i < num_grid_pts; ++i) {
-      result.at(i) = imex::GuessResult::InitialGuess;
-    }
+    // for (size_t i = 0; i < num_grid_pts; ++i) {
+    //   result.at(i) = imex::GuessResult::InitialGuess;
+    // }
 
     // return result;
     //  Note the empty return guesses the explicit result
