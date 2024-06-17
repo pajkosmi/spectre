@@ -15,6 +15,7 @@ set(LIBRARY_SOURCES
   Test_System.cpp
   Test_Tags.cpp #success
   Test_TimeDerivativeTerms.cpp # passed with fixed sources
+  Test_InitialGuess.cpp
   )
 
 add_test_library(${LIBRARY} "${LIBRARY_SOURCES}")

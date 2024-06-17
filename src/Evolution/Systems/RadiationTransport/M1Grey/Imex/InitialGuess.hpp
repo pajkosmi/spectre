@@ -39,16 +39,20 @@ struct InitialGuess<tmpl::list<NeutrinoSpecies...>> {
                                                       NeutrinoSpecies>...,
       gr::Tags::Lapse<DataVector>, gr::Tags::SpatialMetric<DataVector, 3>>;
 
+  // This is a stub implementation for initial guesses for the M1 system, should
+  // a more accurate guess in the future be needed. Currently, the M1 system
+  // just uses the explicit solution as an initial guess.
   template <typename return_tags>
   static std::vector<imex::GuessResult> apply(
-      gsl::not_null<Scalar<DataVector>*> tilde_e,
-      gsl::not_null<tnsr::i<DataVector, 3>*> tilde_s,
-      const Scalar<DataVector>& tilde_j,
-      const tnsr::i<DataVector, 3>& tilde_h_spatial,
-      const Scalar<DataVector>& lapse,
-      const tnsr::ii<DataVector, 3, Frame::Inertial>& spatial_metric,
-      const Variables<return_tags>& inhomogeneous_terms,
-      double implicit_weight) {
+      [[maybe_unused]] gsl::not_null<Scalar<DataVector>*> tilde_e,
+      [[maybe_unused]] gsl::not_null<tnsr::i<DataVector, 3>*> tilde_s,
+      [[maybe_unused]] const Scalar<DataVector>& tilde_j,
+      [[maybe_unused]] const tnsr::i<DataVector, 3>& tilde_h_spatial,
+      [[maybe_unused]] const Scalar<DataVector>& lapse,
+      [[maybe_unused]] const tnsr::ii<DataVector, 3, Frame::Inertial>&
+          spatial_metric,
+      [[maybe_unused]] const Variables<return_tags>& inhomogeneous_terms,
+      [[maybe_unused]] double implicit_weight) {
     // const size_t num_grid_pts = get(lapse).size();
 
     // std::vector<imex::GuessResult> result{num_grid_pts,
