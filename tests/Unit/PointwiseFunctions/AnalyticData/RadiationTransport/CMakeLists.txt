@@ -1,6 +1,6 @@
 # Distributed under the MIT License.
 # See LICENSE.txt for details.
 
-set(LIBRARY RadiationTransportAnalyticData)
+# set(LIBRARY "Test_RadiationTransport")
 
 add_subdirectory(M1Grey)
