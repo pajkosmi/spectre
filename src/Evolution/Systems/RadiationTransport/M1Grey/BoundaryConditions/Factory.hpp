@@ -12,7 +12,8 @@ namespace RadiationTransport::M1Grey::BoundaryConditions {
 /// Typelist of standard BoundaryConditions
 template <typename NeutrinoSpeciesList>
 using standard_boundary_conditions =
-    tmpl::list<DirichletAnalytic<NeutrinoSpeciesList>,
+    tmpl::list<
+    // DirichletAnalytic<NeutrinoSpeciesList>,
                domain::BoundaryConditions::Periodic<
                    BoundaryCondition<NeutrinoSpeciesList>>>;
 }  // namespace RadiationTransport::M1Grey::BoundaryConditions
