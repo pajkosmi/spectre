@@ -6,9 +6,11 @@
 #include <cstddef>
 #include <optional>
 #include <tuple>
-#include <utility>
+#include <utility>  // IWYU pragma: keep  // for move
 
 #include "DataStructures/DataBox/DataBox.hpp"
+#include "DataStructures/DataBox/Prefixes.hpp"
+#include "Evolution/Imex/Tags/Jacobian.hpp"
 #include "Evolution/Initialization/InitialData.hpp"
 #include "Parallel/AlgorithmExecution.hpp"
 #include "Parallel/GlobalCache.hpp"
@@ -31,14 +33,33 @@ template <size_t Dim, typename Frame>
 struct Coordinates;
 template <size_t VolumeDim>
 struct Mesh;
+
 }  // namespace Tags
 }  // namespace domain
-
+// IWYU pragma: no_forward_declare db::DataBox
 /// \endcond
 
 namespace RadiationTransport {
 namespace M1Grey {
 namespace Actions {
+
+// namespace detail {
+// template <typename Var, typename... Sources>
+// struct jacobian_inner_product {
+//   using type = tmpl::list<imex::Tags::Jacobian<Var, Sources>...>;
+// };
+
+// template <typename VarsList, typename SourcesList>
+// struct jacobian_tensor_product;
+
+// template <typename... Vars, typename... Sources>
+// struct jacobian_tensor_product<tmpl::list<Vars...>, tmpl::list<Sources...>> {
+//   using type =
+//       tmpl::append<typename jacobian_inner_product<Vars,
+//  Sources...>::type...>;
+// };
+
+// }  // namespace detail
 
 template <typename System>
 struct InitializeM1Tags {
@@ -48,7 +69,28 @@ struct InitializeM1Tags {
   // List of variables to be created... does NOT include
   // evolved_variables_tag because the evolved variables
   // are created by the ConservativeSystem initialization.
+  // sources <sector::tensors::>
+  //   using simple_tags_no_source =
+  //       tmpl::list<hydro_variables_tag, m1_variables_tag>;
+  //   // These tags are needed because M1HydroCoupling contains return_tags
+  //   that
+  //   // prepend Tags::Source to the evolved variables tags
+  //   using simple_tags_source =
+  //       db::add_tag_prefix<::Tags::Source, evolved_variables_tag>;
+  //   // These tags are needed b/c M1HydroCouplingJacobian contains
+  // return_tags that
+  //   // prepend Tags::Jacobian to d [evolved variable] / d [source (evolved
+  //   // variable)]
+  //   using simple_tags_jacobian_source =
+  //       ::Tags::Variables<typename detail::jacobian_tensor_product<
+  //           typename evolved_variables_tag::tags_list,
+  //           typename simple_tags_source::tags_list>::type>;
+
+  //   using simple_tags = tmpl::push_back<simple_tags_no_source,
+  // simple_tags_source,
+  //                                       simple_tags_jacobian_source>;
   using simple_tags = tmpl::list<hydro_variables_tag, m1_variables_tag>;
+
   using compute_tags = tmpl::list<>;
 
   template <typename DbTagsList, typename... InboxTags, typename Metavariables,
@@ -74,25 +116,40 @@ struct InitializeM1Tags {
     db::mutate<evolved_variables_tag>(
         [&cache, initial_time,
          &inertial_coords](const gsl::not_null<EvolvedVars*> evolved_vars) {
-        //   evolved_vars->assign_subset(evolution::Initialization::
-        // initial_data(
-        //       Parallel::get<::Tags::AnalyticSolutionOrData>(cache),
-        //       inertial_coords, initial_time,
-        //       typename evolved_variables_tag::tags_list{}));
+          // evolved_vars->assign_subset(evolution::Initialization:
+          // :initial_data(
+          //     Parallel::get<::Tags::AnalyticSolutionOrData>(cache),
+          //     inertial_coords, initial_time,
+          //     typename evolved_variables_tag::tags_list{}));
         },
         make_not_null(&box));
 
     // Get hydro variables
     HydroVars hydro_variables{num_grid_points};
     // hydro_variables.assign_subset(evolution::Initialization::initial_data(
-    //     Parallel::get<::Tags::AnalyticSolutionOrData>(cache)
-    // , inertial_coords,
+    //     Parallel::get<::Tags::AnalyticSolutionOrData>(cache),
+    // inertial_coords,
     //     initial_time, typename hydro_variables_tag::tags_list{}));
 
     M1Vars m1_variables{num_grid_points, -1.};
     Initialization::mutate_assign<simple_tags>(make_not_null(&box),
                                                std::move(hydro_variables),
                                                std::move(m1_variables));
+
+    // M1Vars m1_variables{num_grid_points, -1.0};
+    // Initialization::mutate_assign<simple_tags_no_source>(
+    //     make_not_null(&box), std::move(hydro_variables),
+    //     std::move(m1_variables));
+
+    // typename simple_tags_source:
+    // :type source_variables{num_grid_points, -1.0};
+    // Initialization::mutate_assign<tmpl::list<simple_tags_source>>(
+    //     make_not_null(&box), std::move(source_variables));
+
+    // typename simple_tags_jacobian_source::type jacobian_variables{
+    //     num_grid_points, -1.0};
+    // Initialization::mutate_assign<tmpl::list<simple_tags_jacobian_source>>(
+    //     make_not_null(&box), std::move(jacobian_variables));
 
     return {Parallel::AlgorithmExecution::Continue, std::nullopt};
   }
