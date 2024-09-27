@@ -1,7 +1,7 @@
 # Distributed under the MIT License.
 # See LICENSE.txt for details.
 
-set(EXECUTABLE EvolveM1GreyConstantM1)
+set(EXECUTABLE EvolveM1Grey)
 
 add_spectre_executable(
   ${EXECUTABLE}
@@ -29,6 +29,7 @@ target_link_libraries(
   LinearOperators
   MathFunctions
   M1Grey
+  M1GreyAnalyticData
   M1GreySolutions
   Observer
   Options
