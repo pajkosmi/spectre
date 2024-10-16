@@ -22,7 +22,14 @@ HomogeneousSphereImpl::HomogeneousSphereImpl(
     : radius_(radius),
       emissivity_and_opacity_(emissivity_and_opacity),
       outer_radius_(outer_radius),
-      outer_opacity_(outer_opacity) {}
+      outer_opacity_(outer_opacity) {
+  if (UNLIKELY(radius_ > outer_radius_)) {
+    ERROR("Radius " << radius_
+                    << " is greater than the  "
+                       "outer radius: "
+                    << outer_radius_);
+  }
+}
 
 template <typename NeutrinoSpecies>
 auto HomogeneousSphereImpl::variables(
@@ -112,7 +119,6 @@ void HomogeneousSphereImpl::pup(PUP::er& p) {
   p | outer_opacity_;
 }
 PUP::able::PUP_ID HomogeneousSphereImpl::my_PUP_ID = 0;
-
 
 bool operator!=(const HomogeneousSphereImpl& lhs,
                 const HomogeneousSphereImpl& rhs) {
