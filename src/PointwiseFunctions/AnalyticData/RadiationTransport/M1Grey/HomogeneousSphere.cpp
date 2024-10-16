@@ -112,7 +112,7 @@ HomogeneousSphereImpl::get_clone() const {
 }
 
 void HomogeneousSphereImpl::pup(PUP::er& p) {
-  InitialData::pup(p);
+  evolution::initial_data::InitialData::pup(p);
   p | radius_;
   p | emissivity_and_opacity_;
   p | outer_radius_;
