@@ -13,6 +13,8 @@
 #include "PointwiseFunctions/AnalyticData/RadiationTransport/M1Grey/RotationallySymmetric.hpp"
 #include "PointwiseFunctions/AnalyticSolutions/GeneralRelativity/Minkowski.hpp"
 #include "PointwiseFunctions/Hydro/TagsDeclarations.hpp"
+#include "PointwiseFunctions/InitialDataUtilities/InitialData.hpp"
+#include "Utilities/Serialization/CharmPupable.hpp"
 #include "Utilities/TMPL.hpp"
 #include "Utilities/TaggedTuple.hpp"
 
@@ -24,7 +26,8 @@ namespace RadiationTransport::M1Grey::AnalyticData {
 // FIXME doc
 /// \kappa_0 exp(-(r/r_0)^2)
 template <size_t Dim>
-class SphericalGaussian : public RotationallySymmetric<SphericalGaussian<Dim>> {
+class SphericalGaussian : public virtual evolution::initial_data::InitialData,
+                          public RotationallySymmetric<SphericalGaussian<Dim>> {
   static_assert(Dim == 2 or Dim == 3);
 
  public:
@@ -64,13 +67,23 @@ class SphericalGaussian : public RotationallySymmetric<SphericalGaussian<Dim>> {
                              OuterOpacity>;
 
   SphericalGaussian() = default;
-  explicit SphericalGaussian(CkMigrateMessage* /*message*/) {}
+  // explicit SphericalGaussian(CkMigrateMessage* /*message*/) {}
+
+  auto get_clone() const
+      -> std::unique_ptr<evolution::initial_data::InitialData> override;
+
+  /// \cond
+  explicit SphericalGaussian<Dim>(CkMigrateMessage* msg);
+  using PUP::able::register_constructor;
+  WRAPPED_PUPable_decl_base_template(evolution::initial_data::InitialData,
+                                     SphericalGaussian<Dim>);
+  /// \endcond
 
   SphericalGaussian(double radius, double emissivity_and_opacity_amplitude,
                     double outer_radius, double outer_opacity);
 
   // NOLINTNEXTLINE(google-runtime-references)
-  void pup(PUP::er& p);
+  void pup(PUP::er& p) override;
 
  private:
   friend class RotationallySymmetric<SphericalGaussian<Dim>>;
@@ -85,5 +98,12 @@ class SphericalGaussian : public RotationallySymmetric<SphericalGaussian<Dim>> {
   double emissivity_and_opacity_amplitude_;
   double outer_radius_;
   double outer_opacity_;
+
+  template <size_t LocalDim>
+  friend bool operator==(const SphericalGaussian<LocalDim>& lhs,
+                         const SphericalGaussian<LocalDim>& rhs);
 };
+template <size_t Dim>
+bool operator!=(const SphericalGaussian<Dim>& lhs,
+                const SphericalGaussian<Dim>& rhs);
 }  // namespace RadiationTransport::M1Grey::AnalyticData
