@@ -103,7 +103,7 @@ void test_consistency(double gaussian_width,
 
   // establish sample grid
   const Mesh<3> mesh{
-      {{7, 7, 7}},
+      {{3, 3, 3}},
       {{Spectral::Basis::Legendre, Spectral::Basis::Legendre,
         Spectral::Basis::Legendre}},
       {{Spectral::Quadrature::GaussLobatto, Spectral::Quadrature::GaussLobatto,
@@ -174,9 +174,40 @@ void test_consistency(double gaussian_width,
                          square(get<2>(in_coords))));
   }
 
-  // Spherical Gaussian functions TODO: these are private
-  //   CHECK(RadiationTransport::M1Grey::AnalyticData::SphericalGaussian<
-  //               Dim>::energy_profile(in_coords));
+  // Test energy_profile() function in SphericalGaussian
+  const double max_energy =
+      exp(-square(1.0 / gaussian_width) * square(min(radius)));
+  const double min_energy =
+      exp(-square(1.0 / gaussian_width) * square(max(radius)));
+
+  CHECK(min(get(tilde_e)) == min_energy);
+  CHECK(max(get(tilde_e)) == max_energy);
+
+  // Test emission_profile() " "
+  const double max_grey_emissivity =
+      emissivity_and_opacity_amplitude *
+      exp(-square(1.0 / gaussian_width) * square(min(radius)));
+  const double min_grey_emissivity =
+      emissivity_and_opacity_amplitude *
+      exp(-square(1.0 / gaussian_width) * square(max(radius)));
+
+  CHECK(min(get(grey_emissivity)) == min_grey_emissivity);
+  CHECK(max(get(grey_emissivity)) == max_grey_emissivity);
+
+  // Test absorption_profile()
+  const double max_grey_absorption_opacity =
+      emissivity_and_opacity_amplitude *
+      exp(-square(1.0 / gaussian_width) * square(min(radius)));
+
+  const double min_grey_absorption_opacity =
+      emissivity_and_opacity_amplitude *
+          exp(-square(1.0 / gaussian_width) * square(max(radius))) +
+      outer_opacity;
+
+  // check opacity outside sphere
+  CHECK(min(get(grey_absorption_opacity)) == min_grey_absorption_opacity);
+  // check opacity inside sphere
+  CHECK(max(get(grey_absorption_opacity)) == max_grey_absorption_opacity);
 
   // Check points are not uniform for tildeE
   CHECK(min(get(tilde_e)) < max(get(tilde_e)));
@@ -219,13 +250,15 @@ SPECTRE_TEST_CASE(
   const double gaussian_width = 1.0;
   const double emissivity_and_opacity_amplitude = 1.0;
   const double outer_radius = 2.0;
-  const double outer_opacity = 0.5;
+  const double outer_opacity = -0.5;
 
   test_equality<2>(gaussian_width, emissivity_and_opacity_amplitude,
                    outer_radius, outer_opacity);
-  // test_equality<3>(gaussian_width, emissivity_and_opacity_amplitude,
-  //  outer_radius, outer_opacity);
+  test_equality<3>(gaussian_width, emissivity_and_opacity_amplitude,
+                   outer_radius, outer_opacity);
   test_consistency<2>(gaussian_width, emissivity_and_opacity_amplitude,
+                      outer_radius, outer_opacity);
+  test_consistency<3>(gaussian_width, emissivity_and_opacity_amplitude,
                       outer_radius, outer_opacity);
 }
 
