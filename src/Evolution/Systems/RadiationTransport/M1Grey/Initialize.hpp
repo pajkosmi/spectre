@@ -8,11 +8,15 @@
 #include <tuple>
 #include <utility>
 
+#include <PointwiseFunctions/AnalyticData/RadiationTransport/M1Grey/Factory.hpp>
 #include "DataStructures/DataBox/DataBox.hpp"
 #include "Evolution/Initialization/InitialData.hpp"
 #include "Parallel/AlgorithmExecution.hpp"
 #include "Parallel/GlobalCache.hpp"
 #include "ParallelAlgorithms/Initialization/MutateAssign.hpp"
+#include "PointwiseFunctions/InitialDataUtilities/InitialData.hpp"
+#include "PointwiseFunctions/InitialDataUtilities/Tags/InitialData.hpp"
+#include "Utilities/CallWithDynamicType.hpp"
 #include "Utilities/Gsl.hpp"
 #include "Utilities/TMPL.hpp"
 #include "Utilities/TaggedTuple.hpp"
@@ -71,23 +75,40 @@ struct InitializeM1Tags {
     const auto& inertial_coords =
         db::get<domain::Tags::Coordinates<dim, Frame::Inertial>>(box);
 
+    using initial_data_evo_tags = evolved_variables_tag::tags_list;
+    using initial_data_hydro_tags = hydro_variables_tag::tags_list;
+
+    const auto initial_data_evo_vars = call_with_dynamic_type<
+        tuples::tagged_tuple_from_typelist<initial_data_evo_tags>,
+        RadiationTransport::M1Grey::AnalyticData::all_data>(
+        &Parallel::get<evolution::initial_data::Tags::InitialData>(cache),
+        [&inertial_coords, &initial_time](const auto* const initial_data) {
+          return evolution::Initialization::initial_data(
+              *initial_data, inertial_coords, initial_time,
+              initial_data_evo_tags{});
+        });
+
+    const auto initial_data_hydro_vars = call_with_dynamic_type<
+        tuples::tagged_tuple_from_typelist<initial_data_hydro_tags>,
+        RadiationTransport::M1Grey::AnalyticData::all_data>(
+        &Parallel::get<evolution::initial_data::Tags::InitialData>(cache),
+        [&inertial_coords, &initial_time](const auto* const initial_data) {
+          return evolution::Initialization::initial_data(
+              *initial_data, inertial_coords, initial_time,
+              initial_data_hydro_tags{});
+        });
+
     db::mutate<evolved_variables_tag>(
-        [&cache, initial_time,
-         &inertial_coords](const gsl::not_null<EvolvedVars*> evolved_vars) {
-        //   evolved_vars->assign_subset(evolution::Initialization::
-        // initial_data(
-        //       Parallel::get<::Tags::AnalyticSolutionOrData>(cache),
-        //       inertial_coords, initial_time,
-        //       typename evolved_variables_tag::tags_list{}));
+        [&initial_data_evo_vars](
+            const gsl::not_null<EvolvedVars*> evolved_vars) {
+          evolved_vars->assign_subset(initial_data_evo_vars);
         },
         make_not_null(&box));
 
     // Get hydro variables
     HydroVars hydro_variables{num_grid_points};
-    // hydro_variables.assign_subset(evolution::Initialization::initial_data(
-    //     Parallel::get<::Tags::AnalyticSolutionOrData>(cache)
-    // , inertial_coords,
-    //     initial_time, typename hydro_variables_tag::tags_list{}));
+
+    hydro_variables.assign_subset(initial_data_hydro_vars);
 
     M1Vars m1_variables{num_grid_points, -1.};
     Initialization::mutate_assign<simple_tags>(make_not_null(&box),
