@@ -11,5 +11,6 @@ namespace RadiationTransport::M1Grey::AnalyticData {
 /*!
  * \brief Typelist of all analytic data of M1Grey evolution system
  */
-using all_data = tmpl::list<HomogeneousSphereImpl>;
+template <size_t Dim>
+using all_data = tmpl::list<HomogeneousSphereImpl, SphericalGaussian<Dim>>;
 }  // namespace RadiationTransport::M1Grey::AnalyticData

@@ -11,7 +11,7 @@ namespace RadiationTransport::M1Grey {
 /// \brief Boundary conditions for the M1Grey radiation transport system
 namespace BoundaryConditions {
 /// \brief The base class off of which all boundary conditions must inherit
-template <typename NeutrinoSpeciesList>
+template <size_t Dim, typename NeutrinoSpeciesList>
 class BoundaryCondition : public domain::BoundaryConditions::BoundaryCondition {
  public:
   BoundaryCondition() = default;

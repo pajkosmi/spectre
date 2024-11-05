@@ -54,17 +54,17 @@
 
 namespace RadiationTransport::M1Grey::BoundaryConditions {
 
-template <typename... NeutrinoSpecies>
-DirichletAnalytic<tmpl::list<NeutrinoSpecies...>>::DirichletAnalytic(
+template <size_t Dim, typename... NeutrinoSpecies>
+DirichletAnalytic<Dim, tmpl::list<NeutrinoSpecies...>>::DirichletAnalytic(
     const DirichletAnalytic& rhs)
-    : BoundaryCondition<tmpl::list<NeutrinoSpecies...>>{dynamic_cast<
-          const BoundaryCondition<tmpl::list<NeutrinoSpecies...>>&>(rhs)},
+    : BoundaryCondition<Dim, tmpl::list<NeutrinoSpecies...>>{dynamic_cast<
+          const BoundaryCondition<Dim, tmpl::list<NeutrinoSpecies...>>&>(rhs)},
       analytic_prescription_(rhs.analytic_prescription_->get_clone()) {}
 
-template <typename... NeutrinoSpecies>
-DirichletAnalytic<tmpl::list<NeutrinoSpecies...>>&
-DirichletAnalytic<tmpl::list<NeutrinoSpecies...>>::operator=(
-    const DirichletAnalytic<tmpl::list<NeutrinoSpecies...>>& rhs) {
+template <size_t Dim, typename... NeutrinoSpecies>
+DirichletAnalytic<Dim, tmpl::list<NeutrinoSpecies...>>&
+DirichletAnalytic<Dim, tmpl::list<NeutrinoSpecies...>>::operator=(
+    const DirichletAnalytic<Dim, tmpl::list<NeutrinoSpecies...>>& rhs) {
   if (&rhs == this) {
     return *this;
   }
@@ -72,20 +72,20 @@ DirichletAnalytic<tmpl::list<NeutrinoSpecies...>>::operator=(
   return *this;
 }
 
-template <typename... NeutrinoSpecies>
-DirichletAnalytic<tmpl::list<NeutrinoSpecies...>>::DirichletAnalytic(
+template <size_t Dim, typename... NeutrinoSpecies>
+DirichletAnalytic<Dim, tmpl::list<NeutrinoSpecies...>>::DirichletAnalytic(
     std::unique_ptr<evolution::initial_data::InitialData> analytic_prescription)
     : analytic_prescription_(std::move(analytic_prescription)) {}
 
-template <typename... NeutrinoSpecies>
-void DirichletAnalytic<tmpl::list<NeutrinoSpecies...>>::pup(PUP::er& p) {
-  BoundaryCondition<tmpl::list<NeutrinoSpecies...>>::pup(p);
+template <size_t Dim, typename... NeutrinoSpecies>
+void DirichletAnalytic<Dim, tmpl::list<NeutrinoSpecies...>>::pup(PUP::er& p) {
+  BoundaryCondition<Dim, tmpl::list<NeutrinoSpecies...>>::pup(p);
   p | analytic_prescription_;
 }
 
-template <typename... NeutrinoSpecies>
+template <size_t Dim, typename... NeutrinoSpecies>
 std::optional<std::string>
-DirichletAnalytic<tmpl::list<NeutrinoSpecies...>>::dg_ghost(
+DirichletAnalytic<Dim, tmpl::list<NeutrinoSpecies...>>::dg_ghost(
     const gsl::not_null<typename Tags::TildeE<
         Frame::Inertial, NeutrinoSpecies>::type*>... tilde_e,
     const gsl::not_null<typename Tags::TildeS<
@@ -116,7 +116,7 @@ DirichletAnalytic<tmpl::list<NeutrinoSpecies...>>::dg_ghost(
                           gr::Tags::Shift<DataVector, 3>,
                           gr::Tags::SpatialMetric<DataVector, 3>,
                           gr::Tags::InverseSpatialMetric<DataVector, 3>>,
-      RadiationTransport::M1Grey::AnalyticData::all_data>(
+      RadiationTransport::M1Grey::AnalyticData::all_data<Dim>>(
       analytic_prescription_.get(),
       [&coords, &time](const auto* const initial_data) {
         if constexpr (is_analytic_solution_v<
@@ -226,10 +226,14 @@ DirichletAnalytic<tmpl::list<NeutrinoSpecies...>>::dg_ghost(
 }
 
 // NOLINTNEXTLINE
-template <typename... NeutrinoSpecies>
-PUP::able::PUP_ID DirichletAnalytic<tmpl::list<NeutrinoSpecies...>>::my_PUP_ID =
-    0;
+template <size_t Dim, typename... NeutrinoSpecies>
+PUP::able::PUP_ID
+    DirichletAnalytic<Dim, tmpl::list<NeutrinoSpecies...>>::my_PUP_ID = 0;
 
-template class DirichletAnalytic<tmpl::list<neutrinos::ElectronNeutrinos<1>>>;
+template class DirichletAnalytic<2,
+                                 tmpl::list<neutrinos::ElectronNeutrinos<1>>>;
+
+template class DirichletAnalytic<3,
+                                 tmpl::list<neutrinos::ElectronNeutrinos<1>>>;
 
 }  // namespace RadiationTransport::M1Grey::BoundaryConditions

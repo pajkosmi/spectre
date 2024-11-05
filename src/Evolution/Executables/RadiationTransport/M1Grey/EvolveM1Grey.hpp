@@ -128,7 +128,8 @@ struct EvolutionMetavars {
       TimeStepperBase::local_time_stepping;
   static constexpr bool use_dg_element_collection = false;
 
-  using initial_data_list = RadiationTransport::M1Grey::AnalyticData::all_data;
+  using initial_data_list =
+      RadiationTransport::M1Grey::AnalyticData::all_data<volume_dim>;
 
   //   using initial_data_tag =
   //       tmpl::conditional_t<is_analytic_solution_v<initial_data>,
@@ -169,10 +170,11 @@ struct EvolutionMetavars {
         tmpl::pair<ImexTimeStepper, TimeSteppers::imex_time_steppers>,
 
         tmpl::pair<PhaseChange, PhaseControl::factory_creatable_classes>,
-        tmpl::pair<RadiationTransport::M1Grey::BoundaryConditions::
-                       BoundaryCondition<neutrino_species>,
-                   RadiationTransport::M1Grey::BoundaryConditions::
-                       standard_boundary_conditions<neutrino_species>>,
+        tmpl::pair<
+            RadiationTransport::M1Grey::BoundaryConditions::BoundaryCondition<
+                volume_dim, neutrino_species>,
+            RadiationTransport::M1Grey::BoundaryConditions::
+                standard_boundary_conditions<volume_dim, neutrino_species>>,
         tmpl::pair<StepChooser<StepChooserUse::LtsStep>,
                    StepChoosers::standard_step_choosers<system, false>>,
         tmpl::pair<StepChooser<StepChooserUse::Slab>,

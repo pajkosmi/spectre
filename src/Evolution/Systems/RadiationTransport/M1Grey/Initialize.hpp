@@ -80,7 +80,7 @@ struct InitializeM1Tags {
 
     const auto initial_data_evo_vars = call_with_dynamic_type<
         tuples::tagged_tuple_from_typelist<initial_data_evo_tags>,
-        RadiationTransport::M1Grey::AnalyticData::all_data>(
+        RadiationTransport::M1Grey::AnalyticData::all_data<dim>>(
         &Parallel::get<evolution::initial_data::Tags::InitialData>(cache),
         [&inertial_coords, &initial_time](const auto* const initial_data) {
           return evolution::Initialization::initial_data(
@@ -90,7 +90,7 @@ struct InitializeM1Tags {
 
     const auto initial_data_hydro_vars = call_with_dynamic_type<
         tuples::tagged_tuple_from_typelist<initial_data_hydro_tags>,
-        RadiationTransport::M1Grey::AnalyticData::all_data>(
+        RadiationTransport::M1Grey::AnalyticData::all_data<dim>>(
         &Parallel::get<evolution::initial_data::Tags::InitialData>(cache),
         [&inertial_coords, &initial_time](const auto* const initial_data) {
           return evolution::Initialization::initial_data(
