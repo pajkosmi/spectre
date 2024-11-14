@@ -13,6 +13,7 @@
 #include "PointwiseFunctions/AnalyticSolutions/AnalyticSolution.hpp"
 #include "PointwiseFunctions/AnalyticSolutions/GeneralRelativity/Minkowski.hpp"
 #include "PointwiseFunctions/Hydro/TagsDeclarations.hpp"
+#include "PointwiseFunctions/InitialDataUtilities/InitialData.hpp"
 #include "Utilities/TMPL.hpp"
 #include "Utilities/TaggedTuple.hpp"
 
@@ -34,7 +35,8 @@ namespace Solutions {
  * (i.e. comoving, with an isotropic pressure P=J/3)
  *
  */
-class ConstantM1 : public MarkAsAnalyticSolution {
+class ConstantM1 : public virtual evolution::initial_data::InitialData,
+                   public MarkAsAnalyticSolution {
  public:
   /// The mean flow velocity.
   struct MeanVelocity {
@@ -55,8 +57,8 @@ class ConstantM1 : public MarkAsAnalyticSolution {
       "spacetime."};
 
   ConstantM1() = default;
-  ConstantM1(const ConstantM1& /*rhs*/) = delete;
-  ConstantM1& operator=(const ConstantM1& /*rhs*/) = delete;
+  ConstantM1(const ConstantM1& /*rhs*/) = default;
+  ConstantM1& operator=(const ConstantM1& /*rhs*/) = default;
   ConstantM1(ConstantM1&& /*rhs*/) = default;
   ConstantM1& operator=(ConstantM1&& /*rhs*/) = default;
   ~ConstantM1() = default;
@@ -64,7 +66,12 @@ class ConstantM1 : public MarkAsAnalyticSolution {
   ConstantM1(const std::array<double, 3>& mean_velocity,
              double comoving_energy_density);
 
-  explicit ConstantM1(CkMigrateMessage* /*unused*/) {}
+  auto get_clone() const
+      -> std::unique_ptr<evolution::initial_data::InitialData> override;
+
+  explicit ConstantM1(CkMigrateMessage* msg);
+  using PUP::able::register_constructor;
+  WRAPPED_PUPable_decl_template(ConstantM1);
 
   /// @{
   /// Retrieve fluid and neutrino variables at `(x, t)`
@@ -134,7 +141,7 @@ class ConstantM1 : public MarkAsAnalyticSolution {
   }
 
   // clang-tidy: no runtime references
-  void pup(PUP::er& /*p*/);  //  NOLINT
+  void pup(PUP::er& /*p*/) override;  //  NOLINT
 
  private:
   friend bool operator==(const ConstantM1& lhs, const ConstantM1& rhs);

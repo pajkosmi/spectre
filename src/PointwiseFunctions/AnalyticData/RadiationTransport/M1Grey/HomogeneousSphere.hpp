@@ -62,13 +62,12 @@ class HomogeneousSphereImpl
       tmpl::list<Radius, EmissivityAndOpacity, OuterRadius, OuterOpacity>;
 
   HomogeneousSphereImpl() = default;
-  // explicit HomogeneousSphereImpl(CkMigrateMessage* /*message*/) {}
 
   auto get_clone() const
       -> std::unique_ptr<evolution::initial_data::InitialData> override;
 
   /// \cond
-  explicit HomogeneousSphereImpl(CkMigrateMessage* msg) {}
+  explicit HomogeneousSphereImpl(CkMigrateMessage* /*message*/) {}
   using PUP::able::register_constructor;
   WRAPPED_PUPable_decl_template(HomogeneousSphereImpl);
   /// \endcond

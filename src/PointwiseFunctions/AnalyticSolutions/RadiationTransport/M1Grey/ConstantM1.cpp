@@ -13,10 +13,13 @@
 #include "DataStructures/Tensor/Tensor.hpp"
 #include "Evolution/Systems/RadiationTransport/Tags.hpp"
 #include "PointwiseFunctions/Hydro/Tags.hpp"
+#include "PointwiseFunctions/InitialDataUtilities/InitialData.hpp"
 #include "Utilities/GenerateInstantiations.hpp"
 #include "Utilities/MakeWithValue.hpp"
 
 namespace RadiationTransport::M1Grey::Solutions {
+
+ConstantM1::ConstantM1(CkMigrateMessage* msg) : InitialData(msg) {}
 
 ConstantM1::ConstantM1(const std::array<double, 3>& mean_velocity,
                        const double comoving_energy_density)
@@ -24,11 +27,17 @@ ConstantM1::ConstantM1(const std::array<double, 3>& mean_velocity,
       mean_velocity_(std::move(mean_velocity)),  // NOLINT
       comoving_energy_density_(comoving_energy_density) {}
 
+std::unique_ptr<evolution::initial_data::InitialData> ConstantM1::get_clone()
+    const {
+  return std::make_unique<ConstantM1>(*this);
+}
+
 void ConstantM1::pup(PUP::er& p) {
   p | mean_velocity_;
   p | comoving_energy_density_;
   p | background_spacetime_;
 }
+PUP::able::PUP_ID ConstantM1::my_PUP_ID = 0;
 
 // Variables templated on neutrino species.
 template <typename NeutrinoSpecies>
