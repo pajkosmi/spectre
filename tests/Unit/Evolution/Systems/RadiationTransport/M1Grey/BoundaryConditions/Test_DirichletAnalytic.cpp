@@ -3,6 +3,7 @@
 
 #include "Framework/TestingFramework.hpp"
 
+#include <PointwiseFunctions/AnalyticData/RadiationTransport/M1Grey/Factory.hpp>
 #include "DataStructures/DataBox/DataBox.hpp"
 #include "DataStructures/Index.hpp"
 #include "Evolution/Systems/RadiationTransport/M1Grey/BoundaryConditions/DirichletAnalytic.hpp"
@@ -13,16 +14,36 @@
 #include "Framework/SetupLocalPythonEnvironment.hpp"
 #include "Framework/TestHelpers.hpp"
 #include "Helpers/Evolution/DiscontinuousGalerkin/BoundaryConditions.hpp"
+#include "Options/Protocols/FactoryCreation.hpp"
+#include "PointwiseFunctions/AnalyticData/RadiationTransport/M1Grey/HomogeneousSphere.hpp"
+#include "PointwiseFunctions/AnalyticData/Tags.hpp"
 #include "PointwiseFunctions/AnalyticSolutions/RadiationTransport/M1Grey/ConstantM1.hpp"
 #include "PointwiseFunctions/AnalyticSolutions/Tags.hpp"
 #include "Time/Tags/Time.hpp"
 #include "Utilities/Gsl.hpp"
+#include "Utilities/NoSuchType.hpp"
 #include "Utilities/TMPL.hpp"
 #include "Utilities/TaggedTuple.hpp"
 
 namespace helpers = TestHelpers::evolution::dg;
 
 namespace {
+
+// compare to other test_dirichlet analytic data
+template <size_t Dim, typename NeutrinoSpeciesList>
+struct Metavariables {
+  struct factory_creation
+      : tt::ConformsTo<Options::protocols::FactoryCreation> {
+    using factory_classes = tmpl::map<
+        tmpl::pair<RadiationTransport::M1Grey::BoundaryConditions::
+                       BoundaryCondition<Dim, NeutrinoSpeciesList>,
+                   tmpl::list<RadiationTransport::M1Grey::BoundaryConditions::
+                                  DirichletAnalytic<Dim, NeutrinoSpeciesList>>>,
+        tmpl::pair<evolution::initial_data::InitialData,
+                   RadiationTransport::M1Grey::AnalyticData::all_data<Dim>>>;
+  };
+};
+
 struct ConvertConstantM1 {
   using unpacked_container = int;
   using packed_container = RadiationTransport::M1Grey::Solutions::ConstantM1;
@@ -51,22 +72,105 @@ struct ConvertConstantM1 {
   }
 };
 
+struct ConvertHomogeneousSphere {
+  using unpacked_container = int;
+  using packed_container =
+      RadiationTransport::M1Grey::AnalyticData::HomogeneousSphereImpl;
+  using packed_type = double;
+
+  static packed_container create_container() {
+    const double radius = 1.0;
+    const double emissivity_and_opacity = 1.0;
+    const double outer_radius = 1.5;
+    const double outer_opacity = 0.5;
+    return {radius, emissivity_and_opacity, outer_radius, outer_opacity};
+  }
+
+  static inline unpacked_container unpack(const packed_container& /*packed*/,
+                                          const size_t /*grid_point_index*/) {
+    // No way of getting the args from the boundary condition.
+    return 3;
+  }
+
+  static inline void pack(const gsl::not_null<packed_container*> packed,
+                          const unpacked_container /*unpacked*/,
+                          const size_t /*grid_point_index*/) {
+    *packed = create_container();
+  }
+
+  static inline size_t get_size(const packed_container& /*packed*/) {
+    return 1;
+  }
+};
+
+template <size_t Dim>
+struct ConvertSphericalGaussian {
+  using unpacked_container = int;
+  using packed_container =
+      RadiationTransport::M1Grey::AnalyticData::SphericalGaussian<Dim>;
+  using packed_type = double;
+
+  static packed_container create_container() {
+    const double radius = 1.0;
+    const double emissivity_and_opacity = 1.0;
+    const double outer_radius = 1.5;
+    const double outer_opacity = 0.5;
+    return {radius, emissivity_and_opacity, outer_radius, outer_opacity};
+  }
+
+  static inline unpacked_container unpack(const packed_container& /*packed*/,
+                                          const size_t /*grid_point_index*/) {
+    // No way of getting the args from the boundary condition.
+    return Dim;
+  }
+
+  static inline void pack(const gsl::not_null<packed_container*> packed,
+                          const unpacked_container /*unpacked*/,
+                          const size_t /*grid_point_index*/) {
+    *packed = create_container();
+  }
+
+  static inline size_t get_size(const packed_container& /*packed*/) {
+    return 1;
+  }
+};
+
+template <size_t dim>
 void test() {
+  register_classes_with_charm(
+      RadiationTransport::M1Grey::AnalyticData::all_data<dim>{});
+
   MAKE_GENERATOR(gen);
+
+  // Databox for constant M1
   const auto box_analytic_soln = db::create<db::AddSimpleTags<
       Tags::Time, Tags::AnalyticSolution<
                       RadiationTransport::M1Grey::Solutions::ConstantM1>>>(
       0.5, ConvertConstantM1::create_container());
+
+  // Databox for homogeneous sphere
+  const auto box_analytic_soln_homogen_sphere = db::create<db::AddSimpleTags<
+      Tags::Time, Tags::AnalyticData<RadiationTransport::M1Grey::AnalyticData::
+                                         HomogeneousSphereImpl>>>(
+      0.5, ConvertHomogeneousSphere::create_container());
+
+  // Databox for spherical Gaussian
+  const auto box_analytic_soln_spherical_gaussian =
+      db::create<db::AddSimpleTags<
+          Tags::Time,
+          Tags::AnalyticData<RadiationTransport::M1Grey::AnalyticData::
+                                 SphericalGaussian<dim>>>>(
+          0.5, ConvertSphericalGaussian<dim>::create_container());
 
   using neutrino_species = tmpl::list<neutrinos::ElectronNeutrinos<1>,
                                       neutrinos::ElectronAntiNeutrinos<1>>;
   using system = RadiationTransport::M1Grey::System<neutrino_species>;
   using boundary_condition =
       RadiationTransport::M1Grey::BoundaryConditions::BoundaryCondition<
-          neutrino_species>;
+          dim, neutrino_species>;
   using dirichlet_analytic =
       RadiationTransport::M1Grey::BoundaryConditions::DirichletAnalytic<
-          neutrino_species>;
+          dim, neutrino_species>;
   using rusanov = RadiationTransport::M1Grey::BoundaryCorrections::Rusanov<
       neutrino_species>;
 
@@ -81,9 +185,101 @@ void test() {
   using tilde_s_bar_nue_tag = RadiationTransport::M1Grey::Tags::TildeS<
       Frame::Inertial, neutrinos::ElectronAntiNeutrinos<1>>;
 
+  // ConstantM1 and HomogeneousSphere are 3D, so they only need to run once
+  if constexpr (dim == 3) {
+    // Constant M1
+    helpers::test_boundary_condition_with_python<
+        dirichlet_analytic, boundary_condition, system, tmpl::list<rusanov>,
+        tmpl::list<ConvertConstantM1>,
+        tmpl::list<Tags::AnalyticSolution<
+            RadiationTransport::M1Grey::Solutions::ConstantM1>>,
+        Metavariables<dim, neutrino_species>>(
+        make_not_null(&gen),
+        "Evolution.Systems.RadiationTransport.M1Grey.BoundaryConditions."
+        "DirichletAnalytic",
+        tuples::TaggedTuple<
+            helpers::Tags::PythonFunctionForErrorMessage<>,
+            helpers::Tags::PythonFunctionName<tilde_e_nue_tag>,
+            helpers::Tags::PythonFunctionName<tilde_e_bar_nue_tag>,
+            helpers::Tags::PythonFunctionName<tilde_s_nue_tag>,
+            helpers::Tags::PythonFunctionName<tilde_s_bar_nue_tag>,
+
+            helpers::Tags::PythonFunctionName<::Tags::Flux<
+                tilde_e_nue_tag, tmpl::size_t<3>, Frame::Inertial>>,
+            helpers::Tags::PythonFunctionName<::Tags::Flux<
+                tilde_e_bar_nue_tag, tmpl::size_t<3>, Frame::Inertial>>,
+            helpers::Tags::PythonFunctionName<::Tags::Flux<
+                tilde_s_nue_tag, tmpl::size_t<3>, Frame::Inertial>>,
+            helpers::Tags::PythonFunctionName<::Tags::Flux<
+                tilde_s_bar_nue_tag, tmpl::size_t<3>, Frame::Inertial>>>{
+            // python functions labeled below
+            "soln_error", "soln_tilde_e_nue_const",
+            "soln_tilde_e_bar_nue_const", "soln_tilde_s_nue_const",
+            "soln_tilde_s_bar_nue_const", "soln_flux_tilde_e_nue_const",
+            "soln_flux_tilde_e_bar_nue_const", "soln_flux_tilde_s_nue_const",
+            "soln_flux_tilde_s_bar_nue_const"},
+        "DirichletAnalytic:\n"
+        "  AnalyticPrescription:\n"
+        "    ConstantM1:\n"
+        "      MeanVelocity: [0.1, 0.2, 0.3]\n"
+        "      ComovingEnergyDensity: 0.4\n",
+        Index<2>{5}, box_analytic_soln, tuples::TaggedTuple<>{});
+
+    // Homogeneous sphere
+    helpers::test_boundary_condition_with_python<
+        dirichlet_analytic, boundary_condition, system, tmpl::list<rusanov>,
+        tmpl::list<ConvertHomogeneousSphere>,
+        tmpl::list<Tags::AnalyticData<
+            RadiationTransport::M1Grey::AnalyticData::HomogeneousSphereImpl>>,
+        Metavariables<dim, neutrino_species>>(
+        make_not_null(&gen),
+        "Evolution.Systems.RadiationTransport.M1Grey.BoundaryConditions."
+        "DirichletAnalytic",
+        tuples::TaggedTuple<
+            helpers::Tags::PythonFunctionForErrorMessage<>,
+            helpers::Tags::PythonFunctionName<tilde_e_nue_tag>,
+            helpers::Tags::PythonFunctionName<tilde_e_bar_nue_tag>,
+            helpers::Tags::PythonFunctionName<tilde_s_nue_tag>,
+            helpers::Tags::PythonFunctionName<tilde_s_bar_nue_tag>,
+
+            helpers::Tags::PythonFunctionName<::Tags::Flux<
+                tilde_e_nue_tag, tmpl::size_t<3>, Frame::Inertial>>,
+            helpers::Tags::PythonFunctionName<::Tags::Flux<
+                tilde_e_bar_nue_tag, tmpl::size_t<3>, Frame::Inertial>>,
+            helpers::Tags::PythonFunctionName<::Tags::Flux<
+                tilde_s_nue_tag, tmpl::size_t<3>, Frame::Inertial>>,
+            helpers::Tags::PythonFunctionName<::Tags::Flux<
+                tilde_s_bar_nue_tag, tmpl::size_t<3>, Frame::Inertial>>>{
+            // python functions labeled below
+            "soln_error", "soln_tilde_e_nue", "soln_tilde_e_bar_nue",
+            "soln_tilde_s_nue", "soln_tilde_s_bar_nue", "soln_flux_tilde_e_nue",
+            "soln_flux_tilde_e_bar_nue", "soln_flux_tilde_s_nue",
+            "soln_flux_tilde_s_bar_nue"},
+        "DirichletAnalytic:\n"
+        "  AnalyticPrescription:\n"
+        "    HomogeneousSphereImpl:\n"
+        "      Radius: 1.0\n"
+        "      EmissivityAndOpacity: 1.0\n"
+        "      OuterRadius: 1.5\n"
+        "      OuterOpacity: 0.5\n",
+        Index<2>{5}, box_analytic_soln_homogen_sphere, tuples::TaggedTuple<>{});
+  }
+
+  std::string name = "";
+
+  if constexpr (dim == 2) {
+    name = "CylindricalGaussian";
+  } else {
+    name = "SphericalGaussian";
+  }
+
+  // Spherical Gaussian
   helpers::test_boundary_condition_with_python<
       dirichlet_analytic, boundary_condition, system, tmpl::list<rusanov>,
-      tmpl::list<ConvertConstantM1>>(
+      tmpl::list<ConvertSphericalGaussian<dim>>,
+      tmpl::list<Tags::AnalyticData<
+          RadiationTransport::M1Grey::AnalyticData::SphericalGaussian<dim>>>,
+      Metavariables<dim, neutrino_species>>(
       make_not_null(&gen),
       "Evolution.Systems.RadiationTransport.M1Grey.BoundaryConditions."
       "DirichletAnalytic",
@@ -102,16 +298,25 @@ void test() {
               ::Tags::Flux<tilde_s_nue_tag, tmpl::size_t<3>, Frame::Inertial>>,
           helpers::Tags::PythonFunctionName<::Tags::Flux<
               tilde_s_bar_nue_tag, tmpl::size_t<3>, Frame::Inertial>>>{
-          "soln_error", "soln_tilde_e_nue", "soln_tilde_e_bar_nue",
-          "soln_tilde_s_nue", "soln_tilde_s_bar_nue", "soln_flux_tilde_e_nue",
-          "soln_flux_tilde_e_bar_nue", "soln_flux_tilde_s_nue",
-          "soln_flux_tilde_s_bar_nue"},
-      "DirichletAnalytic:\n", Index<2>{5}, box_analytic_soln,
+          // python functions labeled below
+          "soln_error", "soln_tilde_e_nue_sphere_Gauss",
+          "soln_tilde_e_bar_nue_sphere_Gauss", "soln_tilde_s_nue_sphere_Gauss",
+          "soln_tilde_s_bar_nue_sphere_Gauss",
+          "soln_flux_tilde_e_nue_sphere_Gauss",
+          "soln_flux_tilde_e_bar_nue_sphere_Gauss",
+          "soln_flux_tilde_s_nue_sphere_Gauss",
+          "soln_flux_tilde_s_bar_nue_sphere_Gauss"},
+      "DirichletAnalytic:\n"
+      "  AnalyticPrescription:\n"
+      "    " +
+          name +
+          ":\n"
+          "      Radius: 1.0\n"
+          "      EmissivityAndOpacityAmplitude: 1.0\n"
+          "      OuterRadius: 1.5\n"
+          "      OuterOpacity: 0.5\n",
+      Index<2>{5}, box_analytic_soln_spherical_gaussian,
       tuples::TaggedTuple<>{});
-
-  // Note: Currently there is no analytic data for the
-  // RadiationTransport::M1Grey system. When that is implemented, a test should
-  // be added.
 }
 }  // namespace
 
@@ -120,11 +325,18 @@ SPECTRE_TEST_CASE(
     "[Unit][Evolution]") {
   using neutrino_species = tmpl::list<neutrinos::ElectronNeutrinos<1>,
                                       neutrinos::ElectronAntiNeutrinos<1>>;
-  using dirichlet_analytic =
+
+  using dirichlet_analytic2D =
       RadiationTransport::M1Grey::BoundaryConditions::DirichletAnalytic<
-          neutrino_species>;
-  PUPable_reg(dirichlet_analytic);
+          2, neutrino_species>;
+  PUPable_reg(dirichlet_analytic2D);
+
+  using dirichlet_analytic3D =
+      RadiationTransport::M1Grey::BoundaryConditions::DirichletAnalytic<
+          3, neutrino_species>;
+  PUPable_reg(dirichlet_analytic3D);
 
   pypp::SetupLocalPythonEnvironment local_python_env{""};
-  test();
+  test<2>();
+  test<3>();
 }

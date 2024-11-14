@@ -26,3 +26,44 @@ def constant_m1_tildeS(x, t, mean_velocity, comoving_energy_density):
 
 
 # End Functions for testing ConstantM1.cpp
+
+
+def homogen_sphere_m1_tildeE(
+    x, t, radius, emissivity_and_opacity, outer_radius, outer_opacity
+):
+    radii = np.linalg.norm(np.asarray(x))
+
+    step_outer = np.heaviside(outer_radius - radii, 0.0)
+
+    step_inner = np.heaviside(radius - radii, 0.0)
+
+    e_tilde = (
+        (outer_radius - radii) * step_outer - (radius - radii) * step_inner
+    ) / (outer_radius - radius) + 1.0e-12
+
+    return e_tilde
+
+
+def homogen_sphere_m1_tildeS(x, t, mean_velocity, comoving_energy_density):
+    return np.asarray(mean_velocity) * 0.0
+
+
+# End Functions for testing HomogeneousSphere
+
+
+def spherical_Gaussian_m1_tildeE(x, radius, dim):
+    if dim == 2:
+        radii = np.sqrt(x[0] ** 2 + x[1] ** 2)
+    else:
+        radii = np.sqrt(x[0] ** 2 + x[1] ** 2 + x[2] ** 2)
+
+    e_tilde = np.exp(-1.0 / radius**2 * radii**2)
+
+    return e_tilde
+
+
+def spherical_Gaussian_m1_tildeS(x, t, mean_velocity, comoving_energy_density):
+    return np.asarray(mean_velocity) * 0.0
+
+
+# End Functions for testing SphericalGaussian

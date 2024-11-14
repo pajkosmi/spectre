@@ -29,7 +29,7 @@
 #include "Evolution/Systems/GeneralizedHarmonic/ConstraintDamping/Tags.hpp"
 #include "Evolution/Systems/GeneralizedHarmonic/Tags.hpp"
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/AllSolutions.hpp"
-#include "Evolution/Systems/GrMhd/GhValenciaDivClean/BoundaryConditions/BoundaryCondition.hpp"
+#include "Domain/BoundaryConditions/BoundaryCondition.hpp"
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/FiniteDifference/Factory.hpp"
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/FiniteDifference/Reconstructor.hpp"
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/FiniteDifference/Tag.hpp"
@@ -235,5 +235,13 @@ template class DirichletAnalytic<2,
 
 template class DirichletAnalytic<3,
                                  tmpl::list<neutrinos::ElectronNeutrinos<1>>>;
+
+template class DirichletAnalytic<
+    2, tmpl::list<neutrinos::ElectronNeutrinos<1>,
+                  neutrinos::ElectronAntiNeutrinos<1>>>;
+
+template class DirichletAnalytic<
+    3, tmpl::list<neutrinos::ElectronNeutrinos<1>,
+                  neutrinos::ElectronAntiNeutrinos<1>>>;
 
 }  // namespace RadiationTransport::M1Grey::BoundaryConditions

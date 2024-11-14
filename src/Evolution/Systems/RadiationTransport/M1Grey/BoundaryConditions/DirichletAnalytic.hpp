@@ -54,7 +54,14 @@ template <size_t Dim, typename... NeutrinoSpecies>
 class DirichletAnalytic<Dim, tmpl::list<NeutrinoSpecies...>> final
     : public BoundaryCondition<Dim, tmpl::list<NeutrinoSpecies...>> {
  public:
-  using options = tmpl::list<>;
+  /// \brief What analytic solution/data to prescribe.
+  struct AnalyticPrescription {
+    static constexpr Options::String help =
+        "What analytic solution/data to prescribe.";
+    using type = std::unique_ptr<evolution::initial_data::InitialData>;
+  };
+  using options = tmpl::list<AnalyticPrescription>;
+
   static constexpr Options::String help{
       "DirichletAnalytic boundary conditions using either analytic solution or "
       "analytic data."};

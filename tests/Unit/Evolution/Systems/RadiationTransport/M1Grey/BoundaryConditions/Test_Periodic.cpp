@@ -14,14 +14,20 @@
 
 namespace helpers = TestHelpers::evolution::dg;
 
-SPECTRE_TEST_CASE("Unit.RadiationTransport.M1Grey.BoundaryConditions.Periodic",
-                  "[Unit][Evolution]") {
+template <size_t Dim>
+void test() {
   using neutrino_species = tmpl::list<neutrinos::ElectronNeutrinos<1>,
                                       neutrinos::ElectronAntiNeutrinos<1>>;
   using boundary_condition =
       RadiationTransport::M1Grey::BoundaryConditions::BoundaryCondition<
-          neutrino_species>;
+          Dim, neutrino_species>;
   helpers::test_periodic_condition<
       domain::BoundaryConditions::Periodic<boundary_condition>,
       boundary_condition>("Periodic:\n");
+}
+
+SPECTRE_TEST_CASE("Unit.RadiationTransport.M1Grey.BoundaryConditions.Periodic",
+                  "[Unit][Evolution]") {
+  test<2>();
+  test<3>();
 }
