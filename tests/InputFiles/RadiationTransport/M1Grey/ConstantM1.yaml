@@ -29,6 +29,11 @@ Evolution:
 
 PhaseChangeAndTriggers:
 
+InitialData: &InitialData
+  ConstantM1:
+    MeanVelocity: [0.1, 0.2, 0.15]
+    ComovingEnergyDensity: 1.0
+
 DomainCreator:
   Brick:
     LowerBound: [10.5, 0.0, 0.0]
@@ -38,14 +43,12 @@ DomainCreator:
     InitialGridPoints: [5, 5, 5]
     TimeDependence: None
     BoundaryConditions:
-      - DirichletAnalytic
-      - DirichletAnalytic
-      - DirichletAnalytic
-
-AnalyticSolution:
-  ConstantM1:
-    MeanVelocity: [0.1, 0.2, 0.15]
-    ComovingEnergyDensity: 1.0
+      - DirichletAnalytic:
+          AnalyticPrescription: *InitialData
+      - DirichletAnalytic:
+          AnalyticPrescription: *InitialData
+      - DirichletAnalytic:
+          AnalyticPrescription: *InitialData
 
 SpatialDiscretization:
   BoundaryCorrection:
