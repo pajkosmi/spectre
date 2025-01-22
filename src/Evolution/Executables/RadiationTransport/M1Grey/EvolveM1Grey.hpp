@@ -112,11 +112,6 @@ class CProxy_GlobalCache;
 struct EvolutionMetavars {
   static constexpr size_t volume_dim = 3;
 
-  // To switch which initial data is evolved you only need to change the
-  // line `using initial_data = ...;` and include the header file for the
-  // solution.
-  //   using initial_data = RadiationTransport::M1Grey::Solutions::ConstantM1;
-
   // Set list of neutrino species to be used by M1 code
   using neutrino_species = tmpl::list<neutrinos::ElectronNeutrinos<1>>;
 
@@ -129,7 +124,7 @@ struct EvolutionMetavars {
   static constexpr bool use_dg_element_collection = false;
 
   using initial_data_list =
-      RadiationTransport::M1Grey::AnalyticData::all_data<volume_dim>;
+      RadiationTransport::M1Grey::AnalyticData::all_data;
 
   using analytic_variables_tags = typename system::variables_tag::tags_list;
   using limiter = Tags::Limiter<
@@ -168,9 +163,9 @@ struct EvolutionMetavars {
         tmpl::pair<PhaseChange, PhaseControl::factory_creatable_classes>,
         tmpl::pair<
             RadiationTransport::M1Grey::BoundaryConditions::BoundaryCondition<
-                volume_dim, neutrino_species>,
+                neutrino_species>,
             RadiationTransport::M1Grey::BoundaryConditions::
-                standard_boundary_conditions<volume_dim, neutrino_species>>,
+                standard_boundary_conditions<neutrino_species>>,
         tmpl::pair<StepChooser<StepChooserUse::LtsStep>,
                    StepChoosers::standard_step_choosers<system, false>>,
         tmpl::pair<StepChooser<StepChooserUse::Slab>,
@@ -279,7 +274,7 @@ struct EvolutionMetavars {
       tmpl::list<evolution::initial_data::Tags::InitialData>;
 
   static constexpr Options::String help{
-      "Evolve the M1Grey system (without coupling to hydro).\n\n"};
+      "Evolve the M1Grey system. \n\n"};
 
   static constexpr std::array<Parallel::Phase, 5> default_phase_order{
       {Parallel::Phase::Initialization,

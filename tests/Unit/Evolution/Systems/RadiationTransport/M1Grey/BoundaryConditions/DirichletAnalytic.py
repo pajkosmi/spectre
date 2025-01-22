@@ -115,17 +115,6 @@ def soln_tilde_e_nue(
     )
 
 
-def soln_tilde_e_nue_sphere_Gauss(
-    face_mesh_velocity,
-    outward_directed_normal_covector,
-    outward_directed_normal_vector,
-    coords,
-    time,
-    dim,
-):
-    return soln.spherical_Gaussian_m1_tildeE(coords, _radius, dim)
-
-
 def soln_tilde_e_bar_nue_const(
     face_mesh_velocity,
     outward_directed_normal_covector,
@@ -164,25 +153,6 @@ def soln_tilde_e_bar_nue(
     )
 
 
-def soln_tilde_e_bar_nue_sphere_Gauss(
-    face_mesh_velocity,
-    outward_directed_normal_covector,
-    outward_directed_normal_vector,
-    coords,
-    time,
-    dim,
-):
-    # same as nue
-    return soln_tilde_e_nue_sphere_Gauss(
-        face_mesh_velocity,
-        outward_directed_normal_covector,
-        outward_directed_normal_vector,
-        coords,
-        time,
-        dim,
-    )
-
-
 def soln_tilde_s_nue_const(
     face_mesh_velocity,
     outward_directed_normal_covector,
@@ -205,19 +175,6 @@ def soln_tilde_s_nue(
     dim,
 ):
     return soln.homogen_sphere_m1_tildeS(
-        coords, time, _soln_mean_velocity, _soln_comoving_energy_density
-    )
-
-
-def soln_tilde_s_nue_sphere_Gauss(
-    face_mesh_velocity,
-    outward_directed_normal_covector,
-    outward_directed_normal_vector,
-    coords,
-    time,
-    dim,
-):
-    return soln.spherical_Gaussian_m1_tildeS(
         coords, time, _soln_mean_velocity, _soln_comoving_energy_density
     )
 
@@ -250,24 +207,6 @@ def soln_tilde_s_bar_nue(
     dim,
 ):
     return soln_tilde_s_nue(
-        face_mesh_velocity,
-        outward_directed_normal_covector,
-        outward_directed_normal_vector,
-        coords,
-        time,
-        dim,
-    )
-
-
-def soln_tilde_s_bar_nue_sphere_Gauss(
-    face_mesh_velocity,
-    outward_directed_normal_covector,
-    outward_directed_normal_vector,
-    coords,
-    time,
-    dim,
-):
-    return soln_tilde_s_nue_sphere_Gauss(
         face_mesh_velocity,
         outward_directed_normal_covector,
         outward_directed_normal_vector,
@@ -359,47 +298,6 @@ def soln_flux_tilde_e_nue(
     )
 
 
-def soln_flux_tilde_e_nue_sphere_Gauss(
-    face_mesh_velocity,
-    outward_directed_normal_covector,
-    outward_directed_normal_vector,
-    coords,
-    time,
-    dim,
-):
-    tilde_e = soln_tilde_e_nue_sphere_Gauss(
-        face_mesh_velocity,
-        outward_directed_normal_covector,
-        outward_directed_normal_vector,
-        coords,
-        time,
-        dim,
-    )
-    tilde_s = soln_tilde_s_nue_sphere_Gauss(
-        face_mesh_velocity,
-        outward_directed_normal_covector,
-        outward_directed_normal_vector,
-        coords,
-        time,
-        dim,
-    )
-    lapse = 1.0
-    shift = np.array([0.0, 0.0, 0.0])
-    spatial_metric = np.identity(3)
-    inv_spatial_metric = np.identity(3)
-    tilde_p = calc_tilde_p(tilde_e, tilde_s, inv_spatial_metric)
-
-    return fluxes.tilde_e_flux(
-        tilde_e,
-        tilde_s,
-        tilde_p,
-        lapse,
-        shift,
-        spatial_metric,
-        inv_spatial_metric,
-    )
-
-
 # same as nue
 def soln_flux_tilde_e_bar_nue_const(
     face_mesh_velocity,
@@ -428,24 +326,6 @@ def soln_flux_tilde_e_bar_nue(
     dim,
 ):
     return soln_flux_tilde_e_nue(
-        face_mesh_velocity,
-        outward_directed_normal_covector,
-        outward_directed_normal_vector,
-        coords,
-        time,
-        dim,
-    )
-
-
-def soln_flux_tilde_e_bar_nue_sphere_Gauss(
-    face_mesh_velocity,
-    outward_directed_normal_covector,
-    outward_directed_normal_vector,
-    coords,
-    time,
-    dim,
-):
-    return soln_flux_tilde_e_nue_sphere_Gauss(
         face_mesh_velocity,
         outward_directed_normal_covector,
         outward_directed_normal_vector,
@@ -537,47 +417,6 @@ def soln_flux_tilde_s_nue(
     )
 
 
-def soln_flux_tilde_s_nue_sphere_Gauss(
-    face_mesh_velocity,
-    outward_directed_normal_covector,
-    outward_directed_normal_vector,
-    coords,
-    time,
-    dim,
-):
-    tilde_e = soln_tilde_e_nue_sphere_Gauss(
-        face_mesh_velocity,
-        outward_directed_normal_covector,
-        outward_directed_normal_vector,
-        coords,
-        time,
-        dim,
-    )
-    tilde_s = soln_tilde_s_nue_sphere_Gauss(
-        face_mesh_velocity,
-        outward_directed_normal_covector,
-        outward_directed_normal_vector,
-        coords,
-        time,
-        dim,
-    )
-    lapse = 1.0
-    shift = np.array([0.0, 0.0, 0.0])
-    spatial_metric = np.identity(3)
-    inv_spatial_metric = np.identity(3)
-    tilde_p = calc_tilde_p(tilde_e, tilde_s, inv_spatial_metric)
-
-    return fluxes.tilde_s_flux(
-        tilde_e,
-        tilde_s,
-        tilde_p,
-        lapse,
-        shift,
-        spatial_metric,
-        inv_spatial_metric,
-    )
-
-
 # same as nue
 def soln_flux_tilde_s_bar_nue_const(
     face_mesh_velocity,
@@ -606,24 +445,6 @@ def soln_flux_tilde_s_bar_nue(
     dim,
 ):
     return soln_flux_tilde_s_nue(
-        face_mesh_velocity,
-        outward_directed_normal_covector,
-        outward_directed_normal_vector,
-        coords,
-        time,
-        dim,
-    )
-
-
-def soln_flux_tilde_s_bar_nue_sphere_Gauss(
-    face_mesh_velocity,
-    outward_directed_normal_covector,
-    outward_directed_normal_vector,
-    coords,
-    time,
-    dim,
-):
-    return soln_flux_tilde_s_nue_sphere_Gauss(
         face_mesh_velocity,
         outward_directed_normal_covector,
         outward_directed_normal_vector,

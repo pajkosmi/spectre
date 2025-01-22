@@ -16,7 +16,7 @@
 #include "Utilities/Math.hpp"
 
 namespace RadiationTransport::M1Grey::AnalyticData {
-HomogeneousSphereImpl::HomogeneousSphereImpl(
+HomogeneousSphere::HomogeneousSphere(
     const double radius, const double emissivity_and_opacity,
     const double outer_radius, const double outer_opacity)
     : radius_(radius),
@@ -46,7 +46,7 @@ Scalar<DataVector> rounded_step_function(const DataVector& x,
 }
 
 template <typename NeutrinoSpecies>
-auto HomogeneousSphereImpl::variables(
+auto HomogeneousSphere::variables(
     const tnsr::I<DataVector, 3>& x,
     tmpl::list<RadiationTransport::M1Grey::Tags::TildeE<
         Frame::Inertial, NeutrinoSpecies>> /*meta*/) const
@@ -62,7 +62,7 @@ auto HomogeneousSphereImpl::variables(
 }
 
 template <typename NeutrinoSpecies>
-auto HomogeneousSphereImpl::variables(
+auto HomogeneousSphere::variables(
     const tnsr::I<DataVector, 3>& x,
     tmpl::list<RadiationTransport::M1Grey::Tags::TildeS<
         Frame::Inertial, NeutrinoSpecies>> /*meta*/) const
@@ -72,7 +72,7 @@ auto HomogeneousSphereImpl::variables(
 }
 
 template <typename NeutrinoSpecies>
-auto HomogeneousSphereImpl::variables(
+auto HomogeneousSphere::variables(
     const tnsr::I<DataVector, 3>& x,
     tmpl::list<RadiationTransport::M1Grey::Tags::GreyEmissivity<
         NeutrinoSpecies>> /*meta*/) const
@@ -89,7 +89,7 @@ auto HomogeneousSphereImpl::variables(
 }
 
 template <typename NeutrinoSpecies>
-auto HomogeneousSphereImpl::variables(
+auto HomogeneousSphere::variables(
     const tnsr::I<DataVector, 3>& x,
     tmpl::list<RadiationTransport::M1Grey::Tags::GreyAbsorptionOpacity<
         NeutrinoSpecies>> /*meta*/) const
@@ -104,7 +104,7 @@ auto HomogeneousSphereImpl::variables(
 }
 
 template <typename NeutrinoSpecies>
-auto HomogeneousSphereImpl::variables(
+auto HomogeneousSphere::variables(
     const tnsr::I<DataVector, 3>& x,
     tmpl::list<RadiationTransport::M1Grey::Tags::GreyScatteringOpacity<
         NeutrinoSpecies>> /*meta*/) const
@@ -113,14 +113,14 @@ auto HomogeneousSphereImpl::variables(
   return {make_with_value<Scalar<DataVector>>(x, 0.0)};
 }
 
-auto HomogeneousSphereImpl::variables(
+auto HomogeneousSphere::variables(
     const tnsr::I<DataVector, 3>& x,
     tmpl::list<hydro::Tags::LorentzFactor<DataVector>> /*meta*/) const
     -> tuples::TaggedTuple<hydro::Tags::LorentzFactor<DataVector>> {
   return {make_with_value<Scalar<DataVector>>(x, 1.0)};
 }
 
-auto HomogeneousSphereImpl::variables(
+auto HomogeneousSphere::variables(
     const tnsr::I<DataVector, 3>& x,
     tmpl::list<hydro::Tags::SpatialVelocity<DataVector, 3>> /*meta*/) const
     -> tuples::TaggedTuple<hydro::Tags::SpatialVelocity<DataVector, 3>> {
@@ -128,30 +128,30 @@ auto HomogeneousSphereImpl::variables(
 }
 
 std::unique_ptr<evolution::initial_data::InitialData>
-HomogeneousSphereImpl::get_clone() const {
-  return std::make_unique<HomogeneousSphereImpl>(*this);
+HomogeneousSphere::get_clone() const {
+  return std::make_unique<HomogeneousSphere>(*this);
 }
 
-void HomogeneousSphereImpl::pup(PUP::er& p) {
+void HomogeneousSphere::pup(PUP::er& p) {
   evolution::initial_data::InitialData::pup(p);
   p | radius_;
   p | emissivity_and_opacity_;
   p | outer_radius_;
   p | outer_opacity_;
 }
-PUP::able::PUP_ID HomogeneousSphereImpl::my_PUP_ID = 0;
+PUP::able::PUP_ID HomogeneousSphere::my_PUP_ID = 0;
 
-bool operator!=(const HomogeneousSphereImpl& lhs,
-                const HomogeneousSphereImpl& rhs) {
+bool operator!=(const HomogeneousSphere& lhs,
+                const HomogeneousSphere& rhs) {
   return not(lhs == rhs);
 }
 
-DataVector HomogeneousSphereImpl::radius_squared(
+DataVector HomogeneousSphere::radius_squared(
     const tnsr::I<DataVector, 3>& x) {
   return square(get<0>(x)) + square(get<1>(x)) + square(get<2>(x));
 }
 
-#define DERIVED_CLASSES (HomogeneousSphereImpl)
+#define DERIVED_CLASSES (HomogeneousSphere)
 
 #define DERIVED(data) BOOST_PP_TUPLE_ELEM(0, data)
 #define TAG(data) BOOST_PP_TUPLE_ELEM(1, data)
@@ -219,6 +219,6 @@ GENERATE_INSTANTIATIONS(
 #undef EBIN
 #undef GENERATE_LIST
 
-// template class HomogeneousSphereImpl;
+// template class HomogeneousSphere;
 
 }  // namespace RadiationTransport::M1Grey::AnalyticData

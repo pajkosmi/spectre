@@ -28,14 +28,14 @@ namespace {
 void test_equality(double sphere_radius, double emissivity_and_opacity,
                    double outer_radius, double outer_opacity) {
   register_classes_with_charm<
-      RadiationTransport::M1Grey::AnalyticData::HomogeneousSphereImpl>();
+      RadiationTransport::M1Grey::AnalyticData::HomogeneousSphere>();
 
   // Inner radius should be smaller than outer radius
-  CHECK_THROWS_WITH(HomogeneousSphereImpl(sphere_radius, emissivity_and_opacity,
+  CHECK_THROWS_WITH(HomogeneousSphere(sphere_radius, emissivity_and_opacity,
                                           sphere_radius / 2.0, outer_opacity),
                     Catch::Matchers::ContainsSubstring("is greater than the"));
 
-  const HomogeneousSphereImpl homogeneous_original{
+  const HomogeneousSphere homogeneous_original{
       sphere_radius, emissivity_and_opacity, outer_radius, outer_opacity};
 
   const auto homogeneous_sphere =
@@ -43,34 +43,34 @@ void test_equality(double sphere_radius, double emissivity_and_opacity,
 
   // serialize/deserialize should still be the same
   CHECK(homogeneous_sphere ==
-        HomogeneousSphereImpl(sphere_radius, emissivity_and_opacity,
+        HomogeneousSphere(sphere_radius, emissivity_and_opacity,
                               outer_radius, outer_opacity));
 
   CHECK(homogeneous_sphere !=
-        HomogeneousSphereImpl(sphere_radius + 0.1, emissivity_and_opacity,
+        HomogeneousSphere(sphere_radius + 0.1, emissivity_and_opacity,
                               outer_radius, outer_opacity));
   CHECK(homogeneous_sphere !=
-        HomogeneousSphereImpl(sphere_radius, emissivity_and_opacity + 0.1,
+        HomogeneousSphere(sphere_radius, emissivity_and_opacity + 0.1,
                               outer_radius, outer_opacity));
   CHECK(homogeneous_sphere !=
-        HomogeneousSphereImpl(sphere_radius, emissivity_and_opacity,
+        HomogeneousSphere(sphere_radius, emissivity_and_opacity,
                               outer_radius + 0.1, outer_opacity));
 
   CHECK(homogeneous_sphere !=
-        HomogeneousSphereImpl(sphere_radius, emissivity_and_opacity,
+        HomogeneousSphere(sphere_radius, emissivity_and_opacity,
                               outer_radius, outer_opacity + 0.1));
 }
 
 void test_consistency(double sphere_radius, double emissivity_and_opacity,
                       double outer_radius, double outer_opacity) {
   register_classes_with_charm<
-      RadiationTransport::M1Grey::AnalyticData::HomogeneousSphereImpl>();
+      RadiationTransport::M1Grey::AnalyticData::HomogeneousSphere>();
 
   const std::unique_ptr<evolution::initial_data::InitialData> option_solution =
       TestHelpers::test_option_tag_factory_creation<
           evolution::initial_data::OptionTags::InitialData,
-          RadiationTransport::M1Grey::AnalyticData::HomogeneousSphereImpl>(
-          "HomogeneousSphereImpl:\n"
+          RadiationTransport::M1Grey::AnalyticData::HomogeneousSphere>(
+          "HomogeneousSphere:\n"
           "  Radius: " +
           std::to_string(sphere_radius) +
           "\n"
@@ -88,7 +88,7 @@ void test_consistency(double sphere_radius, double emissivity_and_opacity,
       serialize_and_deserialize(option_solution);
 
   const auto& homogeneous_sphere = dynamic_cast<
-      const RadiationTransport::M1Grey::AnalyticData::HomogeneousSphereImpl&>(
+      const RadiationTransport::M1Grey::AnalyticData::HomogeneousSphere&>(
       *deserialized_option_solution);
 
   // establish sample grid

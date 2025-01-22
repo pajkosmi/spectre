@@ -9,7 +9,6 @@ spectre_target_sources(
   ${LIBRARY}
   PRIVATE
   HomogeneousSphere.cpp
-  SphericalGaussian.cpp
   )
 
 spectre_target_headers(
@@ -19,10 +18,7 @@ spectre_target_headers(
   AnalyticData.hpp
   Factory.hpp
   HomogeneousSphere.hpp
-  RadiallySymmetric.hpp
-  RadiallySymmetric.tpp
   Solutions.hpp
-  SphericalGaussian.hpp
   )
 
 target_link_libraries(

@@ -22,16 +22,26 @@ class DataVector;
 
 namespace RadiationTransport::M1Grey::AnalyticData {
 /*!
- * \brief FIXME
+ * \brief Construct a homogeneous sphere of neutrino radiation.
+ *
+ * We follow the homogeneous sphere test problem in Section 4.5 of \cite
+ * radice2022.  The initial data has radius = 1, with equal emissivity and
+ * absorption \f$\eta = \kappa_a = 10$ inside the uniform sphere.  Outside of
+ * the sphere the absorption is much lower, allowing the neutrinos to stream
+ * out.  Initially the neutrino energy density is distributed uniformly inside
+ * the sphere. The momentum density is initialized to 0.
+ *
+ * Note:
+ * To avoid sharp discontinuities, we round the edges of the energy profile with
+ * an arctangent function, instead of the step function, which has sharper
+ * features.
  */
-// template <typename Derived>
-class HomogeneousSphereImpl
-    : public virtual evolution::initial_data::InitialData,
-      public MarkAsAnalyticData {
+class HomogeneousSphere : public virtual evolution::initial_data::InitialData,
+                          public MarkAsAnalyticData {
  public:
   static DataVector radius_squared(const tnsr::I<DataVector, 3>& x);
   static constexpr Options::String help = {
-      "A homogeneous sphere emitting and absorbing neutrinos TEST."};
+      "A homogeneous sphere emitting and absorbing neutrinos."};
 
   // The sphere radius.
   struct Radius {
@@ -61,19 +71,19 @@ class HomogeneousSphereImpl
   using options =
       tmpl::list<Radius, EmissivityAndOpacity, OuterRadius, OuterOpacity>;
 
-  HomogeneousSphereImpl() = default;
+  HomogeneousSphere() = default;
 
   auto get_clone() const
       -> std::unique_ptr<evolution::initial_data::InitialData> override;
 
   /// \cond
-  explicit HomogeneousSphereImpl(CkMigrateMessage* /*message*/) {}
+  explicit HomogeneousSphere(CkMigrateMessage* /*message*/) {}
   using PUP::able::register_constructor;
-  WRAPPED_PUPable_decl_template(HomogeneousSphereImpl);
+  WRAPPED_PUPable_decl_template(HomogeneousSphere);
   /// \endcond
 
-  HomogeneousSphereImpl(double radius, double emissivity_and_opacity,
-                        double outer_radius, double outer_opacity);
+  HomogeneousSphere(double radius, double emissivity_and_opacity,
+                    double outer_radius, double outer_opacity);
 
   /// @{
   /// Retrieve fluid and neutrino variables
@@ -142,8 +152,8 @@ class HomogeneousSphereImpl
   void pup(PUP::er& p) override;
 
  private:
-  friend bool operator==(const HomogeneousSphereImpl& lhs,
-                         const HomogeneousSphereImpl& rhs) {
+  friend bool operator==(const HomogeneousSphere& lhs,
+                         const HomogeneousSphere& rhs) {
     return lhs.radius_ == rhs.radius_ and
            lhs.emissivity_and_opacity_ == rhs.emissivity_and_opacity_ and
            lhs.outer_radius_ == rhs.outer_radius_ and
@@ -156,31 +166,6 @@ class HomogeneousSphereImpl
   double outer_opacity_ = std::numeric_limits<double>::signaling_NaN();
 };
 
-// template <typename Derived>
-// bool operator!=(const HomogeneousSphereImpl<Derived>& lhs,
-//                 const HomogeneousSphereImpl<Derived>& rhs);
-bool operator!=(const HomogeneousSphereImpl& lhs,
-                const HomogeneousSphereImpl& rhs);
+bool operator!=(const HomogeneousSphere& lhs, const HomogeneousSphere& rhs);
 
-// FIXME doc
-// class HomogeneousCylinder : public HomogeneousSphereImpl<HomogeneousCylinder>
-// {
-//  public:
-//   static constexpr Options::String help = {
-//       "A homogeneous cylinder along the z axis emitting and absorbing "
-//       "neutrinos."};
-
-//   using HomogeneousSphereImpl<HomogeneousCylinder>::HomogeneousSphereImpl;
-//   // FIXME friend private?
-//   static auto radius_squared(const tnsr::I<DataVector, 3>& x);
-// };
-
-// // FIXME doc
-// class HomogeneousSphere : public HomogeneousSphereImpl<HomogeneousSphere> {
-//  public:
-//   static constexpr Options::String help = {
-//       "A homogeneous sphere emitting and absorbing neutrinos."};
-
-//   using HomogeneousSphereImpl<HomogeneousSphere>::HomogeneousSphereImpl;
-//   static auto radius_squared(const tnsr::I<DataVector, 3>& x);
 }  // namespace RadiationTransport::M1Grey::AnalyticData

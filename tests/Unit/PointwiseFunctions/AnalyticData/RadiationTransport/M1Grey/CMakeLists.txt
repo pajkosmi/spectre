@@ -5,8 +5,6 @@ set(LIBRARY "Test_M1GreyAnalyticData")
 
 set(LIBRARY_SOURCES
   Test_HomogeneousSphere.cpp
-  Test_RotationallySymmetric.cpp
-  Test_SphericalGaussian.cpp
   )
 
 add_test_library(${LIBRARY} "${LIBRARY_SOURCES}")

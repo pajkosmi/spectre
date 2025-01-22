@@ -42,7 +42,7 @@ struct Coordinates;
 namespace RadiationTransport::M1Grey::BoundaryConditions {
 
 /// \cond
-template <size_t Dim, typename NeutrinoSpeciesList>
+template <typename NeutrinoSpeciesList>
 class DirichletAnalytic;
 /// \endcond
 
@@ -50,9 +50,9 @@ class DirichletAnalytic;
  * \brief Sets Dirichlet boundary conditions using the analytic solution or
  * analytic data.
  */
-template <size_t Dim, typename... NeutrinoSpecies>
-class DirichletAnalytic<Dim, tmpl::list<NeutrinoSpecies...>> final
-    : public BoundaryCondition<Dim, tmpl::list<NeutrinoSpecies...>> {
+template <typename... NeutrinoSpecies>
+class DirichletAnalytic<tmpl::list<NeutrinoSpecies...>> final
+    : public BoundaryCondition<tmpl::list<NeutrinoSpecies...>> {
  public:
   /// \brief What analytic solution/data to prescribe.
   struct AnalyticPrescription {
@@ -74,7 +74,7 @@ class DirichletAnalytic<Dim, tmpl::list<NeutrinoSpecies...>> final
   ~DirichletAnalytic() override = default;
 
   explicit DirichletAnalytic(CkMigrateMessage* msg)
-      : BoundaryCondition<Dim, tmpl::list<NeutrinoSpecies...>>(msg) {}
+      : BoundaryCondition<tmpl::list<NeutrinoSpecies...>>(msg) {}
 
   explicit DirichletAnalytic(
       std::unique_ptr<evolution::initial_data::InitialData>

@@ -45,8 +45,7 @@ struct System<tmpl::list<NeutrinoSpecies...>>
   // and provide analytical expressions for its 4-velocity / LorentzFactor
 
   using boundary_conditions_base =
-      BoundaryConditions::BoundaryCondition<volume_dim,
-                                            tmpl::list<NeutrinoSpecies...>>;
+      BoundaryConditions::BoundaryCondition<tmpl::list<NeutrinoSpecies...>>;
   using boundary_correction_base =
       BoundaryCorrections::BoundaryCorrection<tmpl::list<NeutrinoSpecies...>>;
 
