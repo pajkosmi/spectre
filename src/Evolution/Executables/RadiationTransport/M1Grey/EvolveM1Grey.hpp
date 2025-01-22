@@ -128,8 +128,8 @@ struct EvolutionMetavars {
       TimeStepperBase::local_time_stepping;
   static constexpr bool use_dg_element_collection = false;
 
-    using initial_data_list =
-        RadiationTransport::M1Grey::AnalyticData::all_data<volume_dim>;
+  using initial_data_list =
+      RadiationTransport::M1Grey::AnalyticData::all_data<volume_dim>;
 
   using analytic_variables_tags = typename system::variables_tag::tags_list;
   using limiter = Tags::Limiter<

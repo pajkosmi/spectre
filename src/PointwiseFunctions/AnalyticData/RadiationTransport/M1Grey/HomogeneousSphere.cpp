@@ -31,6 +31,20 @@ HomogeneousSphereImpl::HomogeneousSphereImpl(
   }
 }
 
+// This function is used to round the edges of the homogeneous sphere, as
+// opposed to a pure, rectangular step function.
+Scalar<DataVector> rounded_step_function(const DataVector& x,
+                                         const double inner_value,
+                                         const double outer_value,
+                                         const double sphere_radius) {
+  // the closer to 0 this becomes, the sharper the discontinuity
+  const double sharpness = -0.03;
+  return Scalar<DataVector>{
+      (inner_value - outer_value) / M_PI *
+          atan((sqrt(square(x)) - sphere_radius) / sharpness) +
+      0.5 * (inner_value + outer_value)};
+}
+
 template <typename NeutrinoSpecies>
 auto HomogeneousSphereImpl::variables(
     const tnsr::I<DataVector, 3>& x,
@@ -39,11 +53,12 @@ auto HomogeneousSphereImpl::variables(
     -> tuples::TaggedTuple<RadiationTransport::M1Grey::Tags::TildeE<
         Frame::Inertial, NeutrinoSpecies>> {
   const DataVector r = sqrt(radius_squared(x));
-  return Scalar<DataVector>{
-      ((outer_radius_ - r) * step_function(outer_radius_ - r) -
-       (radius_ - r) * step_function(radius_ - r)) /
-          (outer_radius_ - radius_) +
-      1.0e-12};
+
+  const double inner_energy = 1.0;
+  const double outer_energy = 1.0e-12;
+  const double sphere_radius = radius_;
+
+  return rounded_step_function(r, inner_energy, outer_energy, sphere_radius);
 }
 
 template <typename NeutrinoSpecies>
@@ -63,9 +78,14 @@ auto HomogeneousSphereImpl::variables(
         NeutrinoSpecies>> /*meta*/) const
     -> tuples::TaggedTuple<
         RadiationTransport::M1Grey::Tags::GreyEmissivity<NeutrinoSpecies>> {
-  return {
-      Scalar<DataVector>{emissivity_and_opacity_ *
-                         step_function(square(radius_) - radius_squared(x))}};
+  const DataVector r = sqrt(radius_squared(x));
+
+  const double inner_emissivity = emissivity_and_opacity_;
+  const double outer_emissivity = 0.0;
+  const double sphere_radius = radius_;
+
+  return rounded_step_function(r, inner_emissivity, outer_emissivity,
+                               sphere_radius);
 }
 
 template <typename NeutrinoSpecies>
@@ -75,11 +95,12 @@ auto HomogeneousSphereImpl::variables(
         NeutrinoSpecies>> /*meta*/) const
     -> tuples::TaggedTuple<RadiationTransport::M1Grey::Tags::
                                GreyAbsorptionOpacity<NeutrinoSpecies>> {
-  return {Scalar<DataVector>{
-      emissivity_and_opacity_ *
-          step_function(square(radius_) - radius_squared(x)) +
-      outer_opacity_ *
-          step_function(radius_squared(x) - square(outer_radius_))}};
+  const DataVector r = sqrt(radius_squared(x));
+
+  const double sphere_radius = radius_;
+
+  return rounded_step_function(r, emissivity_and_opacity_, outer_opacity_,
+                               sphere_radius);
 }
 
 template <typename NeutrinoSpecies>
@@ -124,10 +145,6 @@ bool operator!=(const HomogeneousSphereImpl& lhs,
                 const HomogeneousSphereImpl& rhs) {
   return not(lhs == rhs);
 }
-
-// auto HomogeneousCylinder::radius_squared(const tnsr::I<DataVector, 3>& x) {
-//   return square(get<0>(x)) + square(get<1>(x));
-// }
 
 DataVector HomogeneousSphereImpl::radius_squared(
     const tnsr::I<DataVector, 3>& x) {

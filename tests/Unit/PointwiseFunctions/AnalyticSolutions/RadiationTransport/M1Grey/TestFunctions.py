@@ -31,15 +31,20 @@ def constant_m1_tildeS(x, t, mean_velocity, comoving_energy_density):
 def homogen_sphere_m1_tildeE(
     x, t, radius, emissivity_and_opacity, outer_radius, outer_opacity
 ):
+    # how sharp/rounded the edges of the sphere are
+    # the closer to 0 this becomes, the sharper the discontinuity
+    sharpness = -0.03
+
     radii = np.linalg.norm(np.asarray(x))
+    normalized_radii = (radii - radius) / sharpness
 
-    step_outer = np.heaviside(outer_radius - radii, 0.0)
-
-    step_inner = np.heaviside(radius - radii, 0.0)
+    energy_difference = 1.0 - 1.0e-12
+    energy_sum = 1.0 + 1.0e-12
 
     e_tilde = (
-        (outer_radius - radii) * step_outer - (radius - radii) * step_inner
-    ) / (outer_radius - radius) + 1.0e-12
+        energy_difference / np.pi * np.arctan(normalized_radii)
+        + 0.5 * energy_sum
+    )
 
     return e_tilde
 

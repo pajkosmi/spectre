@@ -11,6 +11,7 @@
 #include "DataStructures/Tensor/EagerMath/RaiseOrLowerIndex.hpp"
 #include "DataStructures/Tensor/Tensor.hpp"
 #include "DataStructures/Variables.hpp"
+#include "M1HydroCoupling.hpp"
 #include "PointwiseFunctions/GeneralRelativity/Tags.hpp"
 
 namespace {
@@ -24,15 +25,34 @@ void compute_sources_impl(
     const gsl::not_null<Scalar<DataVector>*> source_tilde_e,
     const gsl::not_null<tnsr::i<DataVector, 3>*> source_tilde_s,
     const Scalar<DataVector>& tilde_e, const tnsr::i<DataVector, 3>& tilde_s,
-    const tnsr::II<DataVector, 3>& tilde_p, const Scalar<DataVector>& source_n,
-    const tnsr::i<DataVector, 3>& source_i, const Scalar<DataVector>& lapse,
+    const tnsr::II<DataVector, 3>& tilde_p, const Scalar<DataVector>& lapse,
     const tnsr::i<DataVector, 3>& d_lapse,
     const tnsr::iJ<DataVector, 3>& d_shift,
     const tnsr::ijj<DataVector, 3>& d_spatial_metric,
     const tnsr::II<DataVector, 3>& inv_spatial_metric,
-    const tnsr::ii<DataVector, 3>& extrinsic_curvature) {
+    const tnsr::ii<DataVector, 3>& extrinsic_curvature,
+    const tnsr::ii<DataVector, 3>& spatial_metric,
+    const Scalar<DataVector>& emissivity,
+    const Scalar<DataVector>& absorption_opacity,
+    const Scalar<DataVector>& scattering_opacity,
+    const Scalar<DataVector>& tilde_j, const Scalar<DataVector>& tilde_h_normal,
+    const tnsr::i<DataVector, 3>& tilde_h_spatial,
+    const tnsr::I<DataVector, 3>& spatial_velocity,
+    const Scalar<DataVector>& lorentz,
+    const Scalar<DataVector>& sqrt_det_spatial_metric
+
+) {
   Variables<tmpl::list<Tags::TildeSVector<Frame::Inertial>, AlphaTildeP>>
       temp_tensors(get(tilde_e).size());
+
+  // calculate stiff matter source terms source_n/source_i
+  Scalar<DataVector> source_n{};
+  tnsr::i<DataVector, 3> source_i{};
+
+  compute_m1_hydro_coupling_impl(
+      &source_n, &source_i, emissivity, absorption_opacity, scattering_opacity,
+      tilde_j, tilde_h_normal, tilde_h_spatial, spatial_velocity, lorentz,
+      lapse, spatial_metric, sqrt_det_spatial_metric);
 
   constexpr size_t spatial_dim = 3;
 
@@ -47,9 +67,9 @@ void compute_sources_impl(
 
   // unroll contributions from m=0 and n=0 to avoid initializing
   // source terms to zero
-  get(*source_tilde_e) +=
+  get(*source_tilde_e) =
       get<0, 0>(extrinsic_curvature) * get<0, 0>(alpha_tilde_p) -
-      get<0>(tilde_s_M) * get<0>(d_lapse); // + get(source_n);
+      get<0>(tilde_s_M) * get<0>(d_lapse) + get(source_n);
   for (size_t m = 1; m < spatial_dim; ++m) {
     get(*source_tilde_e) +=
         extrinsic_curvature.get(0, m) * alpha_tilde_p.get(0, m) +
@@ -62,10 +82,10 @@ void compute_sources_impl(
   }
 
   for (size_t i = 0; i < spatial_dim; ++i) {
-    source_tilde_s->get(i) +=
+    source_tilde_s->get(i) =
         -get(tilde_e) * d_lapse.get(i) + get<0>(tilde_s) * d_shift.get(i, 0) +
-        0.5 * get<0, 0>(alpha_tilde_p) * d_spatial_metric.get(i, 0, 0);// +
-        //source_i.get(i);
+        0.5 * get<0, 0>(alpha_tilde_p) * d_spatial_metric.get(i, 0, 0) +
+        source_i.get(i);
     for (size_t m = 1; m < spatial_dim; ++m) {
       source_tilde_s->get(i) +=
           tilde_s.get(m) * d_shift.get(i, m) +
