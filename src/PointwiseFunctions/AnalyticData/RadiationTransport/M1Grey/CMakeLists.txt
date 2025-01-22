@@ -18,7 +18,6 @@ spectre_target_headers(
   AnalyticData.hpp
   Factory.hpp
   HomogeneousSphere.hpp
-  Solutions.hpp
   )
 
 target_link_libraries(

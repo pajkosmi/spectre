@@ -40,6 +40,7 @@ spectre_target_headers(
   ContainerHelpers.hpp
   ContainsAllocations.hpp
   DereferenceWrapper.hpp
+  DoNotMove.hpp
   EqualWithinRoundoff.hpp
   FileSystem.hpp
   ForceInline.hpp

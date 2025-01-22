@@ -6,7 +6,6 @@
 #include <cmath>
 #include <memory>
 
-#include <iostream>
 #include "Framework/TestCreation.hpp"
 #include "Framework/TestHelpers.hpp"
 #include "Informer/InfoFromBuild.hpp"
@@ -32,7 +31,7 @@ void test_equality(double sphere_radius, double emissivity_and_opacity,
 
   // Inner radius should be smaller than outer radius
   CHECK_THROWS_WITH(HomogeneousSphere(sphere_radius, emissivity_and_opacity,
-                                          sphere_radius / 2.0, outer_opacity),
+                                      sphere_radius / 2.0, outer_opacity),
                     Catch::Matchers::ContainsSubstring("is greater than the"));
 
   const HomogeneousSphere homogeneous_original{
@@ -42,23 +41,23 @@ void test_equality(double sphere_radius, double emissivity_and_opacity,
       serialize_and_deserialize(homogeneous_original);
 
   // serialize/deserialize should still be the same
-  CHECK(homogeneous_sphere ==
+  CHECK(homogeneous_sphere == HomogeneousSphere(sphere_radius,
+                                                emissivity_and_opacity,
+                                                outer_radius, outer_opacity));
+
+  CHECK(homogeneous_sphere != HomogeneousSphere(sphere_radius + 0.1,
+                                                emissivity_and_opacity,
+                                                outer_radius, outer_opacity));
+  CHECK(homogeneous_sphere != HomogeneousSphere(sphere_radius,
+                                                emissivity_and_opacity + 0.1,
+                                                outer_radius, outer_opacity));
+  CHECK(homogeneous_sphere !=
         HomogeneousSphere(sphere_radius, emissivity_and_opacity,
-                              outer_radius, outer_opacity));
+                          outer_radius + 0.1, outer_opacity));
 
   CHECK(homogeneous_sphere !=
-        HomogeneousSphere(sphere_radius + 0.1, emissivity_and_opacity,
-                              outer_radius, outer_opacity));
-  CHECK(homogeneous_sphere !=
-        HomogeneousSphere(sphere_radius, emissivity_and_opacity + 0.1,
-                              outer_radius, outer_opacity));
-  CHECK(homogeneous_sphere !=
-        HomogeneousSphere(sphere_radius, emissivity_and_opacity,
-                              outer_radius + 0.1, outer_opacity));
-
-  CHECK(homogeneous_sphere !=
-        HomogeneousSphere(sphere_radius, emissivity_and_opacity,
-                              outer_radius, outer_opacity + 0.1));
+        HomogeneousSphere(sphere_radius, emissivity_and_opacity, outer_radius,
+                          outer_opacity + 0.1));
 }
 
 void test_consistency(double sphere_radius, double emissivity_and_opacity,
