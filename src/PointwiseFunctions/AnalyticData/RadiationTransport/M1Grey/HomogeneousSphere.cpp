@@ -32,6 +32,7 @@ HomogeneousSphere::HomogeneousSphere(const double radius,
   }
 }
 
+namespace {
 // This function is used to round the edges of the homogeneous sphere, as
 // opposed to a pure, rectangular step function.
 Scalar<DataVector> rounded_step_function(const DataVector& x,
@@ -45,6 +46,7 @@ Scalar<DataVector> rounded_step_function(const DataVector& x,
           atan((sqrt(square(x)) - sphere_radius) / sharpness) +
       0.5 * (inner_value + outer_value)};
 }
+}  // namespace
 
 template <typename NeutrinoSpecies>
 auto HomogeneousSphere::variables(
