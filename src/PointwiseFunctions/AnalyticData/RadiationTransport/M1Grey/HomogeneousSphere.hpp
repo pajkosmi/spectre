@@ -24,17 +24,17 @@ namespace RadiationTransport::M1Grey::AnalyticData {
 /*!
  * \brief Construct a homogeneous sphere of neutrino radiation.
  *
- * We follow the homogeneous sphere test problem in Section 4.5 of \cite
- * radice2022.  The initial data has radius = 1, with equal emissivity and
- * absorption \f$\eta = \kappa_a = 10\f$ inside the uniform sphere.  Outside of
- * the sphere the absorption is much lower, allowing the neutrinos to stream
- * out.  Initially the neutrino energy density is distributed uniformly inside
- * the sphere. The momentum density is initialized to 0.
+ * We follow the homogeneous sphere test problem in Section 4.5 of
+ * \cite radice2022.  The initial data has radius = 1, with equal emissivity
+ * and absorption \f$\eta = \kappa_a = 10\f$ inside the uniform sphere.
+ * Outside of the sphere the absorption is much lower, allowing the neutrinos
+ * to stream out.  Initially the neutrino energy density is distributed
+ * uniformly inside the sphere. The momentum density is initialized to 0.
  *
  * Note:
- * To avoid sharp discontinuities, we round the edges of the energy profile with
- * an arctangent function, instead of the step function, which has sharper
- * features.
+ * To avoid sharp discontinuities, we round the edges of the energy profile
+ * with an arctangent function, instead of the step function, which has
+ * sharper features.
  */
 class HomogeneousSphere : public virtual evolution::initial_data::InitialData,
                           public MarkAsAnalyticData {
