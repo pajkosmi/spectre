@@ -37,6 +37,7 @@ target_link_libraries(
   GeneralRelativity
   Hydro
   LinearOperators
+  M1GreyAnalyticData
   Serialization
   Utilities
   INTERFACE

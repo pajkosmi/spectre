@@ -119,8 +119,7 @@ class DirichletAnalytic<tmpl::list<NeutrinoSpecies...>> final
           tnsr::I<DataVector, 3, Frame::Inertial>>& /*face_mesh_velocity*/,
       const tnsr::i<DataVector, 3, Frame::Inertial>& /*normal_covector*/,
       const tnsr::I<DataVector, 3, Frame::Inertial>& /*normal_vector*/,
-      const tnsr::I<DataVector, 3, Frame::Inertial>& coords,
-      const double time) const;
+      const tnsr::I<DataVector, 3, Frame::Inertial>& coords, double time) const;
 
  private:
   std::unique_ptr<evolution::initial_data::InitialData> analytic_prescription_;

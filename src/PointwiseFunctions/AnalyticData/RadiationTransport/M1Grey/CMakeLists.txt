@@ -28,6 +28,5 @@ target_link_libraries(
   ErrorHandling
   GeneralRelativitySolutions
   Hydro
-  M1Grey
   Options
   )

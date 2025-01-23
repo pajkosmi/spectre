@@ -16,9 +16,10 @@
 #include "Utilities/Math.hpp"
 
 namespace RadiationTransport::M1Grey::AnalyticData {
-HomogeneousSphere::HomogeneousSphere(
-    const double radius, const double emissivity_and_opacity,
-    const double outer_radius, const double outer_opacity)
+HomogeneousSphere::HomogeneousSphere(const double radius,
+                                     const double emissivity_and_opacity,
+                                     const double outer_radius,
+                                     const double outer_opacity)
     : radius_(radius),
       emissivity_and_opacity_(emissivity_and_opacity),
       outer_radius_(outer_radius),
@@ -113,14 +114,14 @@ auto HomogeneousSphere::variables(
   return {make_with_value<Scalar<DataVector>>(x, 0.0)};
 }
 
-auto HomogeneousSphere::variables(
+static auto HomogeneousSphere::variables(
     const tnsr::I<DataVector, 3>& x,
     tmpl::list<hydro::Tags::LorentzFactor<DataVector>> /*meta*/) const
     -> tuples::TaggedTuple<hydro::Tags::LorentzFactor<DataVector>> {
   return {make_with_value<Scalar<DataVector>>(x, 1.0)};
 }
 
-auto HomogeneousSphere::variables(
+static auto HomogeneousSphere::variables(
     const tnsr::I<DataVector, 3>& x,
     tmpl::list<hydro::Tags::SpatialVelocity<DataVector, 3>> /*meta*/) const
     -> tuples::TaggedTuple<hydro::Tags::SpatialVelocity<DataVector, 3>> {
@@ -141,13 +142,11 @@ void HomogeneousSphere::pup(PUP::er& p) {
 }
 PUP::able::PUP_ID HomogeneousSphere::my_PUP_ID = 0;
 
-bool operator!=(const HomogeneousSphere& lhs,
-                const HomogeneousSphere& rhs) {
+bool operator!=(const HomogeneousSphere& lhs, const HomogeneousSphere& rhs) {
   return not(lhs == rhs);
 }
 
-DataVector HomogeneousSphere::radius_squared(
-    const tnsr::I<DataVector, 3>& x) {
+DataVector HomogeneousSphere::radius_squared(const tnsr::I<DataVector, 3>& x) {
   return square(get<0>(x)) + square(get<1>(x)) + square(get<2>(x));
 }
 

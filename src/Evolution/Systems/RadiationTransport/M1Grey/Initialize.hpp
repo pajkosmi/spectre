@@ -8,12 +8,12 @@
 #include <tuple>
 #include <utility>
 
-#include <PointwiseFunctions/AnalyticData/RadiationTransport/M1Grey/Factory.hpp>
 #include "DataStructures/DataBox/DataBox.hpp"
 #include "Evolution/Initialization/InitialData.hpp"
 #include "Parallel/AlgorithmExecution.hpp"
 #include "Parallel/GlobalCache.hpp"
 #include "ParallelAlgorithms/Initialization/MutateAssign.hpp"
+#include "PointwiseFunctions/AnalyticData/RadiationTransport/M1Grey/Factory.hpp"
 #include "PointwiseFunctions/InitialDataUtilities/InitialData.hpp"
 #include "PointwiseFunctions/InitialDataUtilities/Tags/InitialData.hpp"
 #include "Utilities/CallWithDynamicType.hpp"
