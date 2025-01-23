@@ -75,8 +75,8 @@ struct InitializeM1Tags {
     const auto& inertial_coords =
         db::get<domain::Tags::Coordinates<dim, Frame::Inertial>>(box);
 
-    using initial_data_evo_tags = evolved_variables_tag::tags_list;
-    using initial_data_hydro_tags = hydro_variables_tag::tags_list;
+    using initial_data_evo_tags = typename evolved_variables_tag::tags_list;
+    using initial_data_hydro_tags = typename hydro_variables_tag::tags_list;
 
     const auto initial_data_evo_vars = call_with_dynamic_type<
         tuples::tagged_tuple_from_typelist<initial_data_evo_tags>,
