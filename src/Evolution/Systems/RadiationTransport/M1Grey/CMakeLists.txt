@@ -38,6 +38,7 @@ target_link_libraries(
   Hydro
   LinearOperators
   M1GreyAnalyticData
+  M1GreySolutions
   Serialization
   Utilities
   INTERFACE
