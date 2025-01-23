@@ -225,8 +225,8 @@ DirichletAnalytic<tmpl::list<NeutrinoSpecies...>>::dg_ghost(
   return {};
 }
 
-// NOLINTNEXTLINE
 template <typename... NeutrinoSpecies>
+// NOLINTNEXTLINE
 PUP::able::PUP_ID DirichletAnalytic<tmpl::list<NeutrinoSpecies...>>::my_PUP_ID =
     0;
 

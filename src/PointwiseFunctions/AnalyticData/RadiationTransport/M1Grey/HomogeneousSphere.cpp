@@ -114,16 +114,16 @@ auto HomogeneousSphere::variables(
   return {make_with_value<Scalar<DataVector>>(x, 0.0)};
 }
 
-static auto HomogeneousSphere::variables(
+auto HomogeneousSphere::variables(
     const tnsr::I<DataVector, 3>& x,
-    tmpl::list<hydro::Tags::LorentzFactor<DataVector>> /*meta*/) const
+    tmpl::list<hydro::Tags::LorentzFactor<DataVector>> /*meta*/)
     -> tuples::TaggedTuple<hydro::Tags::LorentzFactor<DataVector>> {
   return {make_with_value<Scalar<DataVector>>(x, 1.0)};
 }
 
-static auto HomogeneousSphere::variables(
+auto HomogeneousSphere::variables(
     const tnsr::I<DataVector, 3>& x,
-    tmpl::list<hydro::Tags::SpatialVelocity<DataVector, 3>> /*meta*/) const
+    tmpl::list<hydro::Tags::SpatialVelocity<DataVector, 3>> /*meta*/)
     -> tuples::TaggedTuple<hydro::Tags::SpatialVelocity<DataVector, 3>> {
   return {make_with_value<tnsr::I<DataVector, 3, Frame::Inertial>>(x, 0.0)};
 }
@@ -140,6 +140,7 @@ void HomogeneousSphere::pup(PUP::er& p) {
   p | outer_radius_;
   p | outer_opacity_;
 }
+// NOLINTNEXTLINE
 PUP::able::PUP_ID HomogeneousSphere::my_PUP_ID = 0;
 
 bool operator!=(const HomogeneousSphere& lhs, const HomogeneousSphere& rhs) {

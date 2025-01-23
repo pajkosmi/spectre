@@ -26,7 +26,7 @@ namespace RadiationTransport::M1Grey::AnalyticData {
  *
  * We follow the homogeneous sphere test problem in Section 4.5 of \cite
  * radice2022.  The initial data has radius = 1, with equal emissivity and
- * absorption \f$\eta = \kappa_a = 10$ inside the uniform sphere.  Outside of
+ * absorption \f$\eta = \kappa_a = 10\f$ inside the uniform sphere.  Outside of
  * the sphere the absorption is much lower, allowing the neutrinos to stream
  * out.  Initially the neutrino energy density is distributed uniformly inside
  * the sphere. The momentum density is initialized to 0.
@@ -124,13 +124,14 @@ class HomogeneousSphere : public virtual evolution::initial_data::InitialData,
       -> tuples::TaggedTuple<RadiationTransport::M1Grey::Tags::
                                  GreyScatteringOpacity<NeutrinoSpecies>>;
 
-  auto variables(const tnsr::I<DataVector, 3>& x,
-                 tmpl::list<hydro::Tags::LorentzFactor<DataVector>> /*meta*/)
-      const -> tuples::TaggedTuple<hydro::Tags::LorentzFactor<DataVector>>;
-
-  auto variables(
+  static auto variables(
       const tnsr::I<DataVector, 3>& x,
-      tmpl::list<hydro::Tags::SpatialVelocity<DataVector, 3>> /*meta*/) const
+      tmpl::list<hydro::Tags::LorentzFactor<DataVector>> /*meta*/)
+      -> tuples::TaggedTuple<hydro::Tags::LorentzFactor<DataVector>>;
+
+  static auto variables(
+      const tnsr::I<DataVector, 3>& x,
+      tmpl::list<hydro::Tags::SpatialVelocity<DataVector, 3>> /*meta*/)
       -> tuples::TaggedTuple<hydro::Tags::SpatialVelocity<DataVector, 3>>;
   /// @}
 
