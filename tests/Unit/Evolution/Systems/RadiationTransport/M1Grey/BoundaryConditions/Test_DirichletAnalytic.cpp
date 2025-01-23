@@ -3,7 +3,6 @@
 
 #include "Framework/TestingFramework.hpp"
 
-#include <PointwiseFunctions/AnalyticData/RadiationTransport/M1Grey/Factory.hpp>
 #include "DataStructures/DataBox/DataBox.hpp"
 #include "DataStructures/Index.hpp"
 #include "Evolution/Systems/RadiationTransport/M1Grey/BoundaryConditions/DirichletAnalytic.hpp"
@@ -15,6 +14,7 @@
 #include "Framework/TestHelpers.hpp"
 #include "Helpers/Evolution/DiscontinuousGalerkin/BoundaryConditions.hpp"
 #include "Options/Protocols/FactoryCreation.hpp"
+#include "PointwiseFunctions/AnalyticData/RadiationTransport/M1Grey/Factory.hpp"
 #include "PointwiseFunctions/AnalyticData/RadiationTransport/M1Grey/HomogeneousSphere.hpp"
 #include "PointwiseFunctions/AnalyticData/Tags.hpp"
 #include "PointwiseFunctions/AnalyticSolutions/RadiationTransport/M1Grey/ConstantM1.hpp"
