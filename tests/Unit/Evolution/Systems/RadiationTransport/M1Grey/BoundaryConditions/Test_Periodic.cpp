@@ -14,6 +14,7 @@
 
 namespace helpers = TestHelpers::evolution::dg;
 
+namespace {
 void test() {
   using neutrino_species = tmpl::list<neutrinos::ElectronNeutrinos<1>,
                                       neutrinos::ElectronAntiNeutrinos<1>>;
@@ -24,6 +25,7 @@ void test() {
       domain::BoundaryConditions::Periodic<boundary_condition>,
       boundary_condition>("Periodic:\n");
 }
+}  // namespace
 
 SPECTRE_TEST_CASE("Unit.RadiationTransport.M1Grey.BoundaryConditions.Periodic",
                   "[Unit][Evolution]") {
