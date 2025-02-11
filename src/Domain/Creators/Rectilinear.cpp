@@ -10,6 +10,7 @@
 #include "Domain/Block.hpp"
 #include "Domain/BoundaryConditions/None.hpp"
 #include "Domain/BoundaryConditions/Periodic.hpp"
+#include "Domain/CoordinateMaps/Affine.hpp"
 #include "Domain/CoordinateMaps/CoordinateMap.hpp"
 #include "Domain/CoordinateMaps/CoordinateMap.tpp"
 #include "Domain/CoordinateMaps/Interval.hpp"
@@ -53,12 +54,12 @@ Rectilinear<Dim>::Rectilinear(
   }
   for (size_t d = 0; d < Dim; ++d) {
     if (gsl::at(lower_bounds_, d) >= gsl::at(upper_bounds_, d)) {
-      PARSE_ERROR(context,
-                  "Lower bound ("
-                      << gsl::at(lower_bounds_, d)
-                      << ") must be strictly smaller than upper bound ("
-                      << gsl::at(upper_bounds_, d) << ") in dimension " << d
-                      << ".");
+      // PARSE_ERROR(context,
+      //             "Lower bound ("
+      //                 << gsl::at(lower_bounds_, d)
+      //                 << ") must be strictly smaller than upper bound ("
+      //                 << gsl::at(upper_bounds_, d) << ") in dimension " << d
+      //                 << ".");
     }
     const auto singularity_pos =
         gsl::at(distributions_, d).singularity_position;
@@ -159,15 +160,24 @@ Domain<Dim> Rectilinear<Dim>::create_domain() const {
                                  distributions_[1].distribution,
                                  distributions_[1].singularity_position}};
     } else {
-      return Interval3D{Interval{-1., 1., lower_bounds_[0], upper_bounds_[0],
-                                 distributions_[0].distribution,
-                                 distributions_[0].singularity_position},
-                        Interval{-1., 1., lower_bounds_[1], upper_bounds_[1],
-                                 distributions_[1].distribution,
-                                 distributions_[1].singularity_position},
-                        Interval{-1., 1., lower_bounds_[2], upper_bounds_[2],
-                                 distributions_[2].distribution,
-                                 distributions_[2].singularity_position}};
+      // return Interval3D{
+      //     Interval{-1., 1., lower_bounds_[0], upper_bounds_[0],
+      //              distributions_[0].distribution,
+      //              distributions_[0].singularity_position},
+      //     Interval{-1., 1.,lower_bounds_[1], upper_bounds_[1],
+      //              distributions_[1].distribution,
+      //              distributions_[1].singularity_position},
+      //     Interval{-1., 1., lower_bounds_[2], upper_bounds_[2],
+      //              distributions_[2].distribution,
+      //              distributions_[2].singularity_position},
+      // };
+      return Affine3D{
+          Interval{-1., 1., lower_bounds_[0], upper_bounds_[0],
+                   distributions_[0].distribution,
+                   distributions_[0].singularity_position},
+          Affine{-1., 1., lower_bounds_[1], upper_bounds_[1]},
+          Affine{-1., 1., lower_bounds_[2], upper_bounds_[2]},
+      };
     }
   }();
 

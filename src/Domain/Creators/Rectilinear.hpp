@@ -55,7 +55,7 @@ class Rectilinear : public DomainCreator<Dim> {
       CoordinateMaps::ProductOf3Maps<Interval, Interval, Interval>;
   using Affine = CoordinateMaps::Affine;
   using Affine2D = CoordinateMaps::ProductOf2Maps<Affine, Affine>;
-  using Affine3D = CoordinateMaps::ProductOf3Maps<Affine, Affine, Affine>;
+  using Affine3D = CoordinateMaps::ProductOf3Maps<Interval, Affine, Affine>;
 
  public:
   using maps_list = tmpl::list<
