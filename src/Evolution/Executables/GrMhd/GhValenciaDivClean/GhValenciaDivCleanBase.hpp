@@ -113,6 +113,7 @@
 #include "Evolution/VariableFixing/Actions.hpp"
 #include "Evolution/VariableFixing/FixToAtmosphere.hpp"
 #include "Evolution/VariableFixing/LimitLorentzFactor.hpp"
+#include "Evolution/VariableFixing/ParameterizedDeleptonization.hpp"
 #include "Evolution/VariableFixing/Tags.hpp"
 #include "IO/Importers/Actions/ReadVolumeData.hpp"
 #include "IO/Importers/Actions/ReceiveVolumeData.hpp"
@@ -280,8 +281,8 @@ struct GhValenciaDivCleanDefaults {
       tmpl::append<typename system::primitive_variables_tag::tags_list,
                    typename system::gh_system::variables_tag::tags_list>;
   using ordered_list_of_primitive_recovery_schemes = tmpl::list<
-      grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl,
-      grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin,
+      //   grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::KastaunEtAl,
+      //   grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::NewmanHamlin,
       grmhd::ValenciaDivClean::PrimitiveRecoverySchemes::PalenzuelaEtAl>;
 
   // Do not limit the divergence-cleaning field Phi or the GH fields
@@ -374,6 +375,8 @@ struct GhValenciaDivCleanTemplateBase<
   static constexpr bool use_dg_subcell = UseDgSubcell;
   static constexpr bool use_control_systems = UseControlSystems;
 
+  using parameterized_deleptonization = VariableFixing::Actions::FixVariables<
+      VariableFixing::ParameterizedDeleptonization>;
   using initial_data_list =
       ghmhd::GhValenciaDivClean::InitialData::initial_data_list;
 
@@ -786,6 +789,7 @@ struct GhValenciaDivCleanTemplateBase<
           grmhd::GhValenciaDivClean::subcell::TciOnDgGrid<
               tmpl::front<ordered_list_of_primitive_recovery_schemes>>>,
       Actions::CleanHistory<system, local_time_stepping>,
+      parameterized_deleptonization,
       VariableFixing::Actions::FixVariables<
           VariableFixing::FixToAtmosphere<volume_dim>>,
       VariableFixing::Actions::FixVariables<VariableFixing::LimitLorentzFactor>,
@@ -823,6 +827,7 @@ struct GhValenciaDivCleanTemplateBase<
       Actions::MutateApply<
           grmhd::GhValenciaDivClean::subcell::ResizeAndComputePrims<
               ordered_list_of_primitive_recovery_schemes>>,
+      parameterized_deleptonization,
       VariableFixing::Actions::FixVariables<
           VariableFixing::FixToAtmosphere<volume_dim>>,
       VariableFixing::Actions::FixVariables<VariableFixing::LimitLorentzFactor>,
@@ -898,6 +903,7 @@ struct GhValenciaDivCleanTemplateBase<
               Parallel::Phase::Evolve,
               tmpl::list<
                   ::domain::Actions::CheckFunctionsOfTimeAreReady<volume_dim>,
+                  parameterized_deleptonization,
                   VariableFixing::Actions::FixVariables<
                       VariableFixing::FixToAtmosphere<volume_dim>>,
                   VariableFixing::Actions::FixVariables<
