@@ -64,7 +64,7 @@ struct SqrtDetSpatialMetricCompute : SqrtDetSpatialMetric<DataType>,
     get(*result) = sqrt(get(det_spatial_metric));
   }
 
-  using base = SqrtDetSpatialMetric<DataType>;
+using base = SqrtDetSpatialMetric<DataType>;
 };
 }  // namespace Tags
 }  // namespace gr

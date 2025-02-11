@@ -77,7 +77,57 @@ void SetPiAndPhiFromConstraints<AllSolutionsForChristoffelAnalytic, Dim>::apply(
     }
   }
 
+  // TODO:
+  //  i) reconstruct to DG grid
+  //  ii) apply partial derivative on dg grid
+  //  iii) project derivative to FD grid
+
+  // const auto dg_spacetime_metric = spacetime_metric;
+  // need dg_mesh and subcell_mesh.  Can I get from mesh or do I need to pass in
+  // data box?
+
+  // Pseudo code below
+  // reconstruct spacetime metric and inverse jacobian
+  // src/Evolution/DgSubcell/Mesh.hpp
+  const auto dg_mesh = evolution::dg::subcell::fd::dg_mesh(
+      mesh, Spectral::Basis::Legendre, Spectral::Quadrature::Gauss);
+
+  using tag_list =
+      tmpl::list<gr::Tags::SpacetimeMetric<DataVector, Dim, Frame::Inertial>,
+                 domain::Tags::InverseJacobian<Dim, Frame::ElementLogical,
+                                               Frame::Inertial>>;
+
+  Variables<tag_list> metric_and_inv_jac{mesh.number_of_grid_points()};
+
+  get<gr::Tags::SpacetimeMetric<DataVector, Dim, Frame::Inertial>>(
+      metric_and_inv_jac) = spacetime_metric;
+  get<domain::Tags::InverseJacobian<Dim, Frame::ElementLogical,
+                                    Frame::Inertial>>(metric_and_inv_jac) =
+      inverse_jacobian;
+
+  // metric and inv jacobian now on DG grid
+  auto dg_metric_and_inv_jac = evolution::dg::subcell::fd::reconstruct(
+      metric_and_inv_jac, dg_mesh, mesh.extents(),
+      evolution::dg::subcell::fd::ReconstructionMethod::DimByDim);
+
+  // Phi on dg grid now
+  auto dg_phi = partial_derivative(
+      get<gr::Tags::SpacetimeMetric<DataVector, Dim, Frame::Inertial>>(
+          dg_metric_and_inv_jac),
+      dg_mesh,
+      get<domain::Tags::InverseJacobian<Dim, Frame::ElementLogical,
+                                        Frame::Inertial>>(
+          dg_metric_and_inv_jac));
+
   partial_derivative(phi, spacetime_metric, mesh, inverse_jacobian);
+
+  for (size_t a = 0; a < 4; ++a) {
+    for (size_t b = 0; b < a; ++b) {
+      // zero out lower components
+      phi->get(1, a, b) = 0 * phi->get(0, a, b);
+      phi->get(2, a, b) = 0 * phi->get(0, a, b);
+    }
+  }
 
   Variables<
       tmpl::list<gr::Tags::SpatialMetric<DataVector, Dim>,

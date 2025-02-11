@@ -69,16 +69,17 @@ void ConservativeFromPrimitive::apply(
 
   get(*tilde_ye) = get(*tilde_d) * get(electron_fraction);
 
-  get(*tilde_tau) = get(sqrt_det_spatial_metric) *
-                      (square(get(lorentz_factor)) *
-                        (get(rest_mass_density) *
-                          (get(specific_internal_energy) +
-                           get(spatial_velocity_squared) * get(lorentz_factor) /
-                              (get(lorentz_factor) + 1.)) +
-                         get(pressure) * get(spatial_velocity_squared)) +
-                       0.5 * get(magnetic_field_squared) *
-                        (1.0 + get(spatial_velocity_squared)) -
-                       0.5 * square(get(magnetic_field_dot_spatial_velocity)));
+  get(*tilde_tau) =
+      get(sqrt_det_spatial_metric) *
+      (square(get(lorentz_factor)) *
+           (get(rest_mass_density) *
+                (get(specific_internal_energy) +
+                 get(spatial_velocity_squared) * get(lorentz_factor) /
+                     (get(lorentz_factor) + 1.)) +
+            get(pressure) * get(spatial_velocity_squared)) +
+       0.5 * get(magnetic_field_squared) *
+           (1.0 + get(spatial_velocity_squared)) -
+       0.5 * square(get(magnetic_field_dot_spatial_velocity)));
 
   // Reuse allocation
   Scalar<DataVector>& common_factor =
