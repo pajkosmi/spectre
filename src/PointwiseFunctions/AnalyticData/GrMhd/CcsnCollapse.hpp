@@ -9,6 +9,17 @@
 #include <string>
 
 #include "DataStructures/Tensor/TypeAliases.hpp"
+#include "IO/Connectivity.hpp"
+#include "IO/H5/AccessType.hpp"
+#include "IO/H5/CheckH5.hpp"
+#include "IO/H5/EosTable.hpp"
+#include "IO/H5/File.hpp"
+#include "IO/H5/Header.hpp"
+#include "IO/H5/Helpers.hpp"
+#include "IO/H5/OpenGroup.hpp"
+#include "IO/H5/SourceArchive.hpp"
+#include "IO/H5/Version.hpp"
+#include "IO/H5/Wrappers.hpp"
 #include "NumericalAlgorithms/LinearOperators/PartialDerivatives.hpp"
 #include "Options/String.hpp"
 #include "PointwiseFunctions/AnalyticData/AnalyticData.hpp"

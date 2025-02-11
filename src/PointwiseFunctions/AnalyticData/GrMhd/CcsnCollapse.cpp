@@ -43,7 +43,7 @@ ProgenitorProfile::ProgenitorProfile(const std::string& filename) {
   std::ifstream prog_file(filename);
   std::string header_line;
   // Loads header lines (including license information) into header_line.
-  for (int header_index = 0; header_index < 4; header_index++) {
+  for (int header_index = 0; header_index < 1; header_index++) {
     std::getline(prog_file, header_line);
   }
 
