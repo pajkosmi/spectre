@@ -176,7 +176,8 @@ struct ComputeSources {
       const tnsr::II<DataVector, 3, Frame::Inertial>& inv_spatial_metric,
       const Scalar<DataVector>& sqrt_det_spatial_metric,
       const tnsr::ii<DataVector, 3, Frame::Inertial>& extrinsic_curvature,
-      double constraint_damping_parameter);
+      double constraint_damping_parameter,
+      const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coords);
 };
 }  // namespace ValenciaDivClean
 }  // namespace grmhd

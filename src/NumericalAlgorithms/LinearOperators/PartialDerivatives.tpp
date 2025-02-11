@@ -5,12 +5,16 @@
 
 #include "NumericalAlgorithms/LinearOperators/PartialDerivatives.hpp"
 
+#include "DataStructures/DataBox/DataBox.hpp"
 #include "DataStructures/DataBox/PrefixHelpers.hpp"
 #include "DataStructures/DataBox/Prefixes.hpp"
 #include "DataStructures/DataVector.hpp"
 #include "DataStructures/Matrix.hpp"
+#include "DataStructures/Tensor/Tensor.hpp"
 #include "DataStructures/Transpose.hpp"
 #include "DataStructures/Variables.hpp"
+#include "Evolution/Systems/GrMhd/GhValenciaDivClean/Tags.hpp"
+#include "NumericalAlgorithms/FiniteDifference/PartialDerivatives.hpp"
 #include "NumericalAlgorithms/Spectral/DifferentiationMatrix.hpp"
 #include "NumericalAlgorithms/Spectral/Mesh.hpp"
 #include "NumericalAlgorithms/SphericalHarmonics/Spherepack.hpp"
@@ -18,6 +22,7 @@
 #include "Utilities/Algorithm.hpp"
 #include "Utilities/Blas.hpp"
 #include "Utilities/ContainerHelpers.hpp"
+#include "Utilities/ErrorHandling/Error.hpp"
 #include "Utilities/Gsl.hpp"
 #include "Utilities/MakeArray.hpp"
 #include "Utilities/MemoryHelpers.hpp"
@@ -55,6 +60,106 @@ struct LogicalImpl;
 //
 // - We factor out the `logical_deriv_index == 0` case so that we do not need to
 //   zero the memory in `du` before the computation.
+
+template <typename ResultTags, size_t Dim, typename DerivativeFrame>
+void partial_derivatives_cartoon(
+    const gsl::not_null<Variables<ResultTags>*> du,
+    const std::array<const double*, Dim>& logical_partial_derivatives_of_u,
+    const size_t number_of_independent_components,
+    const InverseJacobian<DataVector, Dim, Frame::ElementLogical,
+                          DerivativeFrame>& inverse_jacobian,
+    const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coords,
+    const gsl::span<const double>& volume_vars,
+    const Index<3>& subcell_extents) {
+  // pdu points to du
+  double* pdu = du->data();
+
+  const size_t num_grid_points = du->number_of_grid_points();
+  DataVector lhs{};
+  DataVector logical_du{};
+
+  using tag_list =
+      tmpl::list<gr::Tags::SpacetimeMetric<DataVector, Dim, Frame::Inertial>,
+                 gh::Tags::Pi<DataVector, 3>, gh::Tags::Phi<DataVector, 3>>;
+
+  const Variables<tag_list> metric_quantities{
+      const_cast<double*>(volume_vars.data()), volume_vars.size()};
+
+  tnsr::iaa<DataVector, Dim, Frame::Inertial> deriv_spacetime_metric;
+  tnsr::iaa<DataVector, Dim, Frame::Inertial> deriv_pi_evolution;
+  tnsr::ijaa<DataVector, Dim, Frame::Inertial> deriv_phi_evolution;
+
+  ::fd::general_cartoon_deriv(
+      deriv_spacetime_metric,
+      get<gr::Tags::SpacetimeMetric<DataVector, Dim, Frame::Inertial>>(
+          metric_quantities),
+      inertial_coords);
+  ::fd::general_cartoon_deriv(
+      deriv_pi_evolution, get<gh::Tags::Pi<DataVector, 3>>(metric_quantities),
+      inertial_coords);
+  ::fd::general_cartoon_deriv(
+      deriv_phi_evolution, get<gh::Tags::Phi<DataVector, 3>>(metric_quantities),
+      inertial_coords);
+
+  size_t shifted_index = 0;
+  // Loop over different variables stored in u
+  for (size_t component_index = 0;
+       component_index < number_of_independent_components; ++component_index) {
+    // loop over derivative directions
+    for (size_t deriv_index = 0; deriv_index < Dim; ++deriv_index) {
+      // lhs points to pdu (shifts by num grid points below)
+      lhs.set_data_ref(pdu, num_grid_points);
+
+      // clang-tidy: const cast is fine since we won't modify the data and we
+      // need it to easily hook into the expression templates.
+
+      // logical_du now points to logical_partial_derivatives_of_u
+      logical_du.set_data_ref(
+          const_cast<double*>(                                 // NOLINT
+              gsl::at(logical_partial_derivatives_of_u, 0)) +  // NOLINT
+              component_index * num_grid_points,
+          num_grid_points);
+
+      // Note, for the following index algebra, the assumed order in which the
+      // variables are stored is the spacetime metric (g), Pi, then Phi: 10 + 10
+      // + 30 = 50 independent components total.
+      if (deriv_index == 0) {
+        // usual x derivative
+        lhs = inverse_jacobian.get(0, 0) * logical_du;
+      } else {
+        // g & Pi
+        if (component_index < 20) {
+          // floor division in parenthesis for positive numbers
+          shifted_index = component_index - 10 * (component_index / 10);
+          const auto input_tensor_index =
+              get<gr::Tags::SpacetimeMetric<DataVector, Dim, Frame::Inertial>>(
+                  metric_quantities)
+                  .get_tensor_index(shifted_index);
+          auto output_tensor_index =
+              prepend(input_tensor_index, size_t{deriv_index});
+          if (component_index < 10) {
+            // g
+            lhs = deriv_spacetime_metric.get(output_tensor_index);
+          } else {
+            // Pi
+            lhs = deriv_pi_evolution.get(output_tensor_index);
+          }
+        } else {
+          // Phi calculation
+          shifted_index = component_index - 20;
+          const auto input_tensor_index =
+              get<gh::Tags::Phi<DataVector, 3>>(metric_quantities)
+                  .get_tensor_index(shifted_index);
+          auto output_tensor_index =
+              prepend(input_tensor_index, size_t{deriv_index});
+          lhs = deriv_phi_evolution.get(output_tensor_index);
+        }
+      }
+      pdu += num_grid_points;  // NOLINT
+    }
+  }
+}
+
 template <typename ResultTags, size_t Dim, typename DerivativeFrame,
           typename ValueType = typename Variables<ResultTags>::value_type,
           typename VectorType = typename Variables<ResultTags>::vector_type>
@@ -64,8 +169,11 @@ void partial_derivatives_impl(
     const size_t number_of_independent_components,
     const InverseJacobian<DataVector, Dim, Frame::ElementLogical,
                           DerivativeFrame>& inverse_jacobian) {
+  // pointer to where derivatives will be stored
+
   ValueType* pdu = du->data();
-  const size_t num_grid_points = du->number_of_grid_points();
+  const size_t num_grid_points =
+      du->number_of_grid_points();  // grid points per element
   VectorType lhs{};
   VectorType logical_du{};
 
@@ -77,27 +185,34 @@ void partial_derivatives_impl(
                           DerivativeFrame>::get_storage_index(d, deriv_index);
     }
   }
-
+  // loop over different components (variables) of u
   for (size_t component_index = 0;
        component_index < number_of_independent_components; ++component_index) {
+    // loop over direction of derivatives
     for (size_t deriv_index = 0; deriv_index < Dim; ++deriv_index) {
+      // pdu now points to first "num_grid_points"
       lhs.set_data_ref(pdu, num_grid_points);
       // clang-tidy: const cast is fine since we won't modify the data and we
       // need it to easily hook into the expression templates.
+
+      // logical_du now points to logical_partial_derivatives_of_u?
       logical_du.set_data_ref(
           const_cast<ValueType*>(                              // NOLINT
               gsl::at(logical_partial_derivatives_of_u, 0)) +  // NOLINT
               component_index * num_grid_points,
           num_grid_points);
+      // scale lhs (logical_du) by inverse jacobian--giving pdu
       lhs = (*(inverse_jacobian.begin() + gsl::at(indices[0], deriv_index))) *
             logical_du;
+
       for (size_t logical_deriv_index = 1; logical_deriv_index < Dim;
            ++logical_deriv_index) {
-        // clang-tidy: const cast is fine since we won't modify the data and we
+        // clang-tidy: const cast is fine since we won't modify the data
+        // and we
         // need it to easily hook into the expression templates.
         logical_du.set_data_ref(const_cast<ValueType*>(  // NOLINT
                                     gsl::at(logical_partial_derivatives_of_u,
-                                            logical_deriv_index)) +  // NOLINT
+                                            logical_deriv_index)) +
                                     component_index * num_grid_points,
                                 num_grid_points);
         lhs +=
@@ -106,6 +221,7 @@ void partial_derivatives_impl(
             logical_du;
       }
       // clang-tidy: no pointer arithmetic
+      // shift pdu to next variable
       pdu += num_grid_points;  // NOLINT
     }
   }
@@ -253,8 +369,8 @@ partial_derivatives(
   Variables<db::wrap_tags_in<Tags::deriv, DerivativeTags, tmpl::size_t<Dim>,
                              DerivativeFrame>>
       partial_derivatives_of_u(u.number_of_grid_points());
-  partial_derivatives(make_not_null(&partial_derivatives_of_u),
-                                      u, mesh, inverse_jacobian);
+  partial_derivatives(make_not_null(&partial_derivatives_of_u), u, mesh,
+                      inverse_jacobian);
   return partial_derivatives_of_u;
 }
 

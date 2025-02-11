@@ -14,6 +14,7 @@
 #include "Domain/Structure/DirectionalIdMap.hpp"
 #include "Domain/Structure/ElementId.hpp"
 #include "Evolution/DgSubcell/GhostData.hpp"
+#include "Evolution/Systems/GrMhd/GhValenciaDivClean/NeutrinoSystems.hpp"
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/System.hpp"
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/Tags.hpp"
 #include "Evolution/Systems/RadiationTransport/NoNeutrinos/System.hpp"
@@ -38,7 +39,8 @@ void spacetime_derivatives(
     const size_t& deriv_order, const Mesh<3>& volume_mesh,
     const InverseJacobian<DataVector, 3, Frame::ElementLogical,
                           Frame::Inertial>&
-        cell_centered_logical_to_inertial_inv_jacobian) {
+        cell_centered_logical_to_inertial_inv_jacobian,
+    const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coords) {
   using gradients_tags = typename System::gradients_tags;
   if (UNLIKELY(result->number_of_grid_points() !=
                volume_evolved_variables.number_of_grid_points())) {
@@ -87,10 +89,10 @@ void spacetime_derivatives(
                      number_of_gh_components *
                          volume_evolved_variables.number_of_grid_points());
 
-  ::fd::partial_derivatives<gradients_tags>(
+  ::fd::cartoon_partial_derivatives<gradients_tags>(
       result, volume_gh_vars, ghost_cell_vars, volume_mesh,
       number_of_gh_components, deriv_order,
-      cell_centered_logical_to_inertial_inv_jacobian);
+      cell_centered_logical_to_inertial_inv_jacobian, inertial_coords);
 }
 
 // Instantiate here
@@ -113,10 +115,10 @@ void spacetime_derivatives(
       const size_t& deriv_order, const Mesh<3>& volume_mesh,                \
       const InverseJacobian<DataVector, 3, Frame::ElementLogical,           \
                             Frame::Inertial>&                               \
-          cell_centered_logical_to_inertial_inv_jacobian);
+          cell_centered_logical_to_inertial_inv_jacobian,                   \
+      const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coord);
+GENERATE_INSTANTIATIONS(INSTANTIATION, GHMHD_NEUTRINOS);
 
-GENERATE_INSTANTIATIONS(INSTANTIATION,
-                        (RadiationTransport::NoNeutrinos::System))
 #undef INSTANTIATION
 #undef NEUTRINO
 

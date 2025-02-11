@@ -25,7 +25,7 @@ void project_impl(gsl::span<double> subcell_u,
                   const Index<Dim>& subcell_extents) {
   const Matrix empty{};
   auto projection_mat = make_array<Dim>(std::cref(empty));
-  for (size_t d = 0; d < Dim; d++) {
+  for (size_t d = 0; d < 1; d++) {
     gsl::at(projection_mat, d) = std::cref(
         projection_matrix(dg_mesh.slice_through(d), subcell_extents[d],
                           Spectral::Quadrature::CellCentered));
@@ -47,7 +47,7 @@ void project_to_faces_impl(gsl::span<double> subcell_u,
                            const size_t& face_direction) {
   const Matrix empty{};
   auto projection_mat = make_array<Dim>(std::cref(empty));
-  for (size_t d = 0; d < Dim; d++) {
+  for (size_t d = 0; d < 1; d++) {
     if (d == face_direction) {
       gsl::at(projection_mat, d) = std::cref(
           projection_matrix(dg_mesh.slice_through(d), subcell_extents[d],

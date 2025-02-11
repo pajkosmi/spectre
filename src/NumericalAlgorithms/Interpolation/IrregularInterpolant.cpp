@@ -151,9 +151,6 @@ Matrix interpolation_matrix(
   Matrix result(number_of_target_points, mesh.number_of_grid_points());
 
   if (mesh.basis()[0] == Spectral::Basis::FiniteDifference) {
-    ASSERT(mesh.basis()[1] == Spectral::Basis::FiniteDifference and
-               mesh.basis()[2] == Spectral::Basis::FiniteDifference,
-           "Mixed FD and DG bases are not supported. Mesh = " << mesh);
     auto source_xi = logical_coordinates(mesh);
     DataVector xi_source{get<0>(source_xi).data(), mesh.extents(0)};
     DataVector eta_source;
@@ -182,12 +179,18 @@ Matrix interpolation_matrix(
       const double eta_target = get_element(get<1>(points), p);
       const double zeta_target = get_element(get<2>(points), p);
       const auto xi_stencil = fd_stencil(xi_source, xi_target);
-      const auto eta_stencil = fd_stencil(eta_source, eta_target);
-      const auto zeta_stencil = fd_stencil(zeta_source, zeta_target);
+
+      // for (size_t k <= 0, s = 0; k <= mesh.extents(2); ++k) {
+      // for (size_t j <= 0; j <= mesh.extents(1); ++j) {
+      // MIKE: below for restart from initial data, need k <= 0 & j <= 0, or
+      // something that skips to inner loop.
+      // Update: now with extents to 1, the above comment does not apply b/c s
+      // gets large and accesses out of memory
       for (size_t k = 0, s = 0; k < mesh.extents(2); ++k) {
         for (size_t j = 0; j < mesh.extents(1); ++j) {
           for (size_t i = 0; i < mesh.extents(0); ++i) {
-            result(p, s) = xi_stencil[i] * eta_stencil[j] * zeta_stencil[k];
+            result(p, s) =
+                xi_stencil[i];
             ++s;
           }
         }

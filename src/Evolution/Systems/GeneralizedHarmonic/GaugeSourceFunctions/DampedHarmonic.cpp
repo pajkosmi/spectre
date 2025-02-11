@@ -16,6 +16,7 @@
 #include "DataStructures/Tensor/Tensor.hpp"
 #include "Evolution/Systems/GeneralizedHarmonic/GaugeSourceFunctions/DampedWaveHelpers.hpp"
 #include "Evolution/Systems/GeneralizedHarmonic/GaugeSourceFunctions/HalfPiPhiTwoNormals.hpp"
+#include "NumericalAlgorithms/FiniteDifference/PartialDerivatives.tpp"
 #include "PointwiseFunctions/GeneralRelativity/DerivativesOfSpacetimeMetric.hpp"
 #include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/DerivSpatialMetric.hpp"
 #include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/SpacetimeDerivOfDetSpatialMetric.hpp"
@@ -436,7 +437,18 @@ void damped_harmonic_impl(
     }
     d4_gauge_h->get(a, 0) += dT2.get(a);
   }
+
+  tnsr::ia<DataVector, SpatialDim> di_gauge_h{};
+  for (size_t i = 0; i < SpatialDim; ++i) {
+    for (size_t a = 0; a < SpatialDim + 1; ++a) {
+      di_gauge_h.get(i, a).set_data_ref(
+          make_not_null(&d4_gauge_h->get(i + 1, a)));
+    }
+  }
+
+  ::fd::general_cartoon_deriv(di_gauge_h, *gauge_h, coords);
 }
+
 }  // namespace
 
 template <size_t SpatialDim, typename Frame>

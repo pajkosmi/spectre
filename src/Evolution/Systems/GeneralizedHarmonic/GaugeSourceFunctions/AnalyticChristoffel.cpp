@@ -12,7 +12,7 @@
 #include "DataStructures/Tensor/EagerMath/DeterminantAndInverse.hpp"
 #include "DataStructures/Tensor/Tensor.hpp"
 #include "Evolution/Systems/GeneralizedHarmonic/Tags.hpp"
-#include "NumericalAlgorithms/LinearOperators/PartialDerivatives.hpp"
+#include "NumericalAlgorithms/FiniteDifference/PartialDerivatives.tpp"
 #include "NumericalAlgorithms/Spectral/Mesh.hpp"
 #include "PointwiseFunctions/AnalyticSolutions/GeneralRelativity/Factory.hpp"
 #include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/Christoffel.hpp"
@@ -23,7 +23,6 @@
 #include "Utilities/Gsl.hpp"
 #include "Utilities/TMPL.hpp"
 #include "Utilities/TaggedTuple.hpp"
-
 namespace gh::gauges {
 AnalyticChristoffel::AnalyticChristoffel(const AnalyticChristoffel& rhs)
     : GaugeCondition{dynamic_cast<const GaugeCondition&>(rhs)},
@@ -64,7 +63,9 @@ void AnalyticChristoffel::gauge_and_spacetime_derivative_impl(
     const InverseJacobian<DataVector, SpatialDim, Frame::ElementLogical,
                           Frame::Inertial>& inverse_jacobian,
     const tuples::tagged_tuple_from_typelist<solution_tags<SpatialDim>>&
-        solution_vars) const {
+        solution_vars,
+    const tnsr::I<DataVector, SpatialDim, Frame::Inertial>& inertial_coords)
+    const {
   const auto [pi, phi, spacetime_metric, lapse, shift, spatial_metric] =
       solution_vars;
   // Now compute Gamma_a
@@ -82,6 +83,7 @@ void AnalyticChristoffel::gauge_and_spacetime_derivative_impl(
       get<gr::Tags::InverseSpatialMetric<DataVector, SpatialDim>>(temp_vars);
   auto& inverse_spacetime_metric =
       get<gr::Tags::InverseSpacetimeMetric<DataVector, SpatialDim>>(temp_vars);
+
   {
     Scalar<DataVector> det_buffer{};
     get(det_buffer)
@@ -113,6 +115,10 @@ void AnalyticChristoffel::gauge_and_spacetime_derivative_impl(
   }
   partial_derivative(make_not_null(&di_gauge_h), *gauge_h, mesh,
                      inverse_jacobian);
+
+  // This is needed for cartoon
+  ::fd::general_cartoon_deriv(di_gauge_h, *gauge_h, inertial_coords);
+
   // Set time derivative to zero. We are assuming a static solution.
   for (size_t a = 0; a < SpatialDim + 1; ++a) {
     d4_gauge_h->get(0, a) = 0.0;
@@ -124,17 +130,19 @@ PUP::able::PUP_ID AnalyticChristoffel::my_PUP_ID = 0;
 
 #define DIM(data) BOOST_PP_TUPLE_ELEM(0, data)
 
-#define INSTANTIATE(_, data)                                                 \
-  template void AnalyticChristoffel::gauge_and_spacetime_derivative_impl(    \
-      const gsl::not_null<tnsr::a<DataVector, DIM(data), Frame::Inertial>*>  \
-          gauge_h,                                                           \
-      const gsl::not_null<tnsr::ab<DataVector, DIM(data), Frame::Inertial>*> \
-          d4_gauge_h,                                                        \
-      const Mesh<DIM(data)>& mesh,                                           \
-      const InverseJacobian<DataVector, DIM(data), Frame::ElementLogical,    \
-                            Frame::Inertial>& inverse_jacobian,              \
-      const tuples::tagged_tuple_from_typelist<solution_tags<DIM(data)>>&    \
-          solution_vars) const;
+#define INSTANTIATE(_, data)                                                  \
+  template void AnalyticChristoffel::gauge_and_spacetime_derivative_impl(     \
+      const gsl::not_null<tnsr::a<DataVector, DIM(data), Frame::Inertial>*>   \
+          gauge_h,                                                            \
+      const gsl::not_null<tnsr::ab<DataVector, DIM(data), Frame::Inertial>*>  \
+          d4_gauge_h,                                                         \
+      const Mesh<DIM(data)>& mesh,                                            \
+      const InverseJacobian<DataVector, DIM(data), Frame::ElementLogical,     \
+                            Frame::Inertial>& inverse_jacobian,               \
+      const tuples::tagged_tuple_from_typelist<solution_tags<DIM(data)>>&     \
+          solution_vars,                                                      \
+      const tnsr::I<DataVector, DIM(data), Frame::Inertial>& inertial_coords) \
+      const;
 
 GENERATE_INSTANTIATIONS(INSTANTIATE, (1, 2, 3))
 

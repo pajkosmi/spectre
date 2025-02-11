@@ -173,7 +173,9 @@ class DirichletFreeOutflow final : public BoundaryCondition {
                  hydro::Tags::SpecificInternalEnergy<DataVector>,
                  hydro::Tags::LorentzFactor<DataVector>,
                  hydro::Tags::SpatialVelocity<DataVector, 3>,
-                 hydro::Tags::MagneticField<DataVector, 3>>;
+                 hydro::Tags::MagneticField<DataVector, 3>,
+                 gr::Tags::SpacetimeMetric<DataVector, 3>,
+                 ::gh::Tags::Pi<DataVector, 3>, ::gh::Tags::Phi<DataVector, 3>>;
   using fd_gridless_tags =
       tmpl::list<::Tags::Time, ::domain::Tags::FunctionsOfTime,
                  domain::Tags::ElementMap<3, Frame::Grid>,
@@ -206,6 +208,9 @@ class DirichletFreeOutflow final : public BoundaryCondition {
       const Scalar<DataVector>& interior_lorentz_factor,
       const tnsr::I<DataVector, 3, Frame::Inertial>& interior_spatial_velocity,
       const tnsr::I<DataVector, 3, Frame::Inertial>& interior_magnetic_field,
+      const tnsr::aa<DataVector, 3, Frame::Inertial>& interior_spacetime_metric,
+      const tnsr::aa<DataVector, 3, Frame::Inertial>& interior_pi,
+      const tnsr::iaa<DataVector, 3, Frame::Inertial>& interior_phi,
 
       // fd_gridless_tags
       double time,

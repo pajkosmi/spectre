@@ -62,9 +62,6 @@ void reconstruct_prims_work(
     const bool compute_conservatives,
     const bool reconstruct_density_times_temperature,
     const VariableFixing::FixToAtmosphere<3>* fix_to_atmosphere) {
-  ASSERT(Mesh<3>(subcell_mesh.extents(0), subcell_mesh.basis(0),
-                 subcell_mesh.quadrature(0)) == subcell_mesh,
-         "The subcell mesh should be isotropic but got " << subcell_mesh);
   const size_t volume_num_pts = subcell_mesh.number_of_grid_points();
   const size_t reconstructed_num_pts =
       (subcell_mesh.extents(0) + 1) *
@@ -142,7 +139,8 @@ void reconstruct_prims_work(
     }
 
     DirectionMap<3, gsl::span<const double>> ghost_cell_vars{};
-    for (const auto& direction : Direction<3>::all_directions()) {
+    for (const auto& direction :
+         {Direction<3>::lower_xi(), Direction<3>::upper_xi()}) {
       DirectionalId<3> id{};
       if (element.neighbors().contains(direction)) {
         const auto& neighbors_in_direction = element.neighbors().at(direction);
@@ -229,7 +227,8 @@ void reconstruct_prims_work(
         }
 
         DirectionMap<3, gsl::span<const double>> ghost_cell_vars{};
-        for (const auto& direction : Direction<3>::all_directions()) {
+        for (const auto& direction :
+             {Direction<3>::lower_xi(), Direction<3>::upper_xi()}) {
           if (element.neighbors().contains(direction)) {
             const auto& neighbors_in_direction =
                 element.neighbors().at(direction);
@@ -265,7 +264,7 @@ void reconstruct_prims_work(
         vars_in_neighbor_count += number_of_variables;
       });
 
-  for (size_t i = 0; i < 3; ++i) {
+  for (size_t i = 0; i < 1; ++i) {
     if constexpr (tmpl::size<SpacetimeTagsToReconstruct>::value != 0) {
       spacetime_vars_for_grmhd(make_not_null(&gsl::at(*vars_on_lower_face, i)));
       spacetime_vars_for_grmhd(make_not_null(&gsl::at(*vars_on_upper_face, i)));
@@ -332,112 +331,113 @@ void reconstruct_fd_neighbor_work(
   DataVector buffer{3 * subcell_volume_prims.number_of_grid_points() +
                     ghost_data_extents.product()};
   Scalar<DataVector> rho_times_temperature_neighbor{};
-  tmpl::for_each<PrimTagsForReconstruction>(
-      [&buffer, &direction_to_reconstruct, &ghost_data_extents, &neighbor_prims,
-       reconstruct_density_times_temperature, &reconstruct_lower_neighbor_hydro,
-       &reconstruct_upper_neighbor_hydro, &rho_times_temperature_neighbor,
-       &subcell_mesh, &subcell_volume_prims, &vars_on_face](auto tag_v) {
-        using tag = tmpl::type_from<decltype(tag_v)>;
-        const typename tag::type* volume_tensor_ptr = nullptr;
-        typename tag::type volume_tensor{};
-        if constexpr (std::is_same_v<
-                          tag, hydro::Tags::LorentzFactorTimesSpatialVelocity<
-                                   DataVector, 3>>) {
-          // we need to handle the Wv^i reconstruction separately since we need
-          // to first compute Wv^i in the volume (it's not one of our primitives
-          // from the recovery). The components need to be stored contiguously,
-          // which is why we have the Variables `lorentz_factor_times_v_I`
-          const auto& spatial_velocity =
-              get<hydro::Tags::SpatialVelocity<DataVector, 3>>(
-                  subcell_volume_prims);
-          const auto& lorentz_factor =
-              get<hydro::Tags::LorentzFactor<DataVector>>(subcell_volume_prims);
-          for (size_t i = 0; i < 3; ++i) {
-            volume_tensor.get(i).set_data_ref(
-                &buffer[i * subcell_volume_prims.number_of_grid_points()],
-                subcell_volume_prims.number_of_grid_points());
-          }
-          volume_tensor = spatial_velocity;
-          for (size_t i = 0; i < 3; ++i) {
-            volume_tensor.get(i) *= get(lorentz_factor);
-          }
+  tmpl::for_each<
+      PrimTagsForReconstruction>([&buffer, &direction_to_reconstruct,
+                                  &ghost_data_extents, &neighbor_prims,
+                                  reconstruct_density_times_temperature,
+                                  &reconstruct_lower_neighbor_hydro,
+                                  &reconstruct_upper_neighbor_hydro,
+                                  &rho_times_temperature_neighbor,
+                                  &subcell_mesh, &subcell_volume_prims,
+                                  &vars_on_face](auto tag_v) {
+    using tag = tmpl::type_from<decltype(tag_v)>;
+    const typename tag::type* volume_tensor_ptr = nullptr;
+    typename tag::type volume_tensor{};
+    if constexpr (std::is_same_v<tag,
+                                 hydro::Tags::LorentzFactorTimesSpatialVelocity<
+                                     DataVector, 3>>) {
+      // we need to handle the Wv^i reconstruction separately since we need
+      // to first compute Wv^i in the volume (it's not one of our primitives
+      // from the recovery). The components need to be stored contiguously,
+      // which is why we have the Variables `lorentz_factor_times_v_I`
+      const auto& spatial_velocity =
+          get<hydro::Tags::SpatialVelocity<DataVector, 3>>(
+              subcell_volume_prims);
+      const auto& lorentz_factor =
+          get<hydro::Tags::LorentzFactor<DataVector>>(subcell_volume_prims);
+      for (size_t i = 0; i < 3; ++i) {
+        volume_tensor.get(i).set_data_ref(
+            &buffer[i * subcell_volume_prims.number_of_grid_points()],
+            subcell_volume_prims.number_of_grid_points());
+      }
+      volume_tensor = spatial_velocity;
+      for (size_t i = 0; i < 3; ++i) {
+        volume_tensor.get(i) *= get(lorentz_factor);
+      }
+      volume_tensor_ptr = &volume_tensor;
+    } else {
+      if constexpr (std::is_same_v<tag, hydro::Tags::Temperature<DataVector>>) {
+        if (reconstruct_density_times_temperature) {
+          get(volume_tensor)
+              .set_data_ref(buffer.data(),
+                            subcell_volume_prims.number_of_grid_points());
+          get(volume_tensor) =
+              get(get<hydro::Tags::RestMassDensity<DataVector>>(
+                  subcell_volume_prims)) *
+              get(get<tag>(subcell_volume_prims));
           volume_tensor_ptr = &volume_tensor;
         } else {
-          if constexpr (std::is_same_v<tag,
-                                       hydro::Tags::Temperature<DataVector>>) {
-            if (reconstruct_density_times_temperature) {
-              get(volume_tensor)
-                  .set_data_ref(buffer.data(),
-                                subcell_volume_prims.number_of_grid_points());
-              get(volume_tensor) =
-                  get(get<hydro::Tags::RestMassDensity<DataVector>>(
-                      subcell_volume_prims)) *
-                  get(get<tag>(subcell_volume_prims));
-              volume_tensor_ptr = &volume_tensor;
-            } else {
-              volume_tensor_ptr = &get<tag>(subcell_volume_prims);
-            }
-          } else {
-            volume_tensor_ptr = &get<tag>(subcell_volume_prims);
-          }
+          volume_tensor_ptr = &get<tag>(subcell_volume_prims);
         }
+      } else {
+        volume_tensor_ptr = &get<tag>(subcell_volume_prims);
+      }
+    }
 
-        const auto& tensor_neighbor =
-            [&buffer, &neighbor_prims, reconstruct_density_times_temperature,
-             &rho_times_temperature_neighbor,
-             &subcell_volume_prims]() -> typename tag::type& {
-          if constexpr (std::is_same_v<tag,
-                                       hydro::Tags::Temperature<DataVector>>) {
-            if (reconstruct_density_times_temperature) {
-              get(rho_times_temperature_neighbor)
-                  .set_data_ref(
-                      &buffer[subcell_volume_prims.number_of_grid_points()],
-                      get(get<tag>(neighbor_prims)).size());
-              get(rho_times_temperature_neighbor) =
-                  get(get<hydro::Tags::RestMassDensity<DataVector>>(
-                      neighbor_prims)) *
-                  get(get<tag>(neighbor_prims));
-              return rho_times_temperature_neighbor;
-            } else {
-              (void)buffer, (void)reconstruct_density_times_temperature;
-              (void)rho_times_temperature_neighbor, (void)subcell_volume_prims;
-              return get<tag>(neighbor_prims);
-            }
-          } else {
-            (void)buffer, (void)reconstruct_density_times_temperature;
-            (void)rho_times_temperature_neighbor, (void)subcell_volume_prims;
-            return get<tag>(neighbor_prims);
-          }
-        }();
-        auto& tensor_on_face = get<tag>(*vars_on_face);
-        if (direction_to_reconstruct.side() == Side::Upper) {
-          for (size_t tensor_index = 0; tensor_index < tensor_on_face.size();
-               ++tensor_index) {
-            reconstruct_upper_neighbor_hydro(
-                make_not_null(&tensor_on_face[tensor_index]),
-                (*volume_tensor_ptr)[tensor_index],
-                tensor_neighbor[tensor_index], subcell_mesh.extents(),
-                ghost_data_extents, direction_to_reconstruct);
-          }
+    const auto& tensor_neighbor =
+        [&buffer, &neighbor_prims, reconstruct_density_times_temperature,
+         &rho_times_temperature_neighbor,
+         &subcell_volume_prims]() -> typename tag::type& {
+      if constexpr (std::is_same_v<tag, hydro::Tags::Temperature<DataVector>>) {
+        if (reconstruct_density_times_temperature) {
+          get(rho_times_temperature_neighbor)
+              .set_data_ref(
+                  &buffer[subcell_volume_prims.number_of_grid_points()],
+                  get(get<tag>(neighbor_prims)).size());
+          get(rho_times_temperature_neighbor) =
+              get(get<hydro::Tags::RestMassDensity<DataVector>>(
+                  neighbor_prims)) *
+              get(get<tag>(neighbor_prims));
+          return rho_times_temperature_neighbor;
         } else {
-          for (size_t tensor_index = 0; tensor_index < tensor_on_face.size();
-               ++tensor_index) {
-            reconstruct_lower_neighbor_hydro(
-                make_not_null(&tensor_on_face[tensor_index]),
-                (*volume_tensor_ptr)[tensor_index],
-                tensor_neighbor[tensor_index], subcell_mesh.extents(),
-                ghost_data_extents, direction_to_reconstruct);
-          }
+          (void)buffer, (void)reconstruct_density_times_temperature;
+          (void)rho_times_temperature_neighbor, (void)subcell_volume_prims;
+          return get<tag>(neighbor_prims);
         }
-        if constexpr (std::is_same_v<tag,
-                                     hydro::Tags::Temperature<DataVector>>) {
-          if (reconstruct_density_times_temperature) {
-            get(tensor_on_face) /= get(
-                get<hydro::Tags::RestMassDensity<DataVector>>(*vars_on_face));
-          }
-        }
-      });
-
+      } else {
+        (void)buffer, (void)reconstruct_density_times_temperature;
+        (void)rho_times_temperature_neighbor, (void)subcell_volume_prims;
+        return get<tag>(neighbor_prims);
+      }
+    }();
+    auto& tensor_on_face = get<tag>(*vars_on_face);
+    if (direction_to_reconstruct.side() == Side::Upper) {
+      for (size_t tensor_index = 0; tensor_index < tensor_on_face.size();
+           ++tensor_index) {
+        reconstruct_upper_neighbor_hydro(
+            make_not_null(&tensor_on_face[tensor_index]),
+            (*volume_tensor_ptr)[tensor_index], tensor_neighbor[tensor_index],
+            subcell_mesh.extents(), ghost_data_extents,
+            direction_to_reconstruct);
+      }
+    } else {
+      for (size_t tensor_index = 0; tensor_index < tensor_on_face.size();
+           ++tensor_index) {
+        reconstruct_lower_neighbor_hydro(
+            make_not_null(&tensor_on_face[tensor_index]),
+            (*volume_tensor_ptr)[tensor_index], tensor_neighbor[tensor_index],
+            subcell_mesh.extents(), ghost_data_extents,
+            direction_to_reconstruct);
+      }
+    }
+    if constexpr (std::is_same_v<tag, hydro::Tags::Temperature<DataVector>>) {
+      if (reconstruct_density_times_temperature) {
+        get(tensor_on_face) /=
+            get(get<hydro::Tags::RestMassDensity<DataVector>>(*vars_on_face));
+      }
+    }
+  });
+  // reconstruct spacetime for FD neighbors
   tmpl::for_each<SpacetimeTagsToReconstruct>(
       [&direction_to_reconstruct, &ghost_data_extents, &neighbor_prims,
        &reconstruct_lower_neighbor_spacetime,

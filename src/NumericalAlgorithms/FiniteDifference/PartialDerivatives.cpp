@@ -260,9 +260,6 @@ void logical_partial_derivatives_impl(
     const DirectionMap<Dim, gsl::span<const double>>& ghost_cell_vars,
     const Mesh<Dim>& volume_mesh, const size_t number_of_variables) {
 #ifdef SPECTRE_DEBUG
-  ASSERT(volume_mesh == Mesh<Dim>(volume_mesh.extents(0), volume_mesh.basis(0),
-                                  volume_mesh.quadrature(0)),
-         "The mesh must be isotropic, but got " << volume_mesh);
   ASSERT(
       volume_mesh.basis(0) == Spectral::Basis::FiniteDifference,
       "Mesh basis must be FiniteDifference but got " << volume_mesh.basis(0));
@@ -299,106 +296,8 @@ void logical_partial_derivatives_impl(
       ghost_cell_vars.at(Direction<Dim>::upper_xi()), volume_extents,
       number_of_variables, logical_xi_coords[1] - logical_xi_coords[0]);
 
-  if constexpr (Dim > 1) {
-    ASSERT(ghost_cell_vars.contains(Direction<Dim>::lower_eta()),
-           "Couldn't find lower ghost data in lower-eta");
-    ASSERT(ghost_cell_vars.contains(Direction<Dim>::upper_eta()),
-           "Couldn't find upper ghost data in upper-eta");
-
-    // We transpose from (x,y,z,vars) ordering to (y,z,vars,x) ordering
-    // Might not be the most efficient (unclear), but easiest.
-    // We use a single large buffer for both the y and z derivatives
-    // to reduce the number of memory allocations and improve data locality.
-    const auto& lower_ghost = ghost_cell_vars.at(Direction<Dim>::lower_eta());
-    const auto& upper_ghost = ghost_cell_vars.at(Direction<Dim>::upper_eta());
-    const size_t derivative_size = (*logical_derivatives)[1].size();
-    DataVector buffer{};
-    if (in_buffer != nullptr) {
-      ASSERT((in_buffer->size() >= volume_vars.size() + lower_ghost.size() +
-                                       upper_ghost.size() + derivative_size),
-             "The buffer must have size greater than or equal to "
-                 << (volume_vars.size() + lower_ghost.size() +
-                     upper_ghost.size() + derivative_size)
-                 << " but has size " << in_buffer->size());
-      buffer.set_data_ref(in_buffer->data(), in_buffer->size());
-    } else {
-      buffer = DataVector{volume_vars.size() + lower_ghost.size() +
-                          upper_ghost.size() + derivative_size};
-    }
-    raw_transpose(make_not_null(&buffer[0]), volume_vars.data(),
-                  volume_extents[0], volume_vars.size() / volume_extents[0]);
-    raw_transpose(make_not_null(&buffer[volume_vars.size()]),
-                  lower_ghost.data(), volume_extents[0],
-                  lower_ghost.size() / volume_extents[0]);
-    raw_transpose(
-        make_not_null(&buffer[volume_vars.size() + lower_ghost.size()]),
-        upper_ghost.data(), volume_extents[0],
-        upper_ghost.size() / volume_extents[0]);
-
-    // Note: assumes isotropic extents
-    const size_t derivative_offset_in_buffer =
-        volume_vars.size() + lower_ghost.size() + upper_ghost.size();
-    gsl::span<double> derivative_view =
-        gsl::make_span(&buffer[derivative_offset_in_buffer], derivative_size);
-
-    const auto& logical_eta_coords =
-        Spectral::collocation_points<Spectral::Basis::FiniteDifference,
-                                     Spectral::Quadrature::CellCentered>(
-            volume_mesh.extents(1));
-
-    logical_partial_derivatives_fastest_dim<DerivativeComputer>(
-        make_not_null(&derivative_view),
-        gsl::make_span(&buffer[0], volume_vars.size()),
-        gsl::make_span(&buffer[volume_vars.size()], lower_ghost.size()),
-        gsl::make_span(&buffer[volume_vars.size() + lower_ghost.size()],
-                       upper_ghost.size()),
-        volume_extents, number_of_variables,
-        logical_eta_coords[1] - logical_eta_coords[0]);
-    // Transpose result back
-    raw_transpose(
-        make_not_null((*logical_derivatives)[1].data()), derivative_view.data(),
-        derivative_view.size() / volume_extents[0], volume_extents[0]);
-
-    if constexpr (Dim > 2) {
-      ASSERT(ghost_cell_vars.contains(Direction<Dim>::lower_zeta()),
-             "Couldn't find lower ghost data in lower-zeta");
-      ASSERT(ghost_cell_vars.contains(Direction<Dim>::upper_zeta()),
-             "Couldn't find upper ghost data in upper-zeta");
-
-      const size_t chunk_size = volume_extents[0] * volume_extents[1];
-      const size_t number_of_volume_chunks = volume_vars.size() / chunk_size;
-      const size_t number_of_neighbor_chunks =
-          ghost_cell_vars.at(Direction<Dim>::lower_zeta()).size() / chunk_size;
-
-      raw_transpose(make_not_null(buffer.data()), volume_vars.data(),
-                    chunk_size, number_of_volume_chunks);
-      raw_transpose(make_not_null(&buffer[volume_vars.size()]),
-                    ghost_cell_vars.at(Direction<Dim>::lower_zeta()).data(),
-                    chunk_size, number_of_neighbor_chunks);
-      raw_transpose(
-          make_not_null(&buffer[volume_vars.size() + lower_ghost.size()]),
-          ghost_cell_vars.at(Direction<Dim>::upper_zeta()).data(), chunk_size,
-          number_of_neighbor_chunks);
-
-      const auto& logical_zeta_coords =
-          Spectral::collocation_points<Spectral::Basis::FiniteDifference,
-                                       Spectral::Quadrature::CellCentered>(
-              volume_mesh.extents(2));
-
-      logical_partial_derivatives_fastest_dim<DerivativeComputer>(
-          make_not_null(&derivative_view),
-          gsl::make_span(&buffer[0], volume_vars.size()),
-          gsl::make_span(&buffer[volume_vars.size()], lower_ghost.size()),
-          gsl::make_span(&buffer[volume_vars.size() + lower_ghost.size()],
-                         upper_ghost.size()),
-          volume_extents, number_of_variables,
-          logical_zeta_coords[1] - logical_zeta_coords[0]);
-      // Transpose result back
-      raw_transpose(make_not_null((*logical_derivatives)[2].data()),
-                    derivative_view.data(), derivative_view.size() / chunk_size,
-                    chunk_size);
-    }
-  }
+  (*logical_derivatives)[1] = (*logical_derivatives)[0];
+  (*logical_derivatives)[2] = (*logical_derivatives)[0];
 }
 }  // namespace
 

@@ -21,7 +21,7 @@
 #include "Domain/Tags.hpp"
 #include "Domain/TagsTimeDependent.hpp"
 #include "Evolution/BoundaryCorrectionTags.hpp"
-#include "Evolution/DgSubcell/CartesianFluxDivergence.hpp"
+#include "Evolution/DgSubcell/CartoonFluxDivergence.hpp"
 #include "Evolution/DgSubcell/ComputeBoundaryTerms.hpp"
 #include "Evolution/DgSubcell/CorrectPackagedData.hpp"
 #include "Evolution/DgSubcell/Projection.hpp"
@@ -51,7 +51,7 @@
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/Sources.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/Subcell/ComputeFluxes.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/TimeDerivativeTerms.hpp"
-#include "NumericalAlgorithms/FiniteDifference/PartialDerivatives.hpp"
+#include "NumericalAlgorithms/FiniteDifference/PartialDerivatives.tpp"
 #include "NumericalAlgorithms/Spectral/Mesh.hpp"
 #include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/DerivSpatialMetric.hpp"
 #include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/ExtrinsicCurvature.hpp"
@@ -231,6 +231,7 @@ struct ComputeTimeDerivImpl<
       // quantities already computed inside the GH RHS computation to minimize
       // FLOPs.
       const auto& lapse = get<gr::Tags::Lapse<DataVector>>(temp_tags);
+      const auto& shift = get<gr::Tags::Shift<DataVector, 3>>(temp_tags);
       const auto& half_phi_two_normals =
           get<gh::Tags::HalfPhiTwoNormals<3>>(temp_tags);
       const auto& phi = get<gh::Tags::Phi<DataVector, 3>>(evolved_vars);
@@ -239,7 +240,6 @@ struct ComputeTimeDerivImpl<
           get<gr::Tags::SpacetimeNormalVector<DataVector, 3>>(temp_tags);
       const auto& inverse_spacetime_metric =
           get<gr::Tags::InverseSpacetimeMetric<DataVector, 3>>(temp_tags);
-
       auto& spatial_deriv_lapse = get<deriv_lapse>(temp_tags);
       auto& spatial_deriv_shift = get<deriv_shift>(temp_tags);
       // Compute d_i beta^i
@@ -286,10 +286,12 @@ struct ComputeTimeDerivImpl<
       }
     }  // End scope for computing metric terms in GRMHD source terms.
 
+    // pass in inertial coordinates for cartoon source term calculation
     grmhd::ValenciaDivClean::ComputeSources::apply(
         get<::Tags::dt<GrmhdSourceTags>>(dt_vars_ptr)...,
         get<GrmhdArgumentSourceTags>(temp_tags, primitive_vars, evolved_vars,
-                                     *box)...);
+                                     *box)...,
+        inertial_coords);
 
     // Zero GRMHD tags that don't have sources.
     tmpl::for_each<tmpl::list<GrmhdDtTags...>>([&dt_vars_ptr](
@@ -409,21 +411,23 @@ struct ComputeTimeDerivImpl<
         get<Tags::TraceReversedStressEnergy>(temp_tags),
         get<gr::Tags::Lapse<DataVector>>(temp_tags));
 
-    for (size_t dim = 0; dim < 3; ++dim) {
+    // spherical symmetry, assume dim = 0
+    for (size_t dim = 0; dim < 1; ++dim) {
       const auto& boundary_correction_in_axis =
           gsl::at(boundary_corrections, dim);
       const double inverse_delta = gsl::at(one_over_delta_xi, dim);
       EXPAND_PACK_LEFT_TO_RIGHT([&dt_vars_ptr, &boundary_correction_in_axis,
                                  &cell_centered_det_inv_jacobian, dim,
-                                 inverse_delta, &subcell_mesh]() {
+                                 inverse_delta, &subcell_mesh,
+                                 &inertial_coords]() {
         auto& dt_var = *get<::Tags::dt<GrmhdDtTags>>(dt_vars_ptr);
         const auto& var_correction =
             get<GrmhdDtTags>(boundary_correction_in_axis);
-        for (size_t i = 0; i < dt_var.size(); ++i) {
+        for (size_t i = 0; i < 1; ++i) {
           evolution::dg::subcell::add_cartesian_flux_divergence(
               make_not_null(&dt_var[i]), inverse_delta,
               get(cell_centered_det_inv_jacobian), var_correction[i],
-              subcell_mesh.extents(), dim);
+              subcell_mesh.extents(), dim, inertial_coords);
         }
       }());
     }
@@ -461,12 +465,6 @@ struct TimeDerivative {
     const Mesh<3>& dg_mesh = db::get<domain::Tags::Mesh<3>>(*box);
     const Mesh<3>& subcell_mesh =
         db::get<evolution::dg::subcell::Tags::Mesh<3>>(*box);
-    ASSERT(
-        subcell_mesh == Mesh<3>(subcell_mesh.extents(0), subcell_mesh.basis(0),
-                                subcell_mesh.quadrature(0)),
-        "The subcell/FD mesh must be isotropic for the FD time derivative but "
-        "got "
-            << subcell_mesh);
     const size_t num_pts = subcell_mesh.number_of_grid_points();
     const size_t reconstructed_num_pts =
         (subcell_mesh.extents(0) + 1) *
@@ -521,8 +519,8 @@ struct TimeDerivative {
           [&filter_options, &recons, &subcell_mesh](const auto evolved_vars_ptr,
                                                     const auto& ghost_data) {
             typename evolved_vars_tag::type filtered_vars = *evolved_vars_ptr;
-            // $(recons.ghost_zone_size() - 1) * 2 + 1$ => always use highest
-            // order dissipation filter possible.
+            // $(recons.ghost_zone_size() - 1) * 2 + 1$ => always use
+            // highest order dissipation filter possible.
             grmhd::GhValenciaDivClean::fd::spacetime_kreiss_oliger_filter(
                 make_not_null(&filtered_vars), *evolved_vars_ptr, ghost_data,
                 subcell_mesh, 2 * recons.ghost_zone_size(),
@@ -559,12 +557,14 @@ struct TimeDerivative {
     Variables<db::wrap_tags_in<::Tags::deriv, gradients_tags, tmpl::size_t<3>,
                                Frame::Inertial>>
         cell_centered_gh_derivs{num_pts};
+    // replace y and z derivatives (1D cartoon) with x derivatives
+    // spacetime_derivatives for metric and fluxes
     grmhd::GhValenciaDivClean::fd::spacetime_derivatives<System>(
         make_not_null(&cell_centered_gh_derivs), evolved_vars,
         db::get<evolution::dg::subcell::Tags::GhostDataForReconstruction<3>>(
             *box),
         recons.ghost_zone_size() * 2, subcell_mesh,
-        cell_centered_logical_to_inertial_inv_jacobian);
+        cell_centered_logical_to_inertial_inv_jacobian, inertial_coords);
 
     // Now package the data and compute the correction
     //
@@ -642,7 +642,7 @@ struct TimeDerivative {
               reconstructed_num_pts};
 
           // Compute fluxes on faces
-          for (size_t i = 0; i < 3; ++i) {
+          for (size_t i = 0; i < 1; ++i) {
             auto& vars_upper_face = gsl::at(package_data_argvars_upper_face, i);
             auto& vars_lower_face = gsl::at(package_data_argvars_lower_face, i);
             grmhd::ValenciaDivClean::subcell::compute_fluxes(
@@ -652,8 +652,8 @@ struct TimeDerivative {
 
             // Build extents of mesh shifted by half a grid cell in direction i
             const unsigned long& num_subcells_1d = subcell_mesh.extents(0);
-            Index<3> face_mesh_extents(std::array<size_t, 3>{
-                num_subcells_1d, num_subcells_1d, num_subcells_1d});
+            Index<3> face_mesh_extents(
+                std::array<size_t, 3>{num_subcells_1d, 1, 1});
             face_mesh_extents[i] = num_subcells_1d + 1;
             // Add moving mesh corrections to the fluxes, if needed
             std::optional<tnsr::I<DataVector, 3, Frame::Inertial>>
@@ -718,7 +718,7 @@ struct TimeDerivative {
             // with "i" the current face.
             tnsr::i<DataVector, 3, Frame::Inertial> lower_outward_conormal{
                 reconstructed_num_pts, 0.0};
-            for (size_t j = 0; j < 3; j++) {
+            for (size_t j = 0; j < 1; j++) {
               lower_outward_conormal.get(j) =
                   evolution::dg::subcell::fd::project_to_faces(
                       inv_jacobian_dg.get(i, j), dg_mesh, face_mesh_extents, i);

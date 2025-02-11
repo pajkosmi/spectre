@@ -13,6 +13,7 @@
 #include "DataStructures/Tensor/Tensor.hpp"
 #include "DataStructures/Variables.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/Tags.hpp"
+#include "NumericalAlgorithms/FiniteDifference/PartialDerivatives.tpp"
 #include "PointwiseFunctions/GeneralRelativity/Christoffel.hpp"
 #include "PointwiseFunctions/GeneralRelativity/Tags.hpp"
 #include "PointwiseFunctions/Hydro/Tags.hpp"
@@ -190,7 +191,8 @@ void ComputeSources::apply(
     const tnsr::II<DataVector, 3, Frame::Inertial>& inv_spatial_metric,
     const Scalar<DataVector>& sqrt_det_spatial_metric,
     const tnsr::ii<DataVector, 3, Frame::Inertial>& extrinsic_curvature,
-    const double constraint_damping_parameter) {
+    const double constraint_damping_parameter,
+    const tnsr::I<DataVector, 3, Frame::Inertial>& inertial_coords) {
   Variables<
       tmpl::list<TildeSUp, DensitizedStress, MagneticFieldOneForm,
                  hydro::Tags::MagneticFieldDotSpatialVelocity<DataVector>,
@@ -253,9 +255,14 @@ void ComputeSources::apply(
 
       tilde_d, tilde_ye, tilde_tau, tilde_s, tilde_b, tilde_phi, lapse,
       sqrt_det_spatial_metric, inv_spatial_metric, d_lapse, d_shift,
-      d_spatial_metric, spatial_velocity, lorentz_factor, magnetic_field,
+      d_spatial_metric, spatial_velocity, lorentz_factor,
+      magnetic_field,
 
       rest_mass_density, electron_fraction, pressure, specific_internal_energy,
       extrinsic_curvature, constraint_damping_parameter);
+
+  // Update Sx source term += Pressure / radial_coordinate
+  source_tilde_s->get(0) += 2.0 * get(lapse) * get(sqrt_det_spatial_metric) *
+                            get(pressure) / inertial_coords.get(0);
 }
 }  // namespace grmhd::ValenciaDivClean

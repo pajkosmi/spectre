@@ -239,6 +239,9 @@ void DirichletFreeOutflow<System>::fd_ghost(
     const Scalar<DataVector>& interior_lorentz_factor,
     const tnsr::I<DataVector, 3, Frame::Inertial>& interior_spatial_velocity,
     const tnsr::I<DataVector, 3, Frame::Inertial>& interior_magnetic_field,
+    const tnsr::aa<DataVector, 3, Frame::Inertial>& interior_spacetime_metric,
+    const tnsr::aa<DataVector, 3, Frame::Inertial>& interior_pi,
+    const tnsr::iaa<DataVector, 3, Frame::Inertial>& interior_phi,
 
     // fd_gridless_tags
     const double time,
@@ -259,38 +262,149 @@ void DirichletFreeOutflow<System>::fd_ghost(
   const auto ghost_inertial_coords = grid_to_inertial_map(
       logical_to_grid_map(ghost_logical_coords), time, functions_of_time);
 
-  // Compute FD ghost data with the analytic data or solution
-  auto boundary_values = call_with_dynamic_type<
-      tuples::TaggedTuple<gr::Tags::SpacetimeMetric<DataVector, 3>,
-                          ::gh::Tags::Pi<DataVector, 3>,
-                          ::gh::Tags::Phi<DataVector, 3>>,
-      ghmhd::GhValenciaDivClean::InitialData::analytic_solutions_and_data_list>(
-      analytic_prescription_.get(),
-      [&ghost_inertial_coords, &time](const auto* const initial_data) {
-        using spacetime_tags =
-            tmpl::list<gr::Tags::SpacetimeMetric<DataVector, 3>,
-                       ::gh::Tags::Pi<DataVector, 3>,
-                       ::gh::Tags::Phi<DataVector, 3>>;
-        if constexpr (is_analytic_solution_v<
-                          std::decay_t<decltype(*initial_data)>>) {
-          return initial_data->variables(ghost_inertial_coords, time,
-                                         spacetime_tags{});
-        } else if constexpr (evolution::is_numeric_initial_data_v<
-                                 std::decay_t<decltype(*initial_data)>>) {
-          ERROR(
-              "Cannot currently use numeric initial data as an analytic "
-              "prescription for boundary conditions.");
-        } else {
-          (void)time;
-          return initial_data->variables(ghost_inertial_coords,
-                                         spacetime_tags{});
-        }
-      });
+  using SpacetimeMetric = gr::Tags::SpacetimeMetric<DataVector, 3>;
+  using Pi = gh::Tags::Pi<DataVector, 3>;
+  using Phi = gh::Tags::Phi<DataVector, 3>;
+  using spacetime_tags = tmpl::list<SpacetimeMetric, Pi, Phi>;
 
-  *spacetime_metric =
-      get<gr::Tags::SpacetimeMetric<DataVector, 3>>(boundary_values);
-  *pi = get<::gh::Tags::Pi<DataVector, 3>>(boundary_values);
-  *phi = get<::gh::Tags::Phi<DataVector, 3>>(boundary_values);
+  const size_t buffer_size_per_grid_pts =
+      Variables<spacetime_tags>::number_of_independent_components;
+
+  const size_t dim_direction{direction.dimension()};
+
+  const auto subcell_extents{subcell_mesh.extents()};
+
+  const size_t num_face_pts{
+      subcell_extents.slice_away(dim_direction).product()};
+
+  DataVector buffer_for_vars{
+      num_face_pts * ((1 + ghost_zone_size) * (buffer_size_per_grid_pts)), 0.0};
+
+  Variables<spacetime_tags> outermost_prim_vars{
+      buffer_for_vars.data(), num_face_pts * buffer_size_per_grid_pts};
+  Variables<spacetime_tags> ghost_prim_vars{
+      outermost_prim_vars.data() + outermost_prim_vars.size(),
+      num_face_pts * buffer_size_per_grid_pts * ghost_zone_size};
+
+  auto get_boundary_val = [&direction, &subcell_extents](auto volume_tensor) {
+    return evolution::dg::subcell::slice_tensor_for_subcell(
+        volume_tensor, subcell_extents, 1, direction, {});
+  };
+
+  get<SpacetimeMetric>(outermost_prim_vars) =
+      get_boundary_val(interior_spacetime_metric);
+
+  get<Pi>(outermost_prim_vars) = get_boundary_val(interior_pi);
+
+  get<Phi>(outermost_prim_vars) = get_boundary_val(interior_phi);
+
+  // Inner boundary at the origin
+  // In cartoon, BCs at the origin need to be treated carefully.  In the SpECTRE
+  // book, note the Covariant Rank 2 Transformations (for g_ab and Pi_ab) and
+  // Rank 3 Transformations (for Phi_iab) sections.  Additionally, these
+  // relations are explicitly tested in
+  // /Users/mpajkos/Codes/spectre/tests/Unit/NumericalAlgorithms/
+  // FiniteDifference/Test_PartialDerivatives.cpp.
+  // These set the boundary conditions for the spacetime variables at the
+  // origin.  In particular, asserting that d_y/z g_ab = d_y/z Pi_ab = d_y/z
+  // P_iab = 0 set the boundary condition.  For example, d_y g_12 = (g_11 -
+  // g_22) / x, for x = distance from the origin.  Asserting dy_g12 = 0 sets
+  // g_11 = g_22 at the origin. Another example, for Phi, d_z Phi_xab = -1 / x *
+  // (Phi_z33 - 2*Phi_x13). Asserting d_z Phi_xab = 0 sets Phi_z33 = 2*Phi_x13
+  // at the origin. In axisymmetry (2D Cartoon), only the d_z g_ab, d_z Pi_ab,
+  // and d_z Phi_iab terms would contribute to the cartooned BCs at the origin.
+
+  if (direction.sign() < 0.0) {
+    get<SpacetimeMetric>(outermost_prim_vars).get(2, 2) =
+        get<SpacetimeMetric>(outermost_prim_vars).get(3, 3);
+    get<SpacetimeMetric>(outermost_prim_vars).get(1, 1) =
+        get<SpacetimeMetric>(outermost_prim_vars).get(2, 2);
+
+    get<Pi>(outermost_prim_vars).get(2, 2) =
+        get<Pi>(outermost_prim_vars).get(3, 3);
+    get<Pi>(outermost_prim_vars).get(1, 1) =
+        get<Pi>(outermost_prim_vars).get(2, 2);
+
+    get<Phi>(outermost_prim_vars).get(1, 0, 2) =
+        get<Phi>(outermost_prim_vars).get(2, 0, 3);
+    get<Phi>(outermost_prim_vars).get(0, 0, 1) =
+        get<Phi>(outermost_prim_vars).get(1, 0, 2);
+
+    // zero out most Phi elements
+    for (size_t i = 0; i < 3; i++) {
+      for (size_t a = 0; a < 4; a++) {
+        for (size_t b = a; b < 4; b++) {
+          if (not(i == 0 and a == 0 and b == 1) and
+              not(i == 1 and a == 0 and b == 2) and
+              not(i == 2 and a == 0 and b == 3)) {
+            get<Phi>(outermost_prim_vars).get(i, a, b) =
+                0.0 * get_boundary_val(interior_phi).get(i, a, b);
+          }
+          // zero out g/Pi off diagonal elements
+          if (a != b) {
+            // Mike: I am unsure if I should zero out Pi_00 and g_00 element. Do
+            // I just treat those as lapse-dependent scalars and just set them
+            // to zero?
+            get<SpacetimeMetric>(outermost_prim_vars).get(a, b) =
+                0.0 * get<SpacetimeMetric>(outermost_prim_vars).get(a, b);
+            get<Pi>(outermost_prim_vars).get(a, b) =
+                0.0 * get_boundary_val(interior_pi).get(a, b);
+          }
+        }
+      }
+    }
+
+    // Now copy `outermost_prim_vars` into each slices of `ghost_prim_vars`.
+    Index<3> ghost_data_extents = subcell_extents;
+    ghost_data_extents[dim_direction] = ghost_zone_size;
+
+    for (size_t i_ghost = 0; i_ghost < ghost_zone_size; ++i_ghost) {
+      add_slice_to_data(make_not_null(&ghost_prim_vars), outermost_prim_vars,
+                        ghost_data_extents, dim_direction, i_ghost);
+    }
+
+    // move data from buffer to guard cells
+    *spacetime_metric = get<SpacetimeMetric>(ghost_prim_vars);
+    *pi = get<Pi>(ghost_prim_vars);
+    *phi = get<Phi>(ghost_prim_vars);
+
+  } else {
+    // outer boundary
+    // match initial data
+    // Compute FD ghost data with the analytic data or solution
+    auto boundary_values = call_with_dynamic_type<
+        tuples::TaggedTuple<gr::Tags::SpacetimeMetric<DataVector, 3>,
+                            ::gh::Tags::Pi<DataVector, 3>,
+                            ::gh::Tags::Phi<DataVector, 3>>,
+        ghmhd::GhValenciaDivClean::InitialData::
+            analytic_solutions_and_data_list>(
+        analytic_prescription_.get(),
+        [&ghost_inertial_coords, &time](const auto* const initial_data) {
+          using spacetime_tags =
+              tmpl::list<gr::Tags::SpacetimeMetric<DataVector, 3>,
+                         ::gh::Tags::Pi<DataVector, 3>,
+                         ::gh::Tags::Phi<DataVector, 3>>;
+          if constexpr (is_analytic_solution_v<
+                            std::decay_t<decltype(*initial_data)>>) {
+            return initial_data->variables(ghost_inertial_coords, time,
+                                           spacetime_tags{});
+          } else if constexpr (evolution::is_numeric_initial_data_v<
+                                   std::decay_t<decltype(*initial_data)>>) {
+            ERROR(
+                "Cannot currently use numeric initial data as an analytic "
+                "prescription for boundary conditions.");
+          } else {
+            (void)time;
+            return initial_data->variables(ghost_inertial_coords,
+                                           spacetime_tags{});
+          }
+        });
+
+    *spacetime_metric =
+        get<gr::Tags::SpacetimeMetric<DataVector, 3>>(boundary_values);
+    *pi = get<::gh::Tags::Pi<DataVector, 3>>(boundary_values);
+    *phi = get<::gh::Tags::Phi<DataVector, 3>>(boundary_values);
+  }
 
   // Note: Once we support high-order fluxes with GHMHD we will need to
   // handle this correctly.

@@ -108,7 +108,8 @@ class AnalyticChristoffel final : public GaugeCondition {
           }
         });
     gauge_and_spacetime_derivative_impl(gauge_h, d4_gauge_h, mesh,
-                                        inverse_jacobian, solution_vars);
+                                        inverse_jacobian, solution_vars,
+                                        inertial_coords);
   }
 
   // NOLINTNEXTLINE(google-runtime-references)
@@ -126,7 +127,9 @@ class AnalyticChristoffel final : public GaugeCondition {
       const InverseJacobian<DataVector, SpatialDim, Frame::ElementLogical,
                             Frame::Inertial>& inverse_jacobian,
       const tuples::tagged_tuple_from_typelist<solution_tags<SpatialDim>>&
-          solution_vars) const;
+          solution_vars,
+      const tnsr::I<DataVector, SpatialDim, Frame::Inertial>& inertial_coords)
+      const;
 
   std::unique_ptr<evolution::initial_data::InitialData> analytic_prescription_;
 };
