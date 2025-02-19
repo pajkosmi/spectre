@@ -244,6 +244,7 @@
 #include "Utilities/NoSuchType.hpp"
 #include "Utilities/ProtocolHelpers.hpp"
 #include "Utilities/TMPL.hpp"
+#include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/Expansion1D.hpp"
 
 /// \cond
 namespace Frame {
@@ -445,6 +446,7 @@ struct GhValenciaDivCleanTemplateBase<
           gr::Tags::SpatialMetric<DataVector, volume_dim, domain_frame>,
           gr::Tags::DetSpatialMetric<DataVector>,
           gr::Tags::InverseSpatialMetric<DataVector, volume_dim>,
+          gh::Tags::Expansion1DCompute<domain_frame>,
           gh::Tags::ExtrinsicCurvatureCompute<volume_dim, domain_frame>,
           gh::Tags::DerivSpatialMetricCompute<volume_dim, ::Frame::Inertial>,
           gr::Tags::SpatialChristoffelFirstKindCompute<DataVector, volume_dim,
