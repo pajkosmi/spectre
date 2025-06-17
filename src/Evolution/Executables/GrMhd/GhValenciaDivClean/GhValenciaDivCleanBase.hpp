@@ -84,6 +84,7 @@
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/FiniteDifference/Tag.hpp"
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/SetPiAndPhiFromConstraints.hpp"
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/Subcell/FixConservativesAndComputePrims.hpp"
+#include "Evolution/Systems/GrMhd/GhValenciaDivClean/Subcell/ForceCartoonPhi.hpp"
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/Subcell/NeighborPackagedData.hpp"
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/Subcell/PrimitiveGhostData.hpp"
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/Subcell/PrimsAfterRollback.hpp"
@@ -207,6 +208,7 @@
 #include "PointwiseFunctions/GeneralRelativity/Christoffel.hpp"
 #include "PointwiseFunctions/GeneralRelativity/DetAndInverseSpatialMetric.hpp"
 #include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/ConstraintGammas.hpp"
+#include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/Expansion1D.hpp"
 #include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/ExtrinsicCurvature.hpp"
 #include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/SecondTimeDerivOfSpacetimeMetric.hpp"
 #include "PointwiseFunctions/GeneralRelativity/Lapse.hpp"
@@ -244,7 +246,6 @@
 #include "Utilities/NoSuchType.hpp"
 #include "Utilities/ProtocolHelpers.hpp"
 #include "Utilities/TMPL.hpp"
-#include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/Expansion1D.hpp"
 
 /// \cond
 namespace Frame {
@@ -752,8 +753,9 @@ struct GhValenciaDivCleanTemplateBase<
           tmpl::list<
               evolution::dg::Actions::ApplyBoundaryCorrectionsToTimeDerivative<
                   system, volume_dim, false, use_dg_element_collection>,
-              Actions::RecordTimeStepperData<system>,
-              Actions::UpdateU<system>>>,
+              Actions::RecordTimeStepperData<system>, Actions::UpdateU<system>,
+              Actions::MutateApply<grmhd::GhValenciaDivClean::subcell::
+                                       ForceCartoonPhi<volume_dim>>>>,
       Actions::CleanHistory<system, local_time_stepping>,
       Limiters::Actions::SendData<derived_metavars>,
       Limiters::Actions::Limit<derived_metavars>,
@@ -785,7 +787,9 @@ struct GhValenciaDivCleanTemplateBase<
                      evolution::Actions::RunEventsAndDenseTriggers<
                          events_and_dense_triggers_subcell_postprocessors>,
                      control_system::Actions::LimitTimeStep<control_systems>,
-                     Actions::UpdateU<system>>>,
+                     Actions::UpdateU<system>,
+                     Actions::MutateApply<grmhd::GhValenciaDivClean::subcell::
+                                              ForceCartoonPhi<volume_dim>>>>,
       // Note: The primitive variables are computed as part of the TCI.
       evolution::dg::subcell::Actions::TciAndRollback<
           grmhd::GhValenciaDivClean::subcell::TciOnDgGrid<
@@ -820,6 +824,8 @@ struct GhValenciaDivCleanTemplateBase<
           events_and_dense_triggers_subcell_postprocessors>,
       control_system::Actions::LimitTimeStep<control_systems>,
       Actions::UpdateU<system>,
+      Actions::MutateApply<
+          grmhd::GhValenciaDivClean::subcell::ForceCartoonPhi<volume_dim>>,
       Actions::CleanHistory<system, local_time_stepping>,
       Actions::MutateApply<
           grmhd::GhValenciaDivClean::subcell::FixConservativesAndComputePrims<
