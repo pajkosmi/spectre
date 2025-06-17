@@ -16,17 +16,6 @@
 namespace evolution::dg::subcell::fd {
 template <size_t Dim>
 Mesh<Dim> mesh(const Mesh<Dim>& dg_mesh) {
-  ASSERT(dg_mesh.basis() == make_array<Dim>(Spectral::Basis::Legendre) or
-             dg_mesh.basis() == make_array<Dim>(Spectral::Basis::Chebyshev),
-         "The DG basis for computing the subcell mesh must be Legendre or "
-         "Chebyshev but got DG mesh"
-             << dg_mesh);
-  ASSERT(dg_mesh.quadrature() == make_array<Dim>(Spectral::Quadrature::Gauss) or
-             dg_mesh.quadrature() ==
-                 make_array<Dim>(Spectral::Quadrature::GaussLobatto),
-         "The DG quadrature for computing the subcell mesh must be Gauss or "
-         "GaussLobatto but got DG mesh"
-             << dg_mesh);
   std::array<size_t, Dim> extents{};
   for (size_t d = 0; d < Dim; ++d) {
     gsl::at(extents, d) = 2 * dg_mesh.extents(d) - 1;

@@ -22,7 +22,7 @@ void logical_coordinates(
         logical_coords,
     const Mesh<VolumeDim>& mesh) {
   set_number_of_grid_points(logical_coords, mesh.number_of_grid_points());
-  for (size_t d = 0; d < VolumeDim; ++d) {
+  for (size_t d = 0; d < 1; ++d) {
     switch (mesh.basis(d)) {
       case Spectral::Basis::SphericalHarmonic: {
         switch (mesh.quadrature(d)) {

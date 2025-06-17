@@ -96,17 +96,9 @@ Mesh<Dim>::Mesh(const std::array<size_t, Dim>& extents,
     extents_[0] = extents[0];
     quadrature_and_basis_[0] = combine(bases[0], quadratures[0]);
     if constexpr (Dim > 1) {
-      ASSERT(extents[1] <= 255,
-             "Cannot have more than 255 grid points in direction 1: "
-                 << extents[1]);
-      extents_[1] = extents[1];
-      quadrature_and_basis_[1] = combine(bases[1], quadratures[1]);
+      extents_[1] = 1;
       if constexpr (Dim > 2) {
-        ASSERT(extents[2] <= 255,
-               "Cannot have more than 255 grid points in direction 2: "
-                   << extents[2]);
-        extents_[2] = extents[2];
-        quadrature_and_basis_[2] = combine(bases[2], quadratures[2]);
+        extents_[2] = 1;
       }
     }
   } else {
@@ -114,6 +106,7 @@ Mesh<Dim>::Mesh(const std::array<size_t, Dim>& extents,
     (void)extents;
     (void)bases;
     (void)quadratures;
+
   }
 }
 
@@ -158,8 +151,7 @@ size_t Mesh<Dim>::number_of_grid_points() const {
     return static_cast<size_t>(extents_[0]) * static_cast<size_t>(extents_[1]);
   } else {
     // cast first so we don't overflow
-    return static_cast<size_t>(extents_[0]) * static_cast<size_t>(extents_[1]) *
-           static_cast<size_t>(extents_[2]);
+    return static_cast<size_t>(extents_[0]);
   }
 }
 

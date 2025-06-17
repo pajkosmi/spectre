@@ -45,7 +45,6 @@
 #include "Utilities/Numeric.hpp"
 #include "Utilities/StdHelpers.hpp"
 
-
 namespace h5 {
 namespace {
 // Append the element extents and connectivity to the total extents and
@@ -804,16 +803,6 @@ Mesh<Dim> mesh_for_grid(
     const auto& extents = gsl::at(all_extents, element_index);
     const auto& bases = gsl::at(all_bases, element_index);
     const auto& quadratures = gsl::at(all_quadratures, element_index);
-    ASSERT(extents.size() == Dim, "Extents in " << Dim << "D should have size "
-                                                << Dim << ", but found size "
-                                                << extents.size() << ".");
-    ASSERT(bases.size() == Dim, "Bases in " << Dim << "D should have size "
-                                            << Dim << ", but found size "
-                                            << bases.size() << ".");
-    ASSERT(quadratures.size() == Dim, "Quadratures in "
-                                          << Dim << "D should have size " << Dim
-                                          << ", but found size "
-                                          << quadratures.size() << ".");
     return Mesh<Dim>{make_array<size_t, Dim>(extents),
                      make_array<Spectral::Basis, Dim>(bases),
                      make_array<Spectral::Quadrature, Dim>(quadratures)};

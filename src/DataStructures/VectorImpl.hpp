@@ -255,9 +255,6 @@ class VectorImpl
   VectorImpl& operator=(const T& rhs);
 
   decltype(auto) SPECTRE_ALWAYS_INLINE operator[](const size_t index) {
-    ASSERT(index < size(), "Out-of-range access to element "
-                               << index << " of a size " << size()
-                               << " Blaze vector.");
     return BaseType::operator[](index);
   }
 
