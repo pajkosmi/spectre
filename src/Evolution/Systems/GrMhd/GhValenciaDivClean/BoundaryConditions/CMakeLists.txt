@@ -8,6 +8,7 @@ spectre_target_sources(
   ConstraintPreservingFreeOutflow.cpp
   DirichletAnalytic.cpp
   DirichletFreeOutflow.cpp
+  DirichletFreeOutflowBH.cpp
   )
 
 spectre_target_headers(
@@ -18,5 +19,6 @@ spectre_target_headers(
   ConstraintPreservingFreeOutflow.hpp
   DirichletAnalytic.hpp
   DirichletFreeOutflow.hpp
+  DirichletFreeOutflowBH.hpp
   Factory.hpp
   )

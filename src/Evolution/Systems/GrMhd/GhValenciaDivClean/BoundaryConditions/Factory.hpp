@@ -9,6 +9,7 @@
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/BoundaryConditions/ConstraintPreservingFreeOutflow.hpp"
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/BoundaryConditions/DirichletAnalytic.hpp"
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/BoundaryConditions/DirichletFreeOutflow.hpp"
+#include "Evolution/Systems/GrMhd/GhValenciaDivClean/BoundaryConditions/DirichletFreeOutflowBH.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/BoundaryConditions/Factory.hpp"
 #include "Utilities/TMPL.hpp"
 
@@ -19,6 +20,7 @@ using standard_boundary_conditions = tmpl::list<
     ConstraintPreservingFreeOutflow,
     domain::BoundaryConditions::Periodic<BoundaryCondition>,
     grmhd::GhValenciaDivClean::BoundaryConditions::DirichletAnalytic<System>,
-    grmhd::GhValenciaDivClean::BoundaryConditions::DirichletFreeOutflow<
+    grmhd::GhValenciaDivClean::BoundaryConditions::DirichletFreeOutflow<System>,
+    grmhd::GhValenciaDivClean::BoundaryConditions::DirichletFreeOutflowBH<
         System>>;
 }  // namespace grmhd::GhValenciaDivClean::BoundaryConditions

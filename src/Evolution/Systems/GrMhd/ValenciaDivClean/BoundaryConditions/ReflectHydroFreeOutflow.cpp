@@ -1,7 +1,7 @@
 // Distributed under the MIT License.
 // See LICENSE.txt for details.
 
-#include "Evolution/Systems/GrMhd/ValenciaDivClean/BoundaryConditions/HydroFreeOutflow.hpp"
+#include "Evolution/Systems/GrMhd/ValenciaDivClean/BoundaryConditions/ReflectHydroFreeOutflow.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -30,20 +30,20 @@
 #include "Utilities/Gsl.hpp"
 
 namespace grmhd::ValenciaDivClean::BoundaryConditions {
-HydroFreeOutflow::HydroFreeOutflow(CkMigrateMessage* const msg)
+ReflectHydroFreeOutflow::ReflectHydroFreeOutflow(CkMigrateMessage* const msg)
     : BoundaryCondition(msg) {}
 
 std::unique_ptr<domain::BoundaryConditions::BoundaryCondition>
-HydroFreeOutflow::get_clone() const {
-  return std::make_unique<HydroFreeOutflow>(*this);
+ReflectHydroFreeOutflow::get_clone() const {
+  return std::make_unique<ReflectHydroFreeOutflow>(*this);
 }
 
-void HydroFreeOutflow::pup(PUP::er& p) { BoundaryCondition::pup(p); }
+void ReflectHydroFreeOutflow::pup(PUP::er& p) { BoundaryCondition::pup(p); }
 
 // NOLINTNEXTLINE
-PUP::able::PUP_ID HydroFreeOutflow::my_PUP_ID = 0;
+PUP::able::PUP_ID ReflectHydroFreeOutflow::my_PUP_ID = 0;
 
-std::optional<std::string> HydroFreeOutflow::dg_ghost(
+std::optional<std::string> ReflectHydroFreeOutflow::dg_ghost(
     const gsl::not_null<Scalar<DataVector>*> tilde_d,
     const gsl::not_null<Scalar<DataVector>*> tilde_ye,
     const gsl::not_null<Scalar<DataVector>*> tilde_tau,
@@ -187,7 +187,7 @@ template <typename T>
 using Flux = ::Tags::Flux<T, tmpl::size_t<3>, Frame::Inertial>;
 }  // namespace
 
-void HydroFreeOutflow::fd_ghost(
+void ReflectHydroFreeOutflow::fd_ghost(
     const gsl::not_null<Scalar<DataVector>*> rest_mass_density,
     const gsl::not_null<Scalar<DataVector>*> electron_fraction,
     const gsl::not_null<Scalar<DataVector>*> temperature,
@@ -299,7 +299,7 @@ void HydroFreeOutflow::fd_ghost(
   }
 }
 
-void HydroFreeOutflow::fd_ghost_impl(
+void ReflectHydroFreeOutflow::fd_ghost_impl(
     const gsl::not_null<Scalar<DataVector>*> rest_mass_density,
     const gsl::not_null<Scalar<DataVector>*> electron_fraction,
     const gsl::not_null<Scalar<DataVector>*> temperature,
@@ -386,7 +386,8 @@ void HydroFreeOutflow::fd_ghost_impl(
       get_boundary_val(interior_temperature);
 
   {
-    // Kill ingoing components of spatial velocity and compute Wv^i
+    // Reflect velocity components at origin and copy the outermost velocity
+    // component into the guard cells at the outer boundary
     //
     // Note : Here we require the grid to be Cartesian, therefore we will need
     // to change the implementation below once subcell supports curved mesh.
@@ -395,15 +396,15 @@ void HydroFreeOutflow::fd_ghost_impl(
     for (size_t i = 0; i < 3; ++i) {
       if (i == dim_direction) {
         if (direction.sign() > 0.0) {
+          // let velocity do what it naturally wants to at the outer domain
           get<LorentzFactorTimesSpatialVelocity>(outermost_prim_vars).get(i) =
               get(get_boundary_val(interior_lorentz_factor)) *
-              max(normal_spatial_velocity_at_boundary,
-                  normal_spatial_velocity_at_boundary * 0.0);
+              normal_spatial_velocity_at_boundary;
         } else {
+          // flip sign at inside origin of spherically symmetric domain
           get<LorentzFactorTimesSpatialVelocity>(outermost_prim_vars).get(i) =
               get(get_boundary_val(interior_lorentz_factor)) *
-              min(normal_spatial_velocity_at_boundary,
-                  normal_spatial_velocity_at_boundary * 0.0);
+              (-normal_spatial_velocity_at_boundary);
         }
       } else {
         get<LorentzFactorTimesSpatialVelocity>(outermost_prim_vars).get(i) =

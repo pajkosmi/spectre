@@ -1,7 +1,7 @@
 // Distributed under the MIT License.
 // See LICENSE.txt for details.
 
-#include "Evolution/Systems/GrMhd/GhValenciaDivClean/BoundaryConditions/DirichletFreeOutflow.hpp"
+#include "Evolution/Systems/GrMhd/GhValenciaDivClean/BoundaryConditions/DirichletFreeOutflowBH.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -36,17 +36,14 @@
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/NeutrinoSystems.hpp"
 #include "Evolution/Systems/GrMhd/GhValenciaDivClean/Tags.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/BoundaryConditions/HydroFreeOutflow.hpp"
-#include "Evolution/Systems/GrMhd/ValenciaDivClean/BoundaryConditions/ReflectHydroFreeOutflow.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/ConservativeFromPrimitive.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/Fluxes.hpp"
 #include "Evolution/Systems/GrMhd/ValenciaDivClean/Tags.hpp"
-#include "Evolution/Systems/RadiationTransport/NoNeutrinos/System.hpp"
 #include "NumericalAlgorithms/Spectral/Mesh.hpp"
 #include "Options/String.hpp"
 #include "PointwiseFunctions/AnalyticData/AnalyticData.hpp"
 #include "PointwiseFunctions/AnalyticData/Tags.hpp"
 #include "PointwiseFunctions/AnalyticSolutions/AnalyticSolution.hpp"
-#include "PointwiseFunctions/GeneralRelativity/GeneralizedHarmonic/ConstraintDampingTags.hpp"
 #include "PointwiseFunctions/GeneralRelativity/Tags.hpp"
 #include "PointwiseFunctions/Hydro/Tags.hpp"
 #include "Utilities/ErrorHandling/Assert.hpp"
@@ -54,20 +51,23 @@
 #include "Utilities/Serialization/CharmPupable.hpp"
 #include "Utilities/TMPL.hpp"
 
+#include <iostream>
+
 namespace grmhd::GhValenciaDivClean::BoundaryConditions {
 template <typename System>
-DirichletFreeOutflow<System>::DirichletFreeOutflow(CkMigrateMessage* const msg)
+DirichletFreeOutflowBH<System>::DirichletFreeOutflowBH(
+    CkMigrateMessage* const msg)
     : BoundaryCondition(msg) {}
 // LCOV_EXCL_STOP
 template <typename System>
-DirichletFreeOutflow<System>::DirichletFreeOutflow(
-    const DirichletFreeOutflow<System>& rhs)
+DirichletFreeOutflowBH<System>::DirichletFreeOutflowBH(
+    const DirichletFreeOutflowBH<System>& rhs)
     : BoundaryCondition{dynamic_cast<const BoundaryCondition&>(rhs)},
       analytic_prescription_(rhs.analytic_prescription_->get_clone()) {}
 
 template <typename System>
-DirichletFreeOutflow<System>& DirichletFreeOutflow<System>::operator=(
-    const DirichletFreeOutflow<System>& rhs) {
+DirichletFreeOutflowBH<System>& DirichletFreeOutflowBH<System>::operator=(
+    const DirichletFreeOutflowBH<System>& rhs) {
   if (&rhs == this) {
     return *this;
   }
@@ -76,27 +76,27 @@ DirichletFreeOutflow<System>& DirichletFreeOutflow<System>::operator=(
 }
 
 template <typename System>
-DirichletFreeOutflow<System>::DirichletFreeOutflow(
+DirichletFreeOutflowBH<System>::DirichletFreeOutflowBH(
     std::unique_ptr<evolution::initial_data::InitialData> analytic_prescription)
     : analytic_prescription_(std::move(analytic_prescription)) {}
 
 template <typename System>
 std::unique_ptr<domain::BoundaryConditions::BoundaryCondition>
-DirichletFreeOutflow<System>::get_clone() const {
-  return std::make_unique<DirichletFreeOutflow>(*this);
+DirichletFreeOutflowBH<System>::get_clone() const {
+  return std::make_unique<DirichletFreeOutflowBH>(*this);
 }
 
 template <typename System>
-void DirichletFreeOutflow<System>::pup(PUP::er& p) {
+void DirichletFreeOutflowBH<System>::pup(PUP::er& p) {
   BoundaryCondition::pup(p);
   p | analytic_prescription_;
 }
 template <typename System>
 // NOLINTNEXTLINE
-PUP::able::PUP_ID DirichletFreeOutflow<System>::my_PUP_ID = 0;
+PUP::able::PUP_ID DirichletFreeOutflowBH<System>::my_PUP_ID = 0;
 
 template <typename System>
-std::optional<std::string> DirichletFreeOutflow<System>::dg_ghost(
+std::optional<std::string> DirichletFreeOutflowBH<System>::dg_ghost(
     const gsl::not_null<tnsr::aa<DataVector, 3, Frame::Inertial>*>
         spacetime_metric,
     const gsl::not_null<tnsr::aa<DataVector, 3, Frame::Inertial>*> pi,
@@ -213,7 +213,7 @@ std::optional<std::string> DirichletFreeOutflow<System>::dg_ghost(
 }
 
 template <typename System>
-void DirichletFreeOutflow<System>::fd_ghost(
+void DirichletFreeOutflowBH<System>::fd_ghost(
     const gsl::not_null<tnsr::aa<DataVector, 3, Frame::Inertial>*>
         spacetime_metric,
     const gsl::not_null<tnsr::aa<DataVector, 3, Frame::Inertial>*> pi,
@@ -299,115 +299,18 @@ void DirichletFreeOutflow<System>::fd_ghost(
 
   get<Phi>(outermost_prim_vars) = get_boundary_val(interior_phi);
 
-  // Inner boundary at the origin
-  // In cartoon, BCs at the origin need to be treated carefully.  In the SpECTRE
-  // book, note the Covariant Rank 2 Transformations (for g_ab and Pi_ab) and
-  // Rank 3 Transformations (for Phi_iab) sections.  Additionally, these
-  // relations are explicitly tested in
-  // /Users/mpajkos/Codes/spectre/tests/Unit/NumericalAlgorithms/
-  // FiniteDifference/Test_PartialDerivatives.cpp.
-  // These set the boundary conditions for the spacetime variables at the
-  // origin.  In particular, asserting that d_y/z g_ab = d_y/z Pi_ab = d_y/z
-  // P_iab = 0 set the boundary condition.  For example, d_y g_12 = (g_11 -
-  // g_22) / x, for x = distance from the origin.  Asserting dy_g12 = 0 sets
-  // g_11 = g_22 at the origin. Another example, for Phi, d_z Phi_xab = -1 / x *
-  // (Phi_z33 - 2*Phi_x13). Asserting d_z Phi_xab = 0 sets Phi_z33 = 2*Phi_x13
-  // at the origin. In axisymmetry (2D Cartoon), only the d_z g_ab, d_z Pi_ab,
-  // and d_z Phi_iab terms would contribute to the cartooned BCs at the origin.
+  // Just copy data over
+  Index<3> ghost_data_extents = subcell_extents;
+  ghost_data_extents[dim_direction] = ghost_zone_size;
 
-  // Inner boundary (pole-spherical symmetry or axis-axisymmetry)
-  if (direction.sign() < 0.0) {
-    get<SpacetimeMetric>(outermost_prim_vars).get(2, 2) =
-        get<SpacetimeMetric>(outermost_prim_vars).get(3, 3);
-    get<SpacetimeMetric>(outermost_prim_vars).get(1, 1) =
-        get<SpacetimeMetric>(outermost_prim_vars).get(2, 2);
-
-    get<Pi>(outermost_prim_vars).get(2, 2) =
-        get<Pi>(outermost_prim_vars).get(3, 3);
-    get<Pi>(outermost_prim_vars).get(1, 1) =
-        get<Pi>(outermost_prim_vars).get(2, 2);
-
-    get<Phi>(outermost_prim_vars).get(1, 0, 2) =
-        get<Phi>(outermost_prim_vars).get(2, 0, 3);
-    get<Phi>(outermost_prim_vars).get(0, 0, 1) =
-        get<Phi>(outermost_prim_vars).get(1, 0, 2);
-
-    // zero out most Phi elements
-    for (size_t i = 0; i < 3; i++) {
-      for (size_t a = 0; a < 4; a++) {
-        for (size_t b = a; b < 4; b++) {
-          if (not(i == 0 and a == 0 and b == 1) and
-              not(i == 1 and a == 0 and b == 2) and
-              not(i == 2 and a == 0 and b == 3)) {
-            get<Phi>(outermost_prim_vars).get(i, a, b) =
-                0.0 * get_boundary_val(interior_phi).get(i, a, b);
-          }
-          // zero out g/Pi off diagonal elements
-          if (a != b) {
-            // Mike: I am unsure if I should zero out Pi_00 and g_00 element. Do
-            // I just treat those as lapse-dependent scalars and just set them
-            // to zero?
-            get<SpacetimeMetric>(outermost_prim_vars).get(a, b) =
-                0.0 * get<SpacetimeMetric>(outermost_prim_vars).get(a, b);
-            get<Pi>(outermost_prim_vars).get(a, b) =
-                0.0 * get_boundary_val(interior_pi).get(a, b);
-          }
-        }
-      }
-    }
-    // }
-
-    // If outer boundary, just copy over spacetime values
-    // Now copy `outermost_prim_vars` into each slices of `ghost_prim_vars`.
-    Index<3> ghost_data_extents = subcell_extents;
-    ghost_data_extents[dim_direction] = ghost_zone_size;
-
-    for (size_t i_ghost = 0; i_ghost < ghost_zone_size; ++i_ghost) {
-      add_slice_to_data(make_not_null(&ghost_prim_vars), outermost_prim_vars,
-                        ghost_data_extents, dim_direction, i_ghost);
-    }
-    // move data from buffer to guard cells
-    *spacetime_metric = get<SpacetimeMetric>(ghost_prim_vars);
-    *pi = get<Pi>(ghost_prim_vars);
-    *phi = get<Phi>(ghost_prim_vars);
-
-  } else {
-    // outer boundary
-    // match initial data
-    // Compute FD ghost data with the analytic data or solution
-    auto boundary_values = call_with_dynamic_type<
-        tuples::TaggedTuple<gr::Tags::SpacetimeMetric<DataVector, 3>,
-                            ::gh::Tags::Pi<DataVector, 3>,
-                            ::gh::Tags::Phi<DataVector, 3>>,
-        ghmhd::GhValenciaDivClean::InitialData::
-            analytic_solutions_and_data_list>(
-        analytic_prescription_.get(),
-        [&ghost_inertial_coords, &time](const auto* const initial_data) {
-          using spacetime_tags =
-              tmpl::list<gr::Tags::SpacetimeMetric<DataVector, 3>,
-                         ::gh::Tags::Pi<DataVector, 3>,
-                         ::gh::Tags::Phi<DataVector, 3>>;
-          if constexpr (is_analytic_solution_v<
-                            std::decay_t<decltype(*initial_data)>>) {
-            return initial_data->variables(ghost_inertial_coords, time,
-                                           spacetime_tags{});
-          } else if constexpr (evolution::is_numeric_initial_data_v<
-                                   std::decay_t<decltype(*initial_data)>>) {
-            ERROR(
-                "Cannot currently use numeric initial data as an analytic "
-                "prescription for boundary conditions.");
-          } else {
-            (void)time;
-            return initial_data->variables(ghost_inertial_coords,
-                                           spacetime_tags{});
-          }
-        });
-
-    *spacetime_metric =
-        get<gr::Tags::SpacetimeMetric<DataVector, 3>>(boundary_values);
-    *pi = get<::gh::Tags::Pi<DataVector, 3>>(boundary_values);
-    *phi = get<::gh::Tags::Phi<DataVector, 3>>(boundary_values);
+  for (size_t i_ghost = 0; i_ghost < ghost_zone_size; ++i_ghost) {
+    add_slice_to_data(make_not_null(&ghost_prim_vars), outermost_prim_vars,
+                      ghost_data_extents, dim_direction, i_ghost);
   }
+  // move data from buffer to guard cells
+  *spacetime_metric = get<SpacetimeMetric>(ghost_prim_vars);
+  *pi = get<Pi>(ghost_prim_vars);
+  *phi = get<Phi>(ghost_prim_vars);
 
   // Note: Once we support high-order fluxes with GHMHD we will need to
   // handle this correctly.
@@ -428,40 +331,37 @@ void DirichletFreeOutflow<System>::fd_ghost(
   Scalar<DataVector> lapse{};
   tnsr::I<DataVector, 3> shift{};
 
-  grmhd::ValenciaDivClean::BoundaryConditions::ReflectHydroFreeOutflow::
-      fd_ghost_impl(
-          rest_mass_density, electron_fraction, temperature,
-          make_not_null(&pressure), make_not_null(&specific_internal_energy),
-          lorentz_factor_times_spatial_velocity,
-          make_not_null(&spatial_velocity), make_not_null(&lorentz_factor),
-          magnetic_field, divergence_cleaning_field,
+  grmhd::ValenciaDivClean::BoundaryConditions::HydroFreeOutflow::fd_ghost_impl(
+      rest_mass_density, electron_fraction, temperature,
+      make_not_null(&pressure), make_not_null(&specific_internal_energy),
+      lorentz_factor_times_spatial_velocity, make_not_null(&spatial_velocity),
+      make_not_null(&lorentz_factor), magnetic_field, divergence_cleaning_field,
 
-          make_not_null(&spatial_metric), make_not_null(&inv_spatial_metric),
-          make_not_null(&sqrt_det_spatial_metric), make_not_null(&lapse),
-          make_not_null(&shift),
+      make_not_null(&spatial_metric), make_not_null(&inv_spatial_metric),
+      make_not_null(&sqrt_det_spatial_metric), make_not_null(&lapse),
+      make_not_null(&shift),
 
-          direction,
+      direction,
 
-          // fd_interior_temporary_tags
-          subcell_mesh,
+      // fd_interior_temporary_tags
+      subcell_mesh,
 
-          // fd_interior_primitive_variables_tags
-          interior_rest_mass_density, interior_electron_fraction,
-          interior_temperature, interior_pressure,
-          interior_specific_internal_energy, interior_lorentz_factor,
-          interior_spatial_velocity, interior_magnetic_field,
-          // Note: metric vars are empty because they shouldn't be used
-          interior_spatial_metric, interior_lapse, interior_shift,
+      // fd_interior_primitive_variables_tags
+      interior_rest_mass_density, interior_electron_fraction,
+      interior_temperature, interior_pressure,
+      interior_specific_internal_energy, interior_lorentz_factor,
+      interior_spatial_velocity, interior_magnetic_field,
+      // Note: metric vars are empty because they shouldn't be used
+      interior_spatial_metric, interior_lapse, interior_shift,
 
-          // fd_gridless_tags
-          reconstructor.ghost_zone_size(),
-          cell_centered_ghost_fluxes.has_value());
+      // fd_gridless_tags
+      reconstructor.ghost_zone_size(), cell_centered_ghost_fluxes.has_value());
 }
 
 #define NEUTRINO(data) BOOST_PP_TUPLE_ELEM(0, data)
 
-#define INSTANTIATION(r, data)         \
-  template class DirichletFreeOutflow< \
+#define INSTANTIATION(r, data)           \
+  template class DirichletFreeOutflowBH< \
       GhValenciaDivClean::System<NEUTRINO(data)>>;
 
 GENERATE_INSTANTIATIONS(INSTANTIATION, GHMHD_NEUTRINOS)
